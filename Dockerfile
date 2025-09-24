@@ -1,13 +1,15 @@
-# Build stage
 FROM node:20-alpine AS build
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
+# Enable corepack and install pnpm
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 FROM socialengine/nginx-spa:latest
 
