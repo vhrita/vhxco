@@ -1,0 +1,130 @@
+---
+import { languages } from '../i18n/ui';
+---
+
+<div class="language-picker">
+  {Object.entries(languages).map(([langCode, label]) => (
+    <button
+      type="button"
+      data-lang={langCode}
+      class="language-button"
+    >
+      {label}
+    </button>
+  ))}
+</div>
+
+<script>
+  function detectLanguage(): 'pt' | 'en' {
+    const browserLang = navigator.language.toLowerCase();
+    if (browserLang.startsWith('en')) return 'en';
+    return 'pt';
+  }
+
+  function setLanguage(lang: 'pt' | 'en') {
+    localStorage.setItem('preferred-language', lang);
+    updateContent(lang);
+    updateActiveButton(lang);
+  }
+
+  function updateActiveButton(lang: 'pt' | 'en') {
+    document.querySelectorAll('.language-button').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.getAttribute('data-lang') === lang) {
+        btn.classList.add('active');
+      }
+    });
+  }
+
+  function updateContent(lang: 'pt' | 'en') {
+    const ui = {
+      en: {
+        'comingsoon.title': 'Coming Soon',
+        'comingsoon.description': 'We are working on something amazing. Stay tuned!',
+        'contact.email': 'Email',
+        'contact.phone': 'Phone',
+        'contact.whatsapp': 'WhatsApp',
+        'portfolio.cta': 'Looking for a freelancer?',
+        'portfolio.button': 'View Portfolio',
+      },
+      pt: {
+        'comingsoon.title': 'Em Breve',
+        'comingsoon.description': 'Estamos trabalhando em algo incrível. Fique ligado!',
+        'contact.email': 'E-mail',
+        'contact.phone': 'Telefone',
+        'contact.whatsapp': 'WhatsApp',
+        'portfolio.cta': 'Procurando um freelancer?',
+        'portfolio.button': 'Ver Portfólio',
+      },
+    };
+
+    const translations = ui[lang];
+
+    // Update document title
+    document.title = `VHX Company - ${translations['comingsoon.title']}`;
+
+    // Update meta description
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', translations['comingsoon.description']);
+    }
+
+    // Update content
+    const elements = document.querySelectorAll('[data-i18n]');
+    elements.forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (key && translations[key as keyof typeof translations]) {
+        el.textContent = translations[key as keyof typeof translations];
+      }
+    });
+
+    // Update document language
+    document.documentElement.lang = lang;
+  }
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedLang = localStorage.getItem('preferred-language') as 'pt' | 'en' | null;
+    const initialLang = savedLang || detectLanguage();
+
+    setLanguage(initialLang);
+
+    // Add click handlers
+    document.querySelectorAll('.language-button').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        const lang = target.getAttribute('data-lang') as 'pt' | 'en';
+        if (lang) setLanguage(lang);
+      });
+    });
+  });
+</script>
+
+<style>
+  .language-picker {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+  }
+
+  .language-button {
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .language-button:hover,
+  .language-button.active {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+  }
+</style>
