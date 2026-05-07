@@ -1,0 +1,1182 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>VHXCO — Operational Efficiency Engineering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg: #000;
+    --fg: #f4f8fb;
+    --dim: #6f7d86;
+    --line: rgba(255,255,255,0.08);
+    --cyan: oklch(0.78 0.18 200);
+    --cyan-soft: oklch(0.85 0.12 200);
+    --cyan-deep: oklch(0.55 0.22 215);
+    --warn: oklch(0.78 0.16 60);
+    --display: "Helvetica Neue", "Neue Haas Grotesk", Helvetica, Arial, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    -webkit-font-smoothing: antialiased;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  #cursor {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    width: 20px; height: 20px;
+    margin-left: -10px; margin-top: -10px;
+    mix-blend-mode: difference;
+    transition: transform 120ms cubic-bezier(.2,.8,.2,1);
+  }
+  #cursor::before {
+    content: "";
+    position: absolute; inset: 8px;
+    background: #fff;
+    border-radius: 50%;
+  }
+  #cursor::after {
+    content: "";
+    position: absolute; inset: 0;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 50%;
+    transition: transform 240ms cubic-bezier(.2,.8,.2,1), opacity 240ms;
+  }
+  body.hover-link #cursor::after {
+    transform: scale(1.6);
+    border-color: var(--cyan);
+  }
+  body.hover-link #cursor::before {
+    background: var(--cyan);
+  }
+
+  /* Cursor trail canvas */
+  #cursorTrail {
+    position: fixed; inset: 0; z-index: 9998;
+    pointer-events: none;
+  }
+
+  /* Click ripple */
+  .click-ripple {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9997;
+    width: 0; height: 0;
+    border-radius: 50%;
+    border: 1px solid var(--cyan);
+    transform: translate(-50%, -50%);
+    animation: rippleExpand 700ms cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  .click-ripple::after {
+    content: "";
+    position: absolute; inset: -8px;
+    border-radius: 50%;
+    border: 1px solid var(--cyan);
+    opacity: 0.4;
+    animation: rippleExpand2 700ms 60ms cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  @keyframes rippleExpand {
+    0% { width: 0; height: 0; opacity: 0.9; }
+    100% { width: 120px; height: 120px; opacity: 0; }
+  }
+  @keyframes rippleExpand2 {
+    0% { width: 0; height: 0; opacity: 0.5; }
+    100% { width: 160px; height: 160px; opacity: 0; }
+  }
+
+  /* Glitch overlay */
+  #glitchOverlay {
+    position: fixed; inset: 0; z-index: 55;
+    pointer-events: none;
+    opacity: 0;
+    mix-blend-mode: screen;
+    background: transparent;
+  }
+  #glitchOverlay.active {
+    animation: glitchFlash 280ms steps(4) forwards;
+  }
+  @keyframes glitchFlash {
+    0% { opacity: 1; background: linear-gradient(90deg, rgba(94,234,255,0.15) 0%, transparent 20%, rgba(255,60,60,0.1) 40%, transparent 60%, rgba(94,234,255,0.1) 80%, transparent 100%); transform: translateX(-3px); }
+    25% { opacity: 0.8; background: linear-gradient(90deg, transparent 0%, rgba(255,60,60,0.12) 30%, transparent 50%, rgba(94,234,255,0.15) 70%, transparent 100%); transform: translateX(4px) skewX(-0.5deg); }
+    50% { opacity: 0.6; background: linear-gradient(0deg, rgba(94,234,255,0.1) 0%, transparent 30%, rgba(255,60,60,0.08) 60%, transparent 100%); transform: translateX(-2px) skewX(0.3deg); }
+    75% { opacity: 0.3; background: transparent; transform: translateX(1px); }
+    100% { opacity: 0; transform: none; }
+  }
+  /* Additional glitch scanline burst */
+  #glitchOverlay.active::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(0deg, rgba(94,234,255,0.06) 0 2px, transparent 2px 4px);
+    animation: glitchScan 280ms steps(3) forwards;
+  }
+  @keyframes glitchScan {
+    0% { transform: translateY(-30%); opacity: 1; }
+    100% { transform: translateY(30%); opacity: 0; }
+  }
+
+  /* HUD waveform */
+  #hudWaveform {
+    width: 80px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+  /* HUD warning flash */
+  .hud-corner.hud-warn {
+    animation: hudWarn 400ms ease-out;
+  }
+  @keyframes hudWarn {
+    0% { color: var(--warn); text-shadow: 0 0 8px var(--warn); }
+    50% { color: var(--cyan); text-shadow: 0 0 12px var(--cyan); }
+    100% { color: var(--dim); text-shadow: none; }
+  }
+
+  /* Preloader flash */
+  #preFlash {
+    position: fixed; inset: 0; z-index: 101;
+    background: white;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 100ms;
+  }
+  #preFlash.flash {
+    animation: preFlashAnim 500ms ease-out forwards;
+  }
+  @keyframes preFlashAnim {
+    0% { opacity: 0.95; }
+    15% { opacity: 0.7; }
+    100% { opacity: 0; }
+  }
+
+  /* Text scramble */
+  .scramble-char {
+    display: inline-block;
+    animation: scrambleIn 60ms ease-out forwards;
+  }
+  @keyframes scrambleIn {
+    0% { opacity: 0.3; filter: blur(2px); }
+    100% { opacity: 1; filter: blur(0); }
+  }
+
+  /* film grain + vignette */
+  .grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.7'/></svg>");
+  }
+  .vignette {
+    position: fixed; inset: 0; pointer-events: none; z-index: 49;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.65) 100%);
+  }
+  .scanline {
+    position: fixed; inset: 0; pointer-events: none; z-index: 48;
+    background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+  }
+
+  /* canvas */
+  #webgl {
+    position: fixed; inset: 0; z-index: 1;
+  }
+
+  /* HUD overlay shell */
+  .hud {
+    position: fixed; inset: 0; z-index: 10;
+    pointer-events: none;
+  }
+  .hud > * { pointer-events: auto; }
+  .hud-corner {
+    position: absolute;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    text-transform: uppercase;
+    line-height: 1.5;
+    white-space: nowrap;
+    transition: opacity 400ms;
+  }
+  .hud-corner > div {
+    line-height: 16px;
+    min-height: 16px;
+    margin-bottom: 2px;
+  }
+  body.dense-phase .hud-corner { opacity: 0; pointer-events: none; }
+  .hud-tl { top: 70px; left: 28px; max-width: 240px; }
+  .hud-tr { top: 70px; right: 28px; text-align: right; max-width: 240px; }
+  .hud-bl { bottom: 22px; left: 28px; max-width: 240px; }
+  .hud-br { bottom: 22px; right: 28px; text-align: right; max-width: 260px; }
+  .hud-corner .label { color: rgba(255,255,255,0.35); }
+  .hud-corner .v { color: var(--fg); font-weight: 500; }
+  .hud-corner .live::before {
+    content: ""; display: inline-block; width: 6px; height: 6px;
+    background: var(--cyan); border-radius: 50%; margin-right: 6px;
+    box-shadow: 0 0 8px var(--cyan);
+    animation: pulseDot 1.6s ease-in-out infinite;
+    vertical-align: 1px;
+  }
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* Top nav */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 35;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 28px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+  }
+  .topnav > * { pointer-events: auto; }
+  .logo {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.32em;
+    color: var(--fg);
+    text-decoration: none;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo .mark {
+    width: 18px; height: 18px;
+    border: 1px solid var(--cyan);
+    position: relative;
+    transform: rotate(45deg);
+  }
+  .logo .mark::after {
+    content: ""; position: absolute; inset: 4px;
+    background: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan);
+  }
+  .nav-chapters {
+    display: flex; gap: 28px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .nav-chapters button {
+    background: none; border: 0; color: var(--dim); cursor: none;
+    font: inherit; letter-spacing: inherit; padding: 6px 0;
+    position: relative; transition: color 200ms;
+  }
+  .nav-chapters button .num { color: rgba(255,255,255,0.25); margin-right: 8px; }
+  .nav-chapters button.active { color: var(--fg); }
+  .nav-chapters button.active .num { color: var(--cyan); }
+  .nav-chapters button:hover { color: var(--fg); }
+
+  .lang {
+    display: flex; gap: 2px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
+  }
+  .lang button {
+    background: none; border: 1px solid var(--line); color: var(--dim);
+    padding: 6px 9px; cursor: none; font: inherit; letter-spacing: inherit;
+    text-transform: uppercase;
+  }
+  .lang button.active { color: var(--bg); background: var(--cyan); border-color: var(--cyan); }
+
+  /* Phase containers — fixed full-screen, fade between */
+  .phase {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 700ms cubic-bezier(.2,.8,.2,1);
+  }
+  .phase.active {
+    pointer-events: auto;
+    opacity: 1;
+  }
+  /* Unified soft vignette for all phases so 3D background pops */
+  .phase::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 100% 100% at center, transparent 30%, rgba(0,0,0,0.4) 100%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* === PRELOADER === */
+  #preloader {
+    position: fixed; inset: 0; z-index: 100;
+    background: #000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 800ms ease, visibility 800ms;
+  }
+  #preloader .pre-mark, #preloader .pre-meta, #preloader .pre-bar, #preloader .pre-systems {
+    position: relative; z-index: 2;
+  }
+  #preloader { background: #000; }
+  #preloader.done { opacity: 0; visibility: hidden; }
+  .pre-mark {
+    position: relative;
+    width: 120px; height: 120px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pre-mark .ring {
+    position: absolute; inset: 0;
+    border: 1px solid var(--cyan);
+    border-radius: 50%;
+    opacity: 0.3;
+  }
+  .pre-mark .ring.r2 { inset: -20px; border-color: rgba(255,255,255,0.06); }
+  .pre-mark .ring.r3 { inset: -40px; border-color: rgba(255,255,255,0.03); }
+  .pre-mark .core {
+    width: 8px; height: 8px;
+    background: var(--cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 30px var(--cyan), 0 0 60px var(--cyan-deep);
+    animation: pulseCore 1.4s ease-in-out infinite;
+  }
+  @keyframes pulseCore {
+    0%,100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(2); opacity: 0.5; }
+  }
+  .pre-meta {
+    margin-top: 60px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--dim);
+    text-align: center;
+    line-height: 2;
+  }
+  .pre-bar {
+    margin-top: 24px;
+    width: 240px; height: 1px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  .pre-bar .fill {
+    height: 100%; width: 0;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    transition: width 1600ms cubic-bezier(.2,.8,.2,1);
+  }
+  .pre-systems {
+    margin-top: 36px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    height: 14px;
+    text-align: center;
+  }
+  .pre-systems .ok { color: var(--cyan); }
+
+  /* === CORE PHASE === */
+  #phase-core .core-content {
+    transition: opacity 600ms cubic-bezier(.2,.8,.2,1), transform 600ms cubic-bezier(.2,.8,.2,1), filter 600ms;
+  }
+  #phase-core.diving .core-content {
+    opacity: 0;
+    transform: scale(1.6);
+    filter: blur(10px);
+  }
+  #phase-core .core-content {
+    text-align: center;
+    max-width: 900px;
+    padding: 0 40px;
+    position: relative;
+    z-index: 2;
+  }
+  /* soft halo directly behind headline so no particle ever competes with type */
+  #phase-core .core-content::before {
+    content: "";
+    position: absolute;
+    inset: -80px -40px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 50%, transparent 80%);
+    z-index: -1;
+    filter: blur(12px);
+  }
+  .eyebrow {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.32em;
+    text-transform: uppercase; color: var(--cyan);
+    margin-bottom: 28px;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before, .eyebrow::after {
+    content: ""; height: 1px; width: 28px; background: var(--cyan);
+    opacity: 0.5;
+  }
+  h1.headline {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: clamp(38px, 6.2vw, 92px);
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h1.headline em {
+    font-style: normal;
+    color: var(--cyan);
+    font-weight: 400;
+  }
+  h1.headline .strike {
+    position: relative;
+    color: rgba(255,255,255,0.35);
+    font-weight: 300;
+  }
+  h1.headline .strike::after {
+    content: "";
+    position: absolute; left: -2%; right: -2%; top: 52%;
+    height: 1px; background: rgba(255,255,255,0.4);
+  }
+  .core-sub {
+    margin-top: 40px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.8;
+    max-width: 540px;
+    margin-left: auto; margin-right: auto;
+    text-transform: uppercase;
+  }
+
+  .scroll-cue {
+    position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+    z-index: 3;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.3em;
+    color: var(--dim); text-transform: uppercase;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .scroll-cue .line {
+    width: 1px; height: 36px;
+    background: linear-gradient(to bottom, transparent, var(--cyan));
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+  @keyframes scrollPulse {
+    0% { transform: scaleY(0); transform-origin: top; }
+    50% { transform: scaleY(1); transform-origin: top; }
+    51% { transform: scaleY(1); transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; }
+  }
+
+  /* === BRANCHES PHASE === */
+  #phase-branches { align-items: stretch; justify-content: flex-start; flex-direction: column; padding: 90px 0 40px; overflow-y: auto; }
+  .nodes-wrap {
+    position: relative;
+    width: min(1200px, 90vw);
+    height: 320px;
+    margin: 0 auto;
+    flex-shrink: 0;
+  }
+  @media (min-height: 700px) { .nodes-wrap { height: 420px; } }
+  @media (min-height: 860px) { .nodes-wrap { height: 520px; } }
+  .branches-stage {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .branch-canvas-overlay {
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+  .branches-header {
+    position: relative;
+    margin: 0 auto 20px;
+    text-align: center;
+    pointer-events: none;
+    z-index: 3;
+    width: min(900px, 80vw);
+    flex-shrink: 0;
+  }
+  .branches-header::before {
+    content: "";
+    position: absolute;
+    inset: -30px -60px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.3), transparent 70%);
+    z-index: -1;
+  }
+  .branches-header .eyebrow { margin-bottom: 16px; }
+  .branches-header h2 {
+    font-family: var(--display); font-weight: 300;
+    font-size: clamp(28px, 3.4vw, 44px);
+    margin: 0; letter-spacing: -0.02em;
+  }
+  .branches-header h2 em { color: var(--cyan); font-style: normal; }
+
+  .nodes-wrap {
+    position: relative;
+    width: min(1200px, 90vw);
+    height: 320px;
+    margin: 0 auto;
+    flex-shrink: 0;
+    display: block;
+  }
+  .node {
+    position: absolute;
+    width: 260px;
+    transform: translate(-50%, -50%);
+    transition: transform 600ms cubic-bezier(.2,.8,.2,1), filter 400ms;
+    pointer-events: auto;
+    cursor: none;
+    padding: 20px 16px;
+    background: rgba(5, 7, 9, 0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+  }
+  .node::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(to right, var(--cyan), transparent 8%, transparent 92%, var(--cyan)) top / 100% 1px no-repeat,
+      linear-gradient(to right, var(--cyan), transparent 8%, transparent 92%, var(--cyan)) bottom / 100% 1px no-repeat;
+    opacity: 0.5;
+  }
+  .node-glyph {
+    position: relative;
+    width: 100px; height: 100px;
+    margin: 0 auto 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .node-glyph svg { width: 100%; height: 100%; overflow: visible; }
+  .node-glyph .ring-ext {
+    position: absolute; inset: -20px;
+    border: 1px dashed rgba(255,255,255,0.08);
+    border-radius: 50%;
+    animation: spin 22s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .node-num {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.3em;
+    color: var(--cyan); text-transform: uppercase;
+    text-align: center; margin-bottom: 10px;
+  }
+  .node-title {
+    font-family: var(--display); font-weight: 400;
+    font-size: 18px; letter-spacing: -0.01em;
+    text-align: center; margin: 0 0 12px;
+  }
+  .node-desc {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.55); line-height: 1.7;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  .node-stack {
+    margin-top: 18px;
+    display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  }
+  .node-stack span {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em;
+    color: var(--cyan-soft);
+    padding: 3px 8px;
+    border: 1px solid rgba(94, 234, 255, 0.2);
+    text-transform: uppercase;
+  }
+  .node:hover {
+    filter: drop-shadow(0 0 30px rgba(94, 234, 255, 0.3));
+  }
+  .node:hover .node-glyph .glyph-fg {
+    fill: var(--cyan);
+  }
+
+  /* === DATA ROOM PHASE === */
+  #phase-proof { align-items: flex-start; padding: 110px 0 40px; overflow-y: auto; }
+  #phase-proof.active { pointer-events: auto; }
+  .proof-header { margin-bottom: 36px !important; }
+  .cell { min-height: 150px !important; }
+  .metric-num { font-size: 48px !important; }
+  .proof-wrap {
+    width: min(1280px, 92vw);
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+  .proof-header { text-align: center; margin-bottom: 60px; }
+  .proof-header h2 {
+    font-family: var(--display); font-weight: 300;
+    font-size: clamp(32px, 4vw, 56px);
+    margin: 0; letter-spacing: -0.02em;
+  }
+  .proof-header h2 em { color: var(--cyan); font-style: normal; }
+
+  .data-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 6px;
+    background: transparent;
+  }
+  .cell {
+    background: rgba(5, 7, 9, 0.3);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 28px;
+    position: relative;
+    min-height: 180px;
+    display: flex; flex-direction: column;
+  }
+  .cell .corner-tl, .cell .corner-tr, .cell .corner-bl, .cell .corner-br {
+    position: absolute; width: 8px; height: 8px;
+    border-color: var(--cyan);
+  }
+  .cell .corner-tl { top: 6px; left: 6px; border-top: 1px solid; border-left: 1px solid; }
+  .cell .corner-tr { top: 6px; right: 6px; border-top: 1px solid; border-right: 1px solid; }
+  .cell .corner-bl { bottom: 6px; left: 6px; border-bottom: 1px solid; border-left: 1px solid; }
+  .cell .corner-br { bottom: 6px; right: 6px; border-bottom: 1px solid; border-right: 1px solid; }
+
+  .cell .label {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.24em;
+    color: var(--dim); text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex; justify-content: space-between;
+  }
+  .cell .delta { color: var(--cyan); }
+  .cell .delta.down { color: var(--warn); }
+
+  .metric-num {
+    font-family: var(--display); font-weight: 300;
+    font-size: 64px; line-height: 1; letter-spacing: -0.02em;
+    color: var(--fg);
+  }
+  .metric-num .unit {
+    font-size: 18px; color: var(--dim); margin-left: 4px;
+    font-weight: 400;
+  }
+  .metric-foot {
+    margin-top: auto;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.45); text-transform: uppercase;
+    line-height: 1.6;
+  }
+
+  /* mini chart */
+  .spark { width: 100%; height: 36px; margin: 14px 0; }
+  .spark path.fill { fill: var(--cyan); opacity: 0.08; }
+  .spark path.line { fill: none; stroke: var(--cyan); stroke-width: 1.2; }
+
+  /* clients log */
+  .log {
+    grid-column: 1 / -1;
+    background: #050708; padding: 20px 28px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.45);
+    display: grid; gap: 6px;
+    max-height: 180px; overflow: hidden;
+    position: relative;
+  }
+  .log::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 70px;
+    background: linear-gradient(to bottom, transparent, #050708);
+    pointer-events: none;
+  }
+  .log .row { display: grid; grid-template-columns: 100px 110px 1fr 90px; gap: 16px; }
+  .log .row .ts { color: var(--cyan); }
+  .log .row .id { color: rgba(255,255,255,0.7); }
+  .log .row .res { text-align: right; color: var(--cyan-soft); }
+
+  /* === DIAGNOSE PHASE === */
+  #phase-diagnose { align-items: flex-start; padding: 110px 0 40px; overflow-y: auto; }
+  .diagnose-wrap {
+    width: min(960px, 88vw);
+    margin: 0 auto;
+    padding: 0 40px 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 50px;
+    align-items: start;
+  }
+  .diagnose-left { padding-top: 70px; }
+  .diagnose-left h2 {
+    font-family: var(--display); font-weight: 300;
+    font-size: clamp(36px, 4.4vw, 60px);
+    line-height: 0.98; letter-spacing: -0.02em;
+    margin: 0;
+    text-shadow: 0 4px 16px rgba(0,0,0,0.8);
+  }
+  .diagnose-left h2 em { color: var(--cyan); font-style: normal; }
+  .diagnose-left p {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.7); line-height: 1.8;
+    margin-top: 30px; max-width: 360px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  }
+  .diagnose-meta {
+    margin-top: 40px;
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .diagnose-meta .k { color: var(--dim); margin-bottom: 4px; }
+  .diagnose-meta .v { color: var(--fg); text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+
+  /* terminal form */
+  .terminal {
+    background: rgba(5, 7, 9, 0.3);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+    position: relative;
+  }
+  .terminal::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .terminal-head {
+    position: absolute; top: 4px; left: 14px; right: 14px;
+    display: flex; justify-content: space-between;
+    font-size: 9px; letter-spacing: 0.18em; color: var(--dim);
+    text-transform: uppercase;
+  }
+  .terminal-head .live { color: var(--cyan); }
+  .term-body { margin-top: 24px; }
+  .term-line { margin-bottom: 18px; }
+  .term-prompt {
+    display: block;
+    color: var(--dim); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .term-prompt::before {
+    content: "$ "; color: var(--cyan);
+  }
+  .term-input, .term-area {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    color: var(--fg);
+    font-family: var(--mono); font-size: 13px; letter-spacing: 0.02em;
+    padding: 6px 0;
+    outline: none;
+    cursor: none;
+    resize: none;
+  }
+  .term-input:focus, .term-area:focus {
+    border-bottom-color: var(--cyan);
+  }
+  .term-input::placeholder, .term-area::placeholder {
+    color: rgba(255,255,255,0.2);
+  }
+  .term-options {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 6px;
+  }
+  .term-options button {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: rgba(255,255,255,0.6);
+    padding: 6px 10px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: none;
+  }
+  .term-options button.active {
+    border-color: var(--cyan);
+    color: var(--bg);
+    background: var(--cyan);
+  }
+  .term-submit {
+    width: 100%;
+    background: var(--cyan);
+    color: #000;
+    border: 0;
+    padding: 16px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.24em;
+    text-transform: uppercase;
+    cursor: none;
+    margin-top: 12px;
+    position: relative;
+    overflow: hidden;
+    transition: letter-spacing 220ms;
+  }
+  .term-submit:hover { letter-spacing: 0.32em; }
+  .term-submit::after {
+    content: "→"; margin-left: 12px; display: inline-block;
+    transition: transform 220ms;
+  }
+  .term-submit:hover::after { transform: translateX(8px); }
+  .term-success {
+    color: var(--cyan);
+    font-size: 11px;
+    text-align: center;
+    margin-top: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 400ms;
+  }
+  .term-success.show { opacity: 1; }
+
+  /* progress rail (right side) */
+  .rail {
+    position: fixed;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 25;
+    display: flex; flex-direction: column; gap: 28px;
+    pointer-events: auto;
+  }
+  .rail .step {
+    display: flex; align-items: center; gap: 14px;
+    cursor: none;
+    color: var(--dim);
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em;
+    text-transform: uppercase;
+    transition: color 240ms;
+  }
+  .rail .step .dot {
+    width: 8px; height: 8px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 50%;
+    transition: all 240ms;
+    position: relative;
+  }
+  .rail .step .name { opacity: 0; transform: translateX(8px); transition: all 240ms; max-width: 0; overflow: hidden; white-space: nowrap; }
+  .rail:hover .step .name, .rail .step.active .name { opacity: 1; transform: translateX(0); max-width: 120px; }
+  .rail .step.active { color: var(--fg); }
+  .rail .step.active .dot {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan);
+  }
+  .rail .step.done .dot { background: rgba(94, 234, 255, 0.3); border-color: var(--cyan); }
+
+  /* mute toggle */
+  .mute {
+    position: fixed; bottom: 28px; right: 28px; z-index: 30;
+    background: transparent; border: 1px solid var(--line);
+    color: var(--dim);
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: none;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .mute:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  /* responsive small */
+  @media (max-width: 760px) {
+    .nav-chapters { display: none; }
+    .rail { display: none; }
+    .diagnose-wrap { grid-template-columns: 1fr; gap: 30px; padding-top: 80px; }
+    .data-grid { grid-template-columns: 1fr; }
+    .nodes-wrap { height: auto; }
+  }
+
+  /* selection */
+  ::selection { background: var(--cyan); color: #000; }
+</style>
+</head>
+
+<body>
+  <!-- Custom cursor -->
+  <div id="cursor"></div>
+  <canvas id="cursorTrail"></canvas>
+
+  <!-- visual layers -->
+  <div class="scanline"></div>
+  <div class="vignette"></div>
+  <div class="grain"></div>
+  <div id="glitchOverlay"></div>
+  <div id="preFlash"></div>
+
+  <!-- WebGL canvas -->
+  <canvas id="webgl"></canvas>
+
+  <!-- HUD corners -->
+  <div class="hud">
+    <div class="hud-corner hud-tl">
+      <div><span class="label">VHXCO//</span> <span class="v">SYNAPSE OS</span> <span class="v">v2.4.0</span></div>
+      <div><span class="label">NODE</span> <span class="v" id="hud-node">CORE/PRIMARY</span></div>
+      <div><span class="label">SESSION</span> <span class="v" id="hud-session">—</span></div>
+    </div>
+    <div class="hud-corner hud-tr">
+      <div><span class="label">SYS</span> <span class="v live">ONLINE</span><canvas id="hudWaveform" width="80" height="16"></canvas></div>
+      <div><span class="label">LAT</span> <span class="v" id="hud-lat">12ms</span></div>
+      <div><span class="label">TEMP</span> <span class="v" id="hud-temp">36.4°C</span></div>
+    </div>
+    <div class="hud-corner hud-bl">
+      <div><span class="label">COORD</span> <span class="v" id="hud-coord">x:000  y:000  z:000</span></div>
+      <div><span class="label">FRAME</span> <span class="v" id="hud-frame">000000</span></div>
+    </div>
+    <div class="hud-corner hud-br">
+      <div><span class="label">UTC</span> <span class="v" id="hud-time">--:--:--</span></div>
+      <div><span class="label">LOC</span> <span class="v">SAO PAULO / BR</span></div>
+      <div><span class="label">ENT</span> <span class="v" id="hud-ent">VHXCO ARCH-01</span></div>
+    </div>
+  </div>
+
+  <!-- Top nav -->
+  <nav class="topnav">
+    <a href="#" class="logo">
+      <span class="mark"></span>
+      <span>VHXCO</span>
+    </a>
+    <div class="nav-chapters" id="navChapters">
+      <button data-phase="0" class="active"><span class="num">01</span><span class="lbl" data-i18n="ch0">Núcleo</span></button>
+      <button data-phase="1"><span class="num">02</span><span class="lbl" data-i18n="ch1">Domínios</span></button>
+      <button data-phase="2"><span class="num">03</span><span class="lbl" data-i18n="ch2">Prova</span></button>
+      <button data-phase="3"><span class="num">04</span><span class="lbl" data-i18n="ch3">Diagnose</span></button>
+    </div>
+    <div class="lang">
+      <button data-lang="pt" class="active">PT</button>
+      <button data-lang="en">EN</button>
+    </div>
+  </nav>
+
+  <!-- Right rail / progress -->
+  <div class="rail" id="rail">
+    <div class="step active" data-phase="0"><span class="dot"></span><span class="name" data-i18n="ch0">Núcleo</span></div>
+    <div class="step" data-phase="1"><span class="dot"></span><span class="name" data-i18n="ch1">Domínios</span></div>
+    <div class="step" data-phase="2"><span class="dot"></span><span class="name" data-i18n="ch2">Prova</span></div>
+    <div class="step" data-phase="3"><span class="dot"></span><span class="name" data-i18n="ch3">Diagnose</span></div>
+  </div>
+
+  <button class="mute" id="muteBtn" title="Audio">♪</button>
+
+  <!-- ============ PRELOADER ============ -->
+  <div id="preloader">
+    <div class="pre-mark">
+      <div class="ring r3"></div>
+      <div class="ring r2"></div>
+      <div class="ring"></div>
+      <div class="core"></div>
+    </div>
+    <div class="pre-meta">
+      <div data-i18n="pre1">VHXCO // SYNAPSE OS</div>
+      <div data-i18n="pre2">Inicializando consciência operacional</div>
+    </div>
+    <div class="pre-bar"><div class="fill" id="preFill"></div></div>
+    <div class="pre-systems" id="preSys">BOOT.0 → kernel</div>
+  </div>
+
+  <!-- ============ PHASE 1: CORE ============ -->
+  <section class="phase active" id="phase-core" data-phase="0">
+    <div class="core-content">
+      <div class="eyebrow"><span data-i18n="coreEy">Capítulo 01 / Núcleo</span></div>
+      <h1 class="headline">
+        <span data-i18n-html="coreH1"><span class="strike">Sua empresa opera em 2024.</span><br/>Nós já estamos em <em>2040</em>.</span>
+      </h1>
+      <div class="core-sub" data-i18n="coreSub">
+        VHXCO arquiteta consciência operacional para empresas que se recusam a esperar o futuro chegar.
+        Engenharia de eficiência através de IA, automação e infraestrutura física-digital.
+      </div>
+    </div>
+    <div class="scroll-cue">
+      <span data-i18n="scrollCue">Role para entrar</span>
+      <span class="line"></span>
+      <span>SCROLL // Z</span>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 2: BRANCHES ============ -->
+  <section class="phase" id="phase-branches" data-phase="1">
+    <div class="branches-header">
+      <div class="eyebrow"><span data-i18n="brEy">Capítulo 02 / Domínios</span></div>
+      <h2 data-i18n-html="brH2">Três <em>vetores</em>. Uma única consciência operacional.</h2>
+    </div>
+    <div class="branches-stage">
+      <div class="nodes-wrap" id="nodesWrap">
+        <!-- nodes injected by JS so layouts can reflow -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 3: PROOF ============ -->
+  <section class="phase" id="phase-proof" data-phase="2">
+    <div class="proof-wrap">
+      <div class="proof-header">
+        <div class="eyebrow"><span data-i18n="prEy">Capítulo 03 / Sala de Dados</span></div>
+        <h2 data-i18n-html="prH2">Receita sobe. <em>Overhead cai.</em> Tudo o resto é decoração.</h2>
+      </div>
+      <div class="data-grid" id="dataGrid">
+        <!-- cells injected -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 4: DIAGNOSE ============ -->
+  <section class="phase" id="phase-diagnose" data-phase="3">
+    <div class="diagnose-wrap">
+      <div class="diagnose-left">
+        <div class="eyebrow"><span data-i18n="dgEy">Capítulo 04 / Diagnose</span></div>
+        <h2 data-i18n-html="dgH2">Vinte minutos. Um <em>raio-X</em> da sua operação.</h2>
+        <p data-i18n="dgP">
+          Sem pitch. Sem deck. Diagnose técnica direto com o arquiteto.
+          Você sai com 3 alavancas concretas de eficiência operacional — independente de fechar conosco ou não.
+        </p>
+        <div class="diagnose-meta">
+          <div><div class="k" data-i18n="dgK1">Duração</div><div class="v">20 MIN</div></div>
+          <div><div class="k" data-i18n="dgK2">Formato</div><div class="v">CALL 1:1</div></div>
+          <div><div class="k" data-i18n="dgK3">Custo</div><div class="v">R$ 0,00</div></div>
+          <div><div class="k" data-i18n="dgK4">Próx. vaga</div><div class="v" id="nextSlot">—</div></div>
+        </div>
+      </div>
+      <form class="terminal" id="termForm" autocomplete="off">
+        <div class="terminal-head">
+          <span>VHXCO // DIAGNOSE.SH</span>
+          <span class="live">● REC</span>
+        </div>
+        <div class="term-body">
+          <div class="term-line">
+            <span class="term-prompt" data-i18n="qName">identifique-se</span>
+            <input class="term-input" name="name" placeholder="> Nome completo" required />
+          </div>
+          <div class="term-line">
+            <span class="term-prompt" data-i18n="qEmail">canal de retorno</span>
+            <input class="term-input" type="email" name="email" placeholder="> email@empresa.com" required />
+          </div>
+          <div class="term-line">
+            <span class="term-prompt" data-i18n="qCo">organização</span>
+            <input class="term-input" name="company" placeholder="> Empresa // setor" />
+          </div>
+          <div class="term-line">
+            <span class="term-prompt" data-i18n="qBn">qual gargalo</span>
+            <div class="term-options" id="bnOpts">
+              <button type="button" data-v="ai" data-i18n="bn1">IA / Agentes</button>
+              <button type="button" data-v="auto" data-i18n="bn2">Automação</button>
+              <button type="button" data-v="iot" data-i18n="bn3">IoT / Hardware</button>
+              <button type="button" data-v="full" data-i18n="bn4">Não sei ainda</button>
+            </div>
+          </div>
+          <div class="term-line">
+            <span class="term-prompt" data-i18n="qBrief">contexto</span>
+            <textarea class="term-area" name="brief" rows="3" placeholder="> Em 2-3 linhas: o que está custando tempo, dinheiro ou sono."></textarea>
+          </div>
+          <button type="submit" class="term-submit" data-i18n="qSend">Solicitar diagnose</button>
+          <div class="term-success" id="termOk" data-i18n="qOk">Sinal recebido. Retorno em ≤ 24h.</div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ I18N + DATA ============ -->
+  <script>
+    window.VHXCO = window.VHXCO || {};
+
+    // i18n strings
+    VHXCO.i18n = {
+      pt: {
+        ch0: "Núcleo", ch1: "Domínios", ch2: "Prova", ch3: "Diagnose",
+        pre1: "VHXCO // SYNAPSE OS",
+        pre2: "Inicializando consciência operacional",
+        coreEy: "Capítulo 01 / Núcleo",
+        coreH1: '<span class="strike">Sua empresa opera em 2024.</span><br/>Nós já estamos em <em>2040</em>.',
+        coreSub: "VHXCO arquiteta consciência operacional para empresas que se recusam a esperar o futuro chegar. Engenharia de eficiência através de IA, automação e infraestrutura física-digital.",
+        scrollCue: "Role para entrar",
+        brEy: "Capítulo 02 / Domínios",
+        brH2: 'Três <em>vetores</em>. Uma única consciência operacional.',
+        prEy: "Capítulo 03 / Sala de Dados",
+        prH2: 'Receita sobe. <em>Overhead cai.</em> Tudo o resto é decoração.',
+        dgEy: "Capítulo 04 / Diagnose",
+        dgH2: 'Vinte minutos. Um <em>raio-X</em> da sua operação.',
+        dgP: "Sem pitch. Sem deck. Diagnose técnica direto com o arquiteto. Você sai com 3 alavancas concretas de eficiência operacional — independente de fechar conosco ou não.",
+        dgK1: "Duração", dgK2: "Formato", dgK3: "Custo", dgK4: "Próx. vaga",
+        qName: "identifique-se", qEmail: "canal de retorno", qCo: "organização", qBn: "qual gargalo",
+        bn1: "IA / Agentes", bn2: "Automação", bn3: "IoT / Hardware", bn4: "Não sei ainda",
+        qBrief: "contexto", qSend: "Solicitar diagnose",
+        qOk: "Sinal recebido. Retorno em ≤ 24h.",
+        // nodes
+        n1n: "01 / INTELLIGENCE", n1t: "Agentes Cognitivos",
+        n1d: "Workflows agênticos que tomam decisões 24/7. Não chatbots — colegas digitais.",
+        n2n: "02 / STRUCTURE", n2t: "Software & Arquitetura",
+        n2d: "Sistemas que escalam sem dobrar custo. UX que reduz cliques em 80%.",
+        n3n: "03 / PRESENCE", n3t: "IoT & Hardware",
+        n3d: "Ponte físico-digital. Sensores que viram dados que viram lucro.",
+        // metrics
+        m1l: "ROI MÉDIO 90D", m1f: "12 implementações // baseline pré-VHXCO",
+        m2l: "OVERHEAD REDUZIDO", m2f: "horas-humano automatizadas/mês",
+        m3l: "TIME-TO-VALUE", m3f: "primeira automação em produção",
+        m4l: "AGENTES ATIVOS", m4f: "rodando em produção agora",
+        m5l: "UPTIME", m5f: "infraestrutura monitorada 24/7",
+        m6l: "NPS CLIENTES", m6f: "amostra n=14 // 2025-26",
+        logHead: "REGISTRO DE EXECUÇÕES // ÚLTIMOS CICLOS",
+        logCol: ["Timestamp", "Cliente", "Operação", "Resultado"],
+      },
+      en: {
+        ch0: "Core", ch1: "Domains", ch2: "Proof", ch3: "Diagnose",
+        pre1: "VHXCO // SYNAPSE OS",
+        pre2: "Booting operational consciousness",
+        coreEy: "Chapter 01 / Core",
+        coreH1: '<span class="strike">Your company operates in 2024.</span><br/>We are already in <em>2040</em>.',
+        coreSub: "VHXCO architects operational consciousness for companies that refuse to wait for the future. Efficiency engineering through AI, automation and physical-digital infrastructure.",
+        scrollCue: "Scroll to enter",
+        brEy: "Chapter 02 / Domains",
+        brH2: 'Three <em>vectors</em>. One operational consciousness.',
+        prEy: "Chapter 03 / Data Room",
+        prH2: 'Revenue up. <em>Overhead down.</em> Everything else is decoration.',
+        dgEy: "Chapter 04 / Diagnose",
+        dgH2: 'Twenty minutes. An <em>X-ray</em> of your operation.',
+        dgP: "No pitch. No deck. Technical diagnose direct with the architect. You leave with 3 concrete efficiency levers — whether you hire us or not.",
+        dgK1: "Duration", dgK2: "Format", dgK3: "Cost", dgK4: "Next slot",
+        qName: "identify yourself", qEmail: "return channel", qCo: "organization", qBn: "where it hurts",
+        bn1: "AI / Agents", bn2: "Automation", bn3: "IoT / Hardware", bn4: "Not sure yet",
+        qBrief: "context", qSend: "Request diagnose",
+        qOk: "Signal received. Reply within 24h.",
+        n1n: "01 / INTELLIGENCE", n1t: "Cognitive Agents",
+        n1d: "Agentic workflows that decide 24/7. Not chatbots — digital colleagues.",
+        n2n: "02 / STRUCTURE", n2t: "Software & Architecture",
+        n2d: "Systems that scale without doubling cost. UX that cuts clicks 80%.",
+        n3n: "03 / PRESENCE", n3t: "IoT & Hardware",
+        n3d: "Physical-digital bridge. Sensors becoming data becoming profit.",
+        m1l: "AVG ROI 90D", m1f: "12 deployments // pre-VHXCO baseline",
+        m2l: "OVERHEAD CUT", m2f: "human-hours automated/month",
+        m3l: "TIME-TO-VALUE", m3f: "first automation in production",
+        m4l: "ACTIVE AGENTS", m4f: "running in production right now",
+        m5l: "UPTIME", m5f: "infra monitored 24/7",
+        m6l: "CLIENT NPS", m6f: "sample n=14 // 2025-26",
+        logHead: "EXECUTION LOG // LAST CYCLES",
+        logCol: ["Timestamp", "Client", "Operation", "Result"],
+      }
+    };
+
+    VHXCO.lang = "pt";
+    VHXCO.applyI18n = function() {
+      const dict = VHXCO.i18n[VHXCO.lang];
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const k = el.getAttribute("data-i18n");
+        if (dict[k] != null) el.textContent = dict[k];
+      });
+      document.querySelectorAll("[data-i18n-html]").forEach(el => {
+        const k = el.getAttribute("data-i18n-html");
+        if (dict[k] != null) el.innerHTML = dict[k];
+      });
+      document.documentElement.lang = VHXCO.lang === "pt" ? "pt-BR" : "en";
+    };
+
+    // log entries (synthetic but credible)
+    VHXCO.logRows = [
+      ["08:42:11", "AURELIA-FOODS", "agent.dispatch.purchase_order", "+R$ 12.4k"],
+      ["08:39:02", "PETROBLEND-IND", "iot.sensor.cluster_03 SYNC", "OK"],
+      ["08:31:55", "VESTRA-LABS", "ai.copilot.contract_review × 47", "-3.2h"],
+      ["08:24:18", "NORDIK-LOG", "auto.invoice.reconcile", "98.4% match"],
+      ["08:11:09", "OBSIDIAN-FIN", "agent.audit.compliance_check", "PASS"],
+      ["07:58:42", "HELIOS-RETAIL", "iot.shelf.restock_trigger × 12", "DISPATCHED"],
+      ["07:44:31", "CIRRUS-CLINIC", "ai.triage.patient_intake", "-67% wait"],
+    ];
+  </script>
+
+  <!-- THREE.js + Postprocessing + GSAP -->
+  <script src="https://unpkg.com/three@0.147.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.147.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://unpkg.com/three@0.147.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://unpkg.com/three@0.147.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://unpkg.com/three@0.147.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://unpkg.com/three@0.147.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://unpkg.com/three@0.147.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <script src="https://unpkg.com/gsap@3.12.5/dist/gsap.min.js"></script>
+
+  <!-- Main app -->
+  <script src="vhxco-app.js"></script>
+</body>
+</html>
