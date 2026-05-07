@@ -255,6 +255,12 @@
       });
     }
 
+    window.heroNeurons = [
+      neurons[15], // Âncora Fase 2 (Domínios)
+      neurons[85], // Âncora Fase 3 (Prova)
+      neurons[150] // Âncora Fase 4 (Diagnose)
+    ];
+
     // 2. GENERATE STATIC AXON WEB (Nearest Neighbors)
     for (let i = 0; i < MAX_NEURONS; i++) {
       const nA = neurons[i];
@@ -354,6 +360,10 @@
           
           vNormal = normalMatrix * mat3(instanceMatrix) * normal;
           float scale = smoothstep(aBirth, aBirth + 0.05, uBootProgress);
+          
+          // INFLA O NEURÔNIO: Multiplica o tamanho baseado na energia (vermelho)
+          scale += vEnergy * 2.0; 
+          
           vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(pos * scale, 1.0);
           vViewPosition = -mvPosition.xyz;
           gl_Position = projectionMatrix * mvPosition;
@@ -485,17 +495,17 @@
 
     function update(t, dt) {
       // 1. Spawning Synapses
-      // We randomly pick a neuron to fire if we are below MAX_SYNAPSES
-      if (synapses.length < MAX_SYNAPSES && Math.random() < 0.1) {
-        // Find a random neuron that hasn't fired recently
+      // REDUZIDO: de 0.1 para 0.02 (Muitos menos disparos por segundo)
+      if (synapses.length < MAX_SYNAPSES && Math.random() < 0.02) {
         const nA = neurons[Math.floor(Math.random() * MAX_NEURONS)];
-        if (t - nA.lastFire > 2.0) {
-          // Find connected neighbors
+        // AUMENTADO: Cooldown maior, o neurônio precisa descansar 4.5s antes de disparar de novo
+        if (t - nA.lastFire > 4.5) {
           const connectedEdges = staticEdges.filter(e => e.nA === nA || e.nB === nA);
           if (connectedEdges.length > 0) {
             const edge = connectedEdges[Math.floor(Math.random() * connectedEdges.length)];
             const nB = edge.nA === nA ? edge.nB : edge.nA;
-            synapses.push({ nA, nB, progress: 0, speed: 0.8 + Math.random() * 0.5 });
+            // REDUZIDO: Velocidade de viagem no tubo caiu de (0.8 ~ 1.3) para (0.3 ~ 0.6)
+            synapses.push({ nA, nB, progress: 0, speed: 0.3 + Math.random() * 0.3 });
             nA.lastFire = t;
 
             if (TWEAKS.audioOn && getAudio() && Math.random() < 0.2) {
@@ -515,11 +525,11 @@
       // 2. Update Neurons (Soma Energy)
       for (let i = 0; i < MAX_NEURONS; i++) {
         const n = neurons[i];
-        // Soma glows brightly exactly when it fires, then decays
         const timeSinceFire = t - n.lastFire;
         let energy = 0;
-        if (timeSinceFire < 0.5) {
-          energy = 1.0 - (timeSinceFire / 0.5); // decay over 0.5s
+        // AUMENTADO: O brilho vermelho do núcleo agora dura 1.5s em vez de sumir em 0.5s
+        if (timeSinceFire < 1.5) {
+          energy = 1.0 - (timeSinceFire / 1.5);
         }
         somaEnergy[i] = energy;
       }
@@ -1225,55 +1235,135 @@
     progress = lerp(progress, targetProgress, 0.07);
 
     let zT, xT, yT, fovT, brainOpacity;
+    let targetLookX = 0, targetLookY = 0, targetLookZ = 0;
 
     if (progress < 0.25) {
       const k = progress / 0.25;
-      // Start much closer (Z=7 instead of 16) to make it look ~3x bigger
       zT = lerp(11, 6.5, k);
       xT = Math.sin(t * 0.15 + k * Math.PI) * 2.0;
       yT = Math.cos(t * 0.1) * 1.5;
       fovT = 65;
       brainOpacity = 0.8;
+      targetLookX = -xT * 0.15; targetLookY = -yT * 0.15; targetLookZ = 0;
       document.body.classList.remove("dense-phase");
-    } else if (progress < 0.6) {
-      const k = (progress - 0.25) / 0.35;
-      const easeIn = Math.pow(k, 2.0);
-      zT = lerp(4.5, 2, easeIn);
-      xT = lerp(Math.sin(t * 0.15 + 1.0 * Math.PI) * 2.0, 1.0, easeIn);
-      yT = lerp(Math.cos(t * 0.1) * 1.5, 0.0, easeIn);
-      fovT = lerp(65, 95, easeIn);
-      brainOpacity = lerp(0.8, 0.4, k);
-      document.body.classList.remove("dense-phase");
+
     } else {
-      const k = (progress - 0.6) / 0.4;
-      // Stay inside the brain! Z from 2 to 0 (center)
-      zT = lerp(2, 0, k);
-      xT = lerp(1.0, -1.5, k);
-      yT = lerp(0.0, 1.0, k);
-      fovT = lerp(95, 110, Math.pow(k, 0.7));
-      brainOpacity = lerp(0.4, 0.3, k);
+      // Navegação ancorada aos Hero Neurons
+      const phaseData = progressToPhase(progress);
+      const heroIdx = Math.max(0, phaseData - 1);
+      const hero = window.heroNeurons[heroIdx];
+
+      // Se o array de heróis não existir (segurança), recua para o centro
+      if (!hero) {
+        xT = 0; yT = 0; zT = 0;
+      } else {
+        xT = hero.x + 0.5; // Offset para o texto
+        yT = hero.y;
+        zT = hero.z + 1.8;
+        targetLookX = hero.x; targetLookY = hero.y; targetLookZ = hero.z;
+      }
+
+      fovT = 95;
+      brainOpacity = 0.3;
       document.body.classList.add("dense-phase");
     }
 
-    camera.position.x = lerp(camera.position.x, xT, 0.08);
-    camera.position.z = lerp(camera.position.z, zT, 0.08);
-    camera.position.y = lerp(camera.position.y, yT, 0.08);
+    camera.position.x = lerp(camera.position.x, xT, 0.05);
+    camera.position.y = lerp(camera.position.y, yT, 0.05);
+    camera.position.z = lerp(camera.position.z, zT, 0.05);
 
     if (Math.abs(camera.fov - fovT) > 0.05) {
-      camera.fov = lerp(camera.fov, fovT, 0.07);
+      camera.fov = lerp(camera.fov, fovT, 0.05);
       camera.updateProjectionMatrix();
     }
 
-    camera.lookAt(-xT * 0.15, -yT * 0.15, 0);
+    const lookTarget = new THREE.Vector3(targetLookX, targetLookY, targetLookZ);
+    camera.lookAt(lookTarget);
 
+    // --- [NOVO] EXTRAÇÃO IN-OUT CENTRALIZADA ---
+    const currentPhaseIdx = progressToPhase(progress);
+
+    // Corrige o bug da Fase 01: Esconde as fases inativas e mostra a ativa
+    document.querySelectorAll('.phase').forEach((p, idx) => {
+      if (idx === currentPhaseIdx) {
+        p.style.opacity = '1';
+        p.style.pointerEvents = 'auto';
+      } else {
+        p.style.opacity = '0';
+        p.style.pointerEvents = 'none';
+        p.classList.remove('extracted');
+      }
+    });
+
+    let shouldDarkenBackground = false;
+
+    if (currentPhaseIdx > 0 && window.heroNeurons) {
+      const hero = window.heroNeurons[Math.max(0, currentPhaseIdx - 1)];
+
+      if (hero) {
+        // Encontra a coordenada 2D do neurônio na tela
+        const pos = new THREE.Vector3(hero.x, hero.y, hero.z);
+        pos.project(camera);
+        const screenX = (pos.x * 0.5 + 0.5) * window.innerWidth;
+        const screenY = (pos.y * -0.5 + 0.5) * window.innerHeight;
+
+        // Calcula a distância do neurônio para o centro da tela
+        const deltaX = screenX - window.innerWidth / 2;
+        const deltaY = screenY - window.innerHeight / 2;
+
+        const activePhase = document.querySelector(`.phase[data-phase="${currentPhaseIdx}"]`);
+        if (activePhase) {
+          const panel = activePhase.querySelector('.hud-panel');
+          const dist = Math.abs(camera.position.z - zT);
+
+          // Gatilho: Quando a câmera frear perto do neurônio
+          if (dist < 0.6) {
+            if (!activePhase.classList.contains('extracted')) {
+              activePhase.classList.add('extracted');
+
+              if (panel) {
+                // Prepara o painel escondido dentro do neurônio
+                panel.style.transition = 'none';
+                panel.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0)`;
+
+                // Força a re-renderização
+                void panel.offsetWidth;
+
+                // AUMENTADO: Animação super fluida que dura o dobro do tempo (1.2s) e freia suavemente
+                panel.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.2s ease';
+                panel.style.transform = `translate(0px, 0px) scale(1)`;
+              }
+            }
+            // Mantém a "energia" no máximo: faz o neurônio piscar vermelho e INFLAR 3x
+            hero.lastFire = t + 0.1;
+            shouldDarkenBackground = true;
+          } else {
+            // Quando sai da área do neurônio
+            if (activePhase.classList.contains('extracted')) {
+              activePhase.classList.remove('extracted');
+              if (panel) {
+                // Suga o painel de volta para dentro do neurônio
+                panel.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0)`;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // --- MANTER INTACTO: CÁLCULOS BASE DA ENGINE ---
     const roll = Math.sin(progress * Math.PI * 3) * 0.2;
     camera.up.set(roll, 1, 0);
 
     brainCloud.mat.uniforms.uTime.value = t;
     brainCloud.mat.uniforms.uHue.value = TWEAKS.primaryHue / 360;
-    brainCloud.mat.uniforms.uOpacity.value = lerp(brainCloud.mat.uniforms.uOpacity.value, brainOpacity, 0.1);
 
-    // FIX: Feed the boot progress into the ghost X-ray cloud
+    // --- 3. PROFUNDIDADE DE CAMPO (FOCUS) APLICADO AQUI ---
+    // Se o vidro holográfico apareceu, abaixamos a opacidade pra 0.05 pra focar nele!
+    const targetOpacity = shouldDarkenBackground ? 0.05 : brainOpacity;
+    brainCloud.mat.uniforms.uOpacity.value = lerp(brainCloud.mat.uniforms.uOpacity.value, targetOpacity, 0.1);
+
+    // A correção do preloader que fizemos lá no começo!
     brainCloud.mat.uniforms.uBootProgress.value = window.bootProgress;
 
     const rotSpeed = lerp(0.05, 0.01, progress);
