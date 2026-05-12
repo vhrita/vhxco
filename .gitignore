@@ -57,3 +57,7 @@ coverage/
 
 # Sketch uploads (archived in agentic/docs/)
 VHXCO Website/uploads/
+# Gemini Antigravity session artifacts
+VHXCO Website/debug/
+# Worktrees managed locally — never commit
+.worktrees/
