@@ -1,1 +1,468 @@
+/*
+ * VHXCO Global Stylesheet — v1
+ *
+ * Order:
+ *   1. Tailwind 4 base
+ *   2. Design tokens (CSS custom properties)
+ *   3. Tailwind @theme — maps tokens to utility classes
+ *   4. Base resets
+ *   5. Cinema CSS — keyframes + overlay classes (NOT Tailwind — kept as pure CSS)
+ *   6. prefers-reduced-motion guard
+ */
+
 @import "tailwindcss";
+@import "./tokens.css";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * §3 — Tailwind 4 @theme
+ *
+ * Maps CSS custom properties from tokens.css into Tailwind utility prefix.
+ * Tailwind 4 generates classes from @theme entries:
+ *   --color-cyan → bg-cyan, text-cyan, border-cyan, ring-cyan, etc.
+ *   --font-display → font-display
+ *   --font-mono → font-mono
+ *
+ * Arbitrary values via var() still work: text-[var(--color-dim)]
+ * Use @theme utilities for systematic usage, arbitrary for one-offs.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* Colors */
+  --color-bg: var(--color-bg);
+  --color-fg: var(--color-fg);
+  --color-dim: var(--color-dim);
+  --color-line: var(--color-line);
+  --color-cyan: var(--color-cyan);
+  --color-cyan-soft: var(--color-cyan-soft);
+  --color-cyan-deep: var(--color-cyan-deep);
+  --color-warn: var(--color-warn);
+
+  /* Fonts */
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * §4 — Base resets
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-cyan);
+  color: var(--color-bg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * §5 — Cinema CSS
+ *
+ * Migrated 1:1 from v0 (VHXCO.html lines 158–307).
+ * NOT translated to Tailwind — these are heavy cinematic effects that belong
+ * as pure CSS. Consumers add these classes/IDs to DOM elements.
+ *
+ * Overlay stack (z-index from tokens):
+ *   #webgl         z=1    (Three.js canvas)
+ *   .scanline      z=48   (CRT scanlines)
+ *   .vignette      z=49   (dark edge vignette)
+ *   .grain         z=50   (SVG fractal noise)
+ *   #glitchOverlay z=55   (phase transition flash)
+ *   #preFlash      z=101  (white boot completion flash)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Glitch overlay ─────────────────────────────────────────────────────── */
+
+#glitchOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#glitchOverlay.active {
+  animation: glitchFlash 280ms steps(4) forwards;
+}
+
+@keyframes glitchFlash {
+  0% {
+    opacity: 1;
+    background: linear-gradient(
+      90deg,
+      rgba(94, 234, 255, 0.15) 0%,
+      transparent 20%,
+      rgba(255, 60, 60, 0.1) 40%,
+      transparent 60%,
+      rgba(94, 234, 255, 0.1) 80%,
+      transparent 100%
+    );
+    transform: translateX(-3px);
+  }
+
+  25% {
+    opacity: 0.8;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 60, 60, 0.12) 30%,
+      transparent 50%,
+      rgba(94, 234, 255, 0.15) 70%,
+      transparent 100%
+    );
+    transform: translateX(4px) skewX(-0.5deg);
+  }
+
+  50% {
+    opacity: 0.6;
+    background: linear-gradient(
+      0deg,
+      rgba(94, 234, 255, 0.1) 0%,
+      transparent 30%,
+      rgba(255, 60, 60, 0.08) 60%,
+      transparent 100%
+    );
+    transform: translateX(-2px) skewX(0.3deg);
+  }
+
+  75% {
+    opacity: 0.3;
+    background: transparent;
+    transform: translateX(1px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+#glitchOverlay.active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(94, 234, 255, 0.06) 0 2px,
+    transparent 2px 4px
+  );
+  animation: glitchScan 280ms steps(3) forwards;
+}
+
+@keyframes glitchScan {
+  0% {
+    transform: translateY(-30%);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(30%);
+    opacity: 0;
+  }
+}
+
+/* ── HUD warn flash ──────────────────────────────────────────────────────── */
+
+@keyframes hudWarn {
+  0% {
+    color: var(--color-warn);
+    text-shadow: 0 0 8px var(--color-warn);
+  }
+
+  50% {
+    color: var(--color-cyan);
+    text-shadow: 0 0 12px var(--color-cyan);
+  }
+
+  100% {
+    color: var(--color-dim);
+    text-shadow: none;
+  }
+}
+
+/* ── Pre-flash (white flash at boot completion) ──────────────────────────── */
+
+#preFlash {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay-flash);
+  background: white;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 100ms;
+}
+
+#preFlash.flash {
+  animation: preFlashAnim 500ms ease-out forwards;
+}
+
+@keyframes preFlashAnim {
+  0% {
+    opacity: 0.95;
+  }
+
+  15% {
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── Scramble character reveal ───────────────────────────────────────────── */
+
+.scramble-char {
+  display: inline-block;
+  animation: scrambleIn 60ms ease-out forwards;
+}
+
+@keyframes scrambleIn {
+  0% {
+    opacity: 0.3;
+    filter: blur(2px);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+/* ── Pulse animations (HUD live dot + preloader core) ───────────────────── */
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.3;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes pulseCore {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}
+
+/* ── Extract-in panel entrance ───────────────────────────────────────────── */
+
+@keyframes extractIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Node ring spin ──────────────────────────────────────────────────────── */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Scroll cue pulse ────────────────────────────────────────────────────── */
+
+@keyframes scrollPulse {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  70% {
+    opacity: 0.6;
+    transform: scaleY(0.8);
+  }
+}
+
+/* ── Cinema overlay layers ───────────────────────────────────────────────── */
+
+/*
+ * Film grain — SVG feTurbulence fractalNoise inline filter.
+ * The SVG data URI encodes a 200x200 noise tile that tiles seamlessly.
+ * mix-blend-mode: overlay keeps it subtle over the dark background.
+ * Source: VHXCO.html:284-292 (z-index 50 in v0)
+ */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-overlay);
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.7'/></svg>");
+}
+
+/*
+ * Vignette — dark radial gradient burns the edges of the frame.
+ * Source: VHXCO.html:294-299 (z-index 49 in v0)
+ */
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 49;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.65) 100%
+  );
+}
+
+/*
+ * Scanline — CRT horizontal lines, very subtle white stripes.
+ * Source: VHXCO.html:302-308 (z-index 48 in v0)
+ */
+.scanline {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 48;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.012) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * §6 — prefers-reduced-motion guard
+ *
+ * Users who set "reduce motion" in their OS get:
+ *   - Infinite ambient animations disabled (pulseDot, pulseCore, spin, scrollPulse)
+ *   - All CSS transitions collapsed to near-zero (0.01ms)
+ *   - One-shot entrance animations (glitchFlash, scrambleIn, extractIn, preFlashAnim)
+ *     also collapsed — JS should respect this and skip triggering them
+ *
+ * Note: 0.01ms instead of 0ms avoids a Chrome bug where transition events
+ * don't fire at all at 0ms, which can leave JS listeners hanging.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Collapse all transitions */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  /* Disable ambient infinite animations */
+  @keyframes pulseDot {
+    from,
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes pulseCore {
+    from,
+    to {
+      opacity: 0.9;
+      transform: none;
+    }
+  }
+
+  @keyframes spin {
+    from,
+    to {
+      transform: none;
+    }
+  }
+
+  @keyframes scrollPulse {
+    from,
+    to {
+      opacity: 0.5;
+      transform: none;
+    }
+  }
+
+  /* Collapse one-shot cinematic animations */
+  @keyframes glitchFlash {
+    from,
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes glitchScan {
+    from,
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes hudWarn {
+    from,
+    to {
+      color: var(--color-dim);
+      text-shadow: none;
+    }
+  }
+
+  @keyframes preFlashAnim {
+    from,
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes scrambleIn {
+    from,
+    to {
+      opacity: 1;
+      filter: blur(0);
+    }
+  }
+
+  @keyframes extractIn {
+    from,
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
