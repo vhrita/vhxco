@@ -558,33 +558,47 @@
       display: none;
     }
 
-    /* O Painel Mestre (Mais amplo, mais padding, bem mais transparente) */
+    /* O Painel Mestre: transparente, só serve como container de layout */
     .hud-panel {
       position: relative;
       left: auto;
       top: auto;
       width: max-content;
       max-width: 1100px;
-      /* Aumentado de 900px */
-      transform: scale(0);
-      opacity: 0;
-      filter: blur(8px);
-
-      background: rgba(5, 7, 9, 0.15);
-      /* De 0.40 para 0.15: muito mais transparência */
-      backdrop-filter: blur(5px);
-      /* De 16px para 5px: permite ver a forma do cérebro 3D atrás */
-      border: 1px solid rgba(94, 234, 255, 0.2);
+      background: transparent;
+      border: none;
       padding: 60px 80px;
-      /* De 40px para 60px (cima/baixo) e 80px (laterais). Fim do conteúdo esmagado. */
-      border-radius: 8px;
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+      border-radius: 0;
+      box-shadow: none;
     }
 
-    .extracted-node.extracted .hud-panel {
-      opacity: 1;
-      filter: blur(0);
-      pointer-events: auto;
+    /* Animação de entrada em cascata por componente */
+    @keyframes extractIn {
+      from { opacity: 0; transform: translateY(18px) scale(0.97); filter: blur(6px); }
+      to   { opacity: 1; transform: translateY(0px)  scale(1);    filter: blur(0px); }
+    }
+
+    /* Cada filho .extractable inicia oculto e anima ao entrar */
+    .extractable {
+      opacity: 0;
+      transition: none;
+    }
+
+    /* Quando a fase estiver ativa, dispara a animação com delay via JS */
+    .extractable.in {
+      animation: extractIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Fundos de vidro APENAS nos elementos com texto */
+    .branches-header.extractable,
+    .eco-header.extractable,
+    .proof-header.extractable,
+    .diagnose-left.extractable {
+      background: rgba(5, 7, 9, 0.35);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(94, 234, 255, 0.12);
+      border-radius: 6px;
+      padding: 28px 36px;
     }
 
     /* PRELOADER */
@@ -989,6 +1003,132 @@
     }
 
     /* FASE 03: Ajustes na Sala de Dados */
+    /* FASE 03: ECOSSISTEMA DE PRODUTOS */
+    .eco-header {
+      margin-bottom: 30px;
+      text-align: left;
+      max-width: 600px;
+    }
+
+    .eco-header h2 {
+      font-family: var(--display);
+      font-weight: 300;
+      font-size: 32px;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .eco-header h2 em {
+      color: var(--cyan);
+      font-style: normal;
+    }
+
+    .eco-sub {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.6;
+      margin-top: 16px;
+    }
+
+    .eco-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 850px;
+    }
+
+    .eco-card {
+      background: rgba(5, 7, 9, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 30px;
+      position: relative;
+    }
+
+    .eco-card .corner-tl,
+    .eco-card .corner-tr,
+    .eco-card .corner-bl,
+    .eco-card .corner-br {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-color: var(--cyan);
+    }
+
+    .eco-card .corner-tl {
+      top: 4px;
+      left: 4px;
+      border-top: 1px solid;
+      border-left: 1px solid;
+    }
+
+    .eco-card .corner-tr {
+      top: 4px;
+      right: 4px;
+      border-top: 1px solid;
+      border-right: 1px solid;
+    }
+
+    .eco-card .corner-bl {
+      bottom: 4px;
+      left: 4px;
+      border-bottom: 1px solid;
+      border-left: 1px solid;
+    }
+
+    .eco-card .corner-br {
+      bottom: 4px;
+      right: 4px;
+      border-bottom: 1px solid;
+      border-right: 1px solid;
+    }
+
+    .eco-title {
+      font-family: var(--display);
+      font-size: 24px;
+      font-weight: 400;
+      color: var(--fg);
+      margin-bottom: 6px;
+    }
+
+    .eco-type {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      display: inline-block;
+      padding: 4px 8px;
+      border: 1px solid rgba(94, 234, 255, 0.2);
+      background: rgba(94, 234, 255, 0.05);
+    }
+
+    .eco-desc {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .eco-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .eco-stack span {
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.16em;
+      color: var(--dim);
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      text-transform: uppercase;
+    }
+
     .data-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -1505,9 +1645,10 @@
     <div class="nav-chapters" id="navChapters">
       <button data-phase="0" class="active"><span class="num">01</span><span class="lbl"
           data-i18n="ch0">Núcleo</span></button>
-      <button data-phase="1"><span class="num">02</span><span class="lbl" data-i18n="ch1">Domínios</span></button>
-      <button data-phase="2"><span class="num">03</span><span class="lbl" data-i18n="ch2">Prova</span></button>
-      <button data-phase="3"><span class="num">04</span><span class="lbl" data-i18n="ch3">Diagnose</span></button>
+      <button data-phase="1"><span class="num">02</span><span class="lbl" data-i18n="ch1">Engenharia</span></button>
+      <button data-phase="2"><span class="num">03</span><span class="lbl" data-i18n="ecoEy">Ecossistema</span></button>
+      <button data-phase="3"><span class="num">04</span><span class="lbl" data-i18n="ch2">Prova</span></button>
+      <button data-phase="4"><span class="num">05</span><span class="lbl" data-i18n="ch3">Diagnose</span></button>
     </div>
     <div class="lang">
       <button data-lang="pt" class="active">PT</button>
@@ -1518,9 +1659,11 @@
   <div class="rail" id="rail">
     <div class="step active" data-phase="0"><span class="dot"></span><span class="name" data-i18n="ch0">Núcleo</span>
     </div>
-    <div class="step" data-phase="1"><span class="dot"></span><span class="name" data-i18n="ch1">Domínios</span></div>
-    <div class="step" data-phase="2"><span class="dot"></span><span class="name" data-i18n="ch2">Prova</span></div>
-    <div class="step" data-phase="3"><span class="dot"></span><span class="name" data-i18n="ch3">Diagnose</span></div>
+    <div class="step" data-phase="1"><span class="dot"></span><span class="name" data-i18n="ch1">Engenharia</span></div>
+    <div class="step" data-phase="2"><span class="dot"></span><span class="name" data-i18n="ecoEy">Ecossistema</span>
+    </div>
+    <div class="step" data-phase="3"><span class="dot"></span><span class="name" data-i18n="ch2">Prova</span></div>
+    <div class="step" data-phase="4"><span class="dot"></span><span class="name" data-i18n="ch3">Diagnose</span></div>
   </div>
 
   <button class="mute" id="muteBtn" title="Audio">♪</button>
@@ -1544,47 +1687,77 @@
 
   <section class="phase active" id="phase-core" data-phase="0">
     <div class="core-content">
-      <div class="eyebrow"><span data-i18n="coreEy">Capítulo 01 / Núcleo</span></div>
+      <div class="eyebrow"><span data-i18n="coreEy">Capítulo 01 / O Núcleo</span></div>
       <h1 class="headline"><span data-i18n-html="coreH1"><span class="strike">Sua empresa opera em 2024.</span><br />Nós
           já estamos em <em>2040</em>.</span></h1>
-      <div class="core-sub" data-i18n="coreSub">VHXCO arquiteta consciência operacional para empresas que se recusam a
-        esperar o futuro chegar. Engenharia de eficiência através de IA, automação e infraestrutura física-digital.
-      </div>
+      <div class="core-sub" data-i18n="coreSub">VHXCO é uma Agentic Software House de elite. Sem exércitos de juniores.
+        Apenas um Arquiteto orquestrando Agentes de IA de ponta para analisar, construir e escalar sua operação em
+        velocidade de máquina.</div>
     </div>
     <div class="scroll-cue"><span data-i18n="scrollCue">Role para entrar</span><span class="line"></span><span>SCROLL //
         Z</span></div>
   </section>
 
   <section class="phase extracted-node" id="phase-branches" data-phase="1">
-    <div class="tether"></div>
     <div class="hud-panel">
-      <div class="branches-header">
-        <div class="eyebrow"><span data-i18n="brEy">Capítulo 02 / Domínios</span></div>
-        <h2 data-i18n-html="brH2">Três <em>vetores</em>. Uma consciência.</h2>
+      <div class="branches-header extractable">
+        <div class="eyebrow"><span data-i18n="brEy">Capítulo 02 / Engenharia</span></div>
+        <h2 data-i18n-html="brH2">Nossa infraestrutura. <em>Sua vantagem.</em></h2>
       </div>
-      <div class="nodes-wrap" id="nodesWrap"></div>
+      <div class="nodes-wrap extractable" id="nodesWrap"></div>
     </div>
   </section>
 
-  <section class="phase extracted-node" id="phase-proof" data-phase="2">
-    <div class="tether"></div>
+  <section class="phase extracted-node" id="phase-ecosystem" data-phase="2">
     <div class="hud-panel">
-      <div class="proof-header">
-        <div class="eyebrow"><span data-i18n="prEy">Capítulo 03 / Sala de Dados</span></div>
+      <div class="eco-header extractable">
+        <div class="eyebrow"><span data-i18n="ecoEy">Capítulo 03 / Ecossistema</span></div>
+        <h2 data-i18n-html="ecoH2">Nós <em>bebemos</em> do nosso próprio veneno.</h2>
+        <p class="eco-sub" data-i18n="ecoSub">O que desenvolvemos para o mercado roda na exata mesma fundação de
+          infraestrutura que implementaremos no seu negócio. Tudo que usamos, você usa.</p>
+      </div>
+      <div class="eco-grid extractable">
+        <div class="eco-card">
+          <span class="corner-tl"></span><span class="corner-tr"></span><span class="corner-bl"></span><span
+            class="corner-br"></span>
+          <div class="eco-title" data-i18n="gTitle">Gabriel</div>
+          <div class="eco-type" data-i18n="gType">B2C / Mobile App</div>
+          <div class="eco-desc" data-i18n="gDesc">Ecossistema de estudo, devocional e bíblia digital. Orquestrado e
+            escalado com infraestrutura impecável nas maiores lojas de aplicativos.</div>
+          <div class="eco-stack"><span>NODE.JS</span><span>TYPESCRIPT</span><span>REACT
+              NATIVE</span><span>POSTGRESQL</span></div>
+        </div>
+        <div class="eco-card">
+          <span class="corner-tl"></span><span class="corner-tr"></span><span class="corner-bl"></span><span
+            class="corner-br"></span>
+          <div class="eco-title" data-i18n="dTitle">Darkflow</div>
+          <div class="eco-type" data-i18n="dType">Internal / Tooling</div>
+          <div class="eco-desc" data-i18n="dDesc">Ferramenta restrita de automação agêntica. Fluxos invisíveis que geram
+            narrativas e processos em background 24/7 sem intervenção humana.</div>
+          <div class="eco-stack"><span>PYTHON</span><span>AI AGENTS</span><span>AUTOMATION</span><span>DOCKER</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="phase extracted-node" id="phase-proof" data-phase="3">
+    <div class="hud-panel">
+      <div class="proof-header extractable">
+        <div class="eyebrow"><span data-i18n="prEy">Capítulo 04 / Sala de Dados</span></div>
         <h2 data-i18n-html="prH2">Receita sobe. <em>Overhead cai.</em> Tudo o resto é decoração.</h2>
       </div>
-      <div class="data-grid" id="dataGrid"></div>
+      <div class="data-grid extractable" id="dataGrid"></div>
     </div>
   </section>
 
-  <section class="phase extracted-node" id="phase-diagnose" data-phase="3">
-    <div class="tether"></div>
+  <section class="phase extracted-node" id="phase-diagnose" data-phase="4">
     <div class="hud-panel diagnose-wrap">
-      <div class="diagnose-left">
-        <div class="eyebrow"><span data-i18n="dgEy">Capítulo 04 / Diagnose</span></div>
+      <div class="diagnose-left extractable">
+        <div class="eyebrow"><span data-i18n="dgEy">Capítulo 05 / Diagnose</span></div>
         <h2 data-i18n-html="dgH2">Vinte minutos. Um <em>raio-X</em>.</h2>
-        <p data-i18n="dgP">Sem pitch. Sem deck. Diagnose técnica direto com o arquiteto. Você sai com 3 alavancas
-          concretas de eficiência operacional.</p>
+        <p data-i18n="dgP">Sem pitch, sem intermediários. Uma Diagnose técnica direto comigo, o Arquiteto. Identificamos
+          os vazamentos de caixa e você sai com 3 alavancas de eficiência para aplicar no mesmo dia.</p>
         <div class="diagnose-meta">
           <div>
             <div class="k" data-i18n="dgK1">Duração</div>
@@ -1592,10 +1765,10 @@
           </div>
           <div>
             <div class="k" data-i18n="dgK2">Formato</div>
-            <div class="v">CALL 1:1</div>
+            <div class="v">CALL 1:1 (FOUNDER TO FOUNDER)</div>
           </div>
           <div>
-            <div class="k" data-i18n="dgK3">Custo</div>
+            <div class="k" data-i18n="dgK3">Investimento</div>
             <div class="v">R$ 0,00</div>
           </div>
           <div>
@@ -1604,27 +1777,27 @@
           </div>
         </div>
       </div>
-      <form class="terminal" id="termForm" autocomplete="off">
+      <form class="terminal extractable" id="termForm" autocomplete="off">
         <div class="terminal-head"><span>VHXCO // DIAGNOSE.SH</span><span class="live">● REC</span></div>
         <div class="term-body">
           <div class="term-line"><span class="term-prompt" data-i18n="qName">identifique-se</span><input
               class="term-input" name="name" placeholder="> Nome completo" required /></div>
           <div class="term-line"><span class="term-prompt" data-i18n="qEmail">canal de retorno</span><input
-              class="term-input" type="email" name="email" placeholder="> email@empresa.com" required /></div>
+              class="term-input" type="email" name="email" placeholder="> email corporativo" required /></div>
           <div class="term-line"><span class="term-prompt" data-i18n="qCo">organização</span><input class="term-input"
               name="company" placeholder="> Empresa // setor" /></div>
-          <div class="term-line"><span class="term-prompt" data-i18n="qBn">qual gargalo</span>
+          <div class="term-line"><span class="term-prompt" data-i18n="qBn">qual gargalo atual</span>
             <div class="term-options" id="bnOpts">
               <button type="button" data-v="ai" data-i18n="bn1">IA / Agentes</button>
-              <button type="button" data-v="auto" data-i18n="bn2">Automação</button>
-              <button type="button" data-v="iot" data-i18n="bn3">IoT / Hardware</button>
-              <button type="button" data-v="full" data-i18n="bn4">Não sei ainda</button>
+              <button type="button" data-v="auto" data-i18n="bn2">Sistemas Travados</button>
+              <button type="button" data-v="iot" data-i18n="bn3">Processos Lentos</button>
+              <button type="button" data-v="full" data-i18n="bn4">Reduzir Custos</button>
             </div>
           </div>
           <div class="term-line"><span class="term-prompt" data-i18n="qBrief">contexto</span><textarea class="term-area"
-              name="brief" rows="2" placeholder="> O que está custando tempo ou dinheiro."></textarea></div>
-          <button type="submit" class="term-submit" data-i18n="qSend">Solicitar diagnose</button>
-          <div class="term-success" id="termOk" data-i18n="qOk">Sinal recebido. Retorno em ≤ 24h.</div>
+              name="brief" rows="2" placeholder="> O que está custando tempo ou dinheiro hoje?"></textarea></div>
+          <button type="submit" class="term-submit" data-i18n="qSend">Solicitar diagnose direto com o arquiteto</button>
+          <div class="term-success" id="termOk" data-i18n="qOk">Sinal recebido. Retorno do Arquiteto em ≤ 24h.</div>
         </div>
       </form>
     </div>
@@ -1634,52 +1807,58 @@
     window.VHXCO = window.VHXCO || {};
     VHXCO.i18n = {
       pt: {
-        ch0: "Núcleo", ch1: "Domínios", ch2: "Prova", ch3: "Diagnose",
-        pre1: "VHXCO // SYNAPSE OS", pre2: "Inicializando consciência operacional",
-        coreEy: "Capítulo 01 / Núcleo", coreH1: '<span class="strike">Sua empresa opera em 2024.</span><br/>Nós já estamos em <em>2040</em>.',
-        coreSub: "VHXCO arquiteta consciência operacional para empresas que se recusam a esperar o futuro chegar. Engenharia de eficiência através de IA, automação e infraestrutura física-digital.",
-        scrollCue: "Role para entrar", brEy: "Capítulo 02 / Domínios", brH2: 'Três <em>vetores</em>. Uma consciência.',
-        prEy: "Capítulo 03 / Sala de Dados", prH2: 'Receita sobe. <em>Overhead cai.</em> Tudo o resto é decoração.',
-        dgEy: "Capítulo 04 / Diagnose", dgH2: 'Vinte minutos. Um <em>raio-X</em>.',
-        dgP: "Sem pitch. Sem deck. Diagnose técnica direto com o arquiteto. Você sai com 3 alavancas concretas de eficiência operacional.",
-        dgK1: "Duração", dgK2: "Formato", dgK3: "Custo", dgK4: "Próx. vaga",
-        qName: "identifique-se", qEmail: "canal de retorno", qCo: "organização", qBn: "qual gargalo",
-        bn1: "IA / Agentes", bn2: "Automação", bn3: "IoT", bn4: "Não sei ainda",
-        qBrief: "contexto", qSend: "Solicitar diagnose", qOk: "Sinal recebido. Retorno em ≤ 24h.",
-        n1n: "01 / INTELLIGENCE", n1t: "Agentes Cognitivos", n1d: "Workflows agênticos que tomam decisões 24/7. Colegas digitais.",
-        n2n: "02 / STRUCTURE", n2t: "Software & Arquitetura", n2d: "Sistemas que escalam sem dobrar custo. UX que reduz cliques.",
-        n3n: "03 / PRESENCE", n3t: "IoT & Hardware", n3d: "Ponte físico-digital. Sensores que viram dados que viram lucro.",
-        m1l: "ROI MÉDIO 90D", m1f: "12 implementações // baseline pré-VHXCO",
-        m2l: "OVERHEAD REDUZIDO", m2f: "horas-humano automatizadas/mês",
-        m3l: "TIME-TO-VALUE", m3f: "primeira automação em produção",
-        m4l: "AGENTES ATIVOS", m4f: "rodando em produção agora",
-        m5l: "UPTIME", m5f: "infraestrutura monitorada 24/7",
-        m6l: "NPS CLIENTES", m6f: "amostra n=14 // 2025-26",
-        logHead: "REGISTRO DE EXECUÇÕES // ÚLTIMOS CICLOS", logCol: ["Timestamp", "Cliente", "Operação", "Resultado"],
+        ch0: "Núcleo", ch1: "Engenharia", ecoEy: "Ecossistema", ch2: "Prova", ch3: "Diagnose",
+        pre1: "VHXCO // SYNAPSE OS", pre2: "Consciência Operacional Online",
+        coreEy: "Capítulo 01 / O Núcleo", coreH1: '<span class="strike">Sua empresa opera no presente.</span><br/>Nós já construímos o <em>futuro</em>.',
+        coreSub: "VHXCO é uma Agentic Software House de elite. Sem exércitos de juniores. Apenas um Arquiteto orquestrando Agentes de IA de ponta para analisar, construir e escalar sua operação em velocidade de máquina.",
+        scrollCue: "Role para entrar", brEy: "Capítulo 02 / Engenharia", brH2: 'Nossa infraestrutura. <em>Sua vantagem desleal.</em>',
+        ecoH2: 'Nós <em>bebemos</em> do nosso próprio veneno.', ecoSub: 'O que desenvolvemos para o mercado roda na exata mesma fundação de infraestrutura que implementaremos no seu negócio. Tudo que usamos, você usa.',
+        gTitle: 'Gabriel', gType: 'B2C / Mobile App', gDesc: 'Ecossistema de estudo, devocional e bíblia digital. Orquestrado e escalado com infraestrutura impecável nas maiores lojas de aplicativos.',
+        dTitle: 'Darkflow', dType: 'Internal / Tooling', dDesc: 'Ferramenta restrita de automação agêntica. Fluxos invisíveis que geram narrativas e processos em background 24/7 sem intervenção humana.',
+        prEy: "Capítulo 04 / Sala de Dados", prH2: 'Receita sobe. <em>Overhead cai.</em> Tudo o resto é decoração.',
+        dgEy: "Capítulo 05 / Diagnose", dgH2: 'Vinte minutos. Um <em>raio-X</em>.',
+        dgP: "Sem pitch, sem intermediários. Uma Diagnose técnica direto comigo, o Arquiteto. Identificamos os vazamentos de caixa e você sai com 3 alavancas de eficiência para aplicar no mesmo dia.",
+        dgK1: "Duração", dgK2: "Formato", dgK3: "Investimento", dgK4: "Próx. vaga",
+        qName: "identifique-se", qEmail: "canal de retorno", qCo: "organização", qBn: "qual gargalo atual",
+        bn1: "IA / Agentes", bn2: "Sistemas Lentos", bn3: "Processos", bn4: "Reduzir Custos",
+        qBrief: "contexto", qSend: "Solicitar diagnose", qOk: "Sinal recebido. Retorno do Arquiteto em ≤ 24h.",
+        n1n: "01 / WORKFORCE", n1t: "Força Agêntica", n1d: "Substituímos gargalos humanos por Agentes de IA que operam 24/7. Decisões precisas, aprovação humana (HITL).",
+        n2n: "02 / FOUNDATION", n2t: "Sistemas Tailored", n2d: "Engenharia de software do zero (Web/Mobile). A solução exata, mais simples e segura que funciona para você.",
+        n3n: "03 / DIAGNOSTIC", n3t: "Auditoria Operacional", n3d: "Mapeamento implacável. Identificamos onde você perde tempo e dinheiro, e prescrevemos a tecnologia exata.",
+        m1l: "DECISÕES AGÊNTICAS", m1f: "ações tomadas por IA / mês",
+        m2l: "OVERHEAD ELIMINADO", m2f: "horas-humano automatizadas/mês",
+        m3l: "TIME-TO-VALUE", m3f: "agilidade do time de um homem só",
+        m4l: "ERROS HUMANOS", m4f: "redução via sistemas blindados",
+        m5l: "UPTIME DE INFRA", m5f: "monitoramento docker/caprover",
+        m6l: "QUALIDADE DE ENTREGA", m6f: "foco em arquitetura sobre volume",
+        logHead: "REGISTRO DE AGENTES // CLAUDE CODE", logCol: ["Timestamp", "Client/System", "Operation", "Status"],
       },
       en: {
-        ch0: "Core", ch1: "Domains", ch2: "Proof", ch3: "Diagnose",
-        pre1: "VHXCO // SYNAPSE OS", pre2: "Booting operational consciousness",
-        coreEy: "Chapter 01 / Core", coreH1: '<span class="strike">Your company operates in 2024.</span><br/>We are already in <em>2040</em>.',
-        coreSub: "VHXCO architects operational consciousness for companies that refuse to wait for the future. Efficiency engineering through AI, automation and physical-digital infrastructure.",
-        scrollCue: "Scroll to enter", brEy: "Chapter 02 / Domains", brH2: 'Three <em>vectors</em>. One consciousness.',
-        prEy: "Chapter 03 / Data Room", prH2: 'Revenue up. <em>Overhead down.</em> Everything else is decoration.',
-        dgEy: "Chapter 04 / Diagnose", dgH2: 'Twenty minutes. An <em>X-ray</em>.',
-        dgP: "No pitch. No deck. Technical diagnose direct with the architect. You leave with 3 concrete efficiency levers.",
-        dgK1: "Duration", dgK2: "Format", dgK3: "Cost", dgK4: "Next slot",
-        qName: "identify yourself", qEmail: "return channel", qCo: "organization", qBn: "where it hurts",
-        bn1: "AI / Agents", bn2: "Automation", bn3: "IoT", bn4: "Not sure",
-        qBrief: "context", qSend: "Request diagnose", qOk: "Signal received. Reply within 24h.",
-        n1n: "01 / INTELLIGENCE", n1t: "Cognitive Agents", n1d: "Agentic workflows that decide 24/7. Digital colleagues.",
-        n2n: "02 / STRUCTURE", n2t: "Software & Architecture", n2d: "Systems that scale without doubling cost. Flawless UX.",
-        n3n: "03 / PRESENCE", n3t: "IoT & Hardware", n3d: "Physical-digital bridge. Sensors becoming profit.",
-        m1l: "AVG ROI 90D", m1f: "12 deployments // pre-VHXCO baseline",
-        m2l: "OVERHEAD CUT", m2f: "human-hours automated/month",
-        m3l: "TIME-TO-VALUE", m3f: "first automation in production",
-        m4l: "ACTIVE AGENTS", m4f: "running in production right now",
-        m5l: "UPTIME", m5f: "infra monitored 24/7",
-        m6l: "CLIENT NPS", m6f: "sample n=14 // 2025-26",
-        logHead: "EXECUTION LOG // LAST CYCLES", logCol: ["Timestamp", "Client", "Operation", "Result"],
+        ch0: "Core", ch1: "Engineering", ecoEy: "Ecosystem", ch2: "Proof", ch3: "Diagnose",
+        pre1: "VHXCO // SYNAPSE OS", pre2: "Operational consciousness online",
+        coreEy: "Chapter 01 / The Core", coreH1: '<span class="strike">Your company operates today.</span><br/>We built the <em>future</em>.',
+        coreSub: "VHXCO is an elite Agentic Software House. No junior armies. Just one Architect orchestrating cutting-edge AI Agents to dissect, build, and scale your operation at machine speed.",
+        scrollCue: "Scroll to enter", brEy: "Chapter 02 / Engineering", brH2: 'Our infrastructure. <em>Your unfair advantage.</em>',
+        ecoH2: 'We <em>eat</em> our own dog food.', ecoSub: 'What we build for the market runs on the exact same foundation we will implement in your business. Everything we use, you use.',
+        gTitle: 'Gabriel', gType: 'B2C / Mobile App', gDesc: 'Digital devotional and study ecosystem. Orchestrated and scaled with flawless infrastructure on major app stores.',
+        dTitle: 'Darkflow', dType: 'Internal / Tooling', dDesc: 'Restricted agentic automation tool. Invisible flows generating narratives and background processes 24/7 without human intervention.',
+        prEy: "Chapter 04 / Data Room", prH2: 'Revenue up. <em>Overhead down.</em> Everything else is decoration.',
+        dgEy: "Chapter 05 / Diagnose", dgH2: 'Twenty minutes. An <em>X-ray</em>.',
+        dgP: "No pitch, no middlemen. A technical Diagnose straight with me, the Architect. We identify cash leaks and you leave with 3 concrete efficiency levers.",
+        dgK1: "Duration", dgK2: "Format", dgK3: "Investment", dgK4: "Next slot",
+        qName: "identify yourself", qEmail: "return channel", qCo: "organization", qBn: "current bottleneck",
+        bn1: "AI / Agents", bn2: "Slow Systems", bn3: "Processes", bn4: "Cut Costs",
+        qBrief: "context", qSend: "Request direct diagnose", qOk: "Signal received. Architect reply within 24h.",
+        n1n: "01 / WORKFORCE", n1t: "Agentic Workforce", n1d: "Replacing human bottlenecks with AI Agents operating 24/7. Precise decisions, human approval (HITL).",
+        n2n: "02 / FOUNDATION", n2t: "Tailored Systems", n2d: "From-scratch software engineering (Web/Mobile). The exact, simplest, and most secure solution that works for you.",
+        n3n: "03 / DIAGNOSTIC", n3t: "Operational Audit", n3d: "Relentless mapping. We identify where you lose time and money, and prescribe the exact technology.",
+        m1l: "AGENTIC DECISIONS", m1f: "actions taken by AI / month",
+        m2l: "OVERHEAD ELIMINATED", m2f: "human-hours automated/month",
+        m3l: "TIME-TO-VALUE", m3f: "one-man army agility",
+        m4l: "HUMAN ERRORS", m4f: "reduction via bulletproof systems",
+        m5l: "INFRA UPTIME", m5f: "docker/caprover monitoring",
+        m6l: "DELIVERY QUALITY", m6f: "architecture focus over volume",
+        logHead: "AGENT REGISTRY // CLAUDE CODE", logCol: ["Timestamp", "Client/System", "Operation", "Status"],
       }
     };
     VHXCO.lang = "pt";

@@ -16,7 +16,7 @@
     "particleSize": 1.0,
     "particleOpacity": 1.0,
     "animSpeed": 0.4,
-    "nodeLayout": "triangle",
+    "nodeLayout": "line",
     "primaryHue": 200,
     "audioOn": false,
     "showHud": true,
@@ -256,9 +256,10 @@
     }
 
     window.heroNeurons = [
-      neurons[15], // Âncora Fase 2 (Domínios)
-      neurons[85], // Âncora Fase 3 (Prova)
-      neurons[150] // Âncora Fase 4 (Diagnose)
+      neurons[15], // Âncora Fase 2 (Engenharia)
+      neurons[50], // Âncora Fase 3 (Ecossistema)
+      neurons[85], // Âncora Fase 4 (Prova)
+      neurons[150] // Âncora Fase 5 (Diagnose)
     ];
 
     // 2. GENERATE STATIC AXON WEB (Nearest Neighbors)
@@ -595,22 +596,58 @@
   });
 
   // ============== 3. PHASE / SCROLL ORCHESTRATION ==============
-  // Virtual scroll progress 0..1 across 4 phases
-  // Each phase = 0.25 of progress
   const PHASES = ["core", "branches", "proof", "diagnose"];
-  let progress = 0;       // 0..1
-  let targetProgress = 0;
-  const PHASE_COUNT = 4;
+  let progress = 0;
+  let targetProgress = 0.125; // Começa perfeitamente centralizado na Fase 0
+  const PHASE_COUNT = 5;
+
+  let scrollLock = false;
+  let lastPhaseSnapped = 0; // Controla qual foi a última parada para não travar duas vezes na mesma
 
   function progressToPhase(p) {
     return Math.min(PHASE_COUNT - 1, Math.floor(p * PHASE_COUNT * 0.999));
   }
 
-  // Wheel + touch
-  let wheelAccum = 0;
+  // Motor de rolagem contínua com Snap Magnético
+  function updateScrollProgress(delta) {
+    if (scrollLock) return;
+
+    let prevTarget = targetProgress;
+    targetProgress = clamp(targetProgress + delta, 0, 1);
+
+    // Verifica se cruzamos a linha de um "Hero Neuron"
+    for (let i = 0; i < PHASE_COUNT; i++) {
+      let center = (i + 0.5) / PHASE_COUNT; // 0.125, 0.375, 0.625, 0.875
+
+      let crossedForward = prevTarget < center && targetProgress >= center;
+      let crossedBackward = prevTarget > center && targetProgress <= center;
+      let closeEnough = Math.abs(targetProgress - center) < 0.015;
+
+      // Se cruzou o neurônio E não estávamos travados nele recentemente
+      if ((crossedForward || crossedBackward || closeEnough) && lastPhaseSnapped !== i) {
+        targetProgress = center; // Trava a câmera exatamente no centro do eixo
+        lastPhaseSnapped = i;
+        scrollLock = true;
+
+        // Pausa a navegação por 1.2s para a animação de cascata acontecer
+        setTimeout(() => { scrollLock = false; }, 600);
+        break;
+      }
+    }
+
+    // Se sairmos da zona de atração, resetamos o rastreador para poder travar de novo se o usuário voltar
+    if (!scrollLock && lastPhaseSnapped !== -1) {
+      let currentCenter = (lastPhaseSnapped + 0.5) / PHASE_COUNT;
+      if (Math.abs(targetProgress - currentCenter) > 0.06) {
+        lastPhaseSnapped = -1;
+      }
+    }
+  }
+
+  // Controles atualizados para usar o novo motor
   window.addEventListener("wheel", e => {
     e.preventDefault();
-    targetProgress = clamp(targetProgress + e.deltaY * 0.00038, 0, 1);
+    updateScrollProgress(e.deltaY * 0.00038);
   }, { passive: false });
 
   let touchY = null;
@@ -618,30 +655,26 @@
   window.addEventListener("touchmove", e => {
     if (touchY == null) return;
     const dy = touchY - e.touches[0].clientY;
-    targetProgress = clamp(targetProgress + dy * 0.001, 0, 1);
+    updateScrollProgress(dy * 0.001);
     touchY = e.touches[0].clientY;
   }, { passive: true });
 
-  // Keyboard arrows
   window.addEventListener("keydown", e => {
-    if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === " ") {
-      targetProgress = clamp(targetProgress + 0.06, 0, 1);
-    } else if (e.key === "ArrowUp" || e.key === "PageUp") {
-      targetProgress = clamp(targetProgress - 0.06, 0, 1);
-    } else if (e.key >= "1" && e.key <= "4") {
-      goToPhase(parseInt(e.key, 10) - 1);
+    if (["ArrowDown", "PageDown", " "].includes(e.key)) {
+      updateScrollProgress(0.05);
+    } else if (["ArrowUp", "PageUp"].includes(e.key)) {
+      updateScrollProgress(-0.05);
     }
   });
 
   function goToPhase(idx) {
-    targetProgress = (idx + 0.15) / PHASE_COUNT;
+    targetProgress = (idx + 0.5) / PHASE_COUNT;
+    lastPhaseSnapped = idx;
+    scrollLock = true;
+    setTimeout(() => { scrollLock = false; }, 1200);
   }
 
-  // Nav chapter buttons
-  $$("#navChapters button").forEach(b => {
-    b.addEventListener("click", () => goToPhase(parseInt(b.dataset.phase, 10)));
-  });
-  $$("#rail .step").forEach(b => {
+  $$("#navChapters button, #rail .step").forEach(b => {
     b.addEventListener("click", () => goToPhase(parseInt(b.dataset.phase, 10)));
   });
 
@@ -649,9 +682,9 @@
   const NODE_DATA = () => {
     const d = window.VHXCO.i18n[window.VHXCO.lang];
     return [
-      { num: d.n1n, title: d.n1t, desc: d.n1d, stack: ["LLM", "AGENTIC", "RAG", "AGNO"], glyph: "intelligence" },
-      { num: d.n2n, title: d.n2t, desc: d.n2d, stack: ["NEXT.JS", "SUPABASE", "EDGE", "TS"], glyph: "structure" },
-      { num: d.n3n, title: d.n3t, desc: d.n3d, stack: ["MQTT", "ESP32", "LORA", "EDGE.AI"], glyph: "presence" },
+      { num: d.n1n, title: d.n1t, desc: d.n1d, stack: ["CLAUDE", "AI AGENTS", "AUTOMATION"], glyph: "intelligence" },
+      { num: d.n2n, title: d.n2t, desc: d.n2d, stack: ["NODE.JS", "NEXT.JS", "REACT NATIVE"], glyph: "structure" },
+      { num: d.n3n, title: d.n3t, desc: d.n3d, stack: ["BPMN", "CAPROVER", "POSTGRESQL"], glyph: "presence" },
     ];
   };
 
@@ -1188,7 +1221,7 @@
     const baseLat = 8 + Math.min(mouseSpeed * 0.5, 15);
     $("#hud-lat").textContent = (baseLat + Math.sin(t * 0.001) * 2 | 0) + "ms";
     $("#hud-temp").textContent = (35.5 + Math.sin(t * 0.0003) * 1.2 + mouseSpeed * 0.02).toFixed(1) + "°C";
-    $("#hud-node").textContent = ["CORE/PRIMARY", "BRANCH/3-NODES", "DATA/ROOM", "DIAGNOSE/LINK"][progressToPhase(progress)];
+    $("#hud-node").textContent = ["CORE/PRIMARY", "ENGINEERING/VECTORS", "ECOSYSTEM/PRODUCTS", "DATA/ROOM", "DIAGNOSE/LINK"][progressToPhase(progress)];
   }
 
   // ============== 10. PHASE update ==============
@@ -1197,6 +1230,18 @@
     const phaseIdx = progressToPhase(progress);
     if (phaseIdx !== prevPhase) {
       const isFirstLoad = prevPhase === -1;
+
+      // Reset components from the old phase so they can re-animate on return
+      if (prevPhase >= 0) {
+        const oldPhaseEl = $$(".phase")[prevPhase];
+        if (oldPhaseEl) {
+          $$(".extractable", oldPhaseEl).forEach(el => {
+            el.classList.remove("in");
+            void el.offsetWidth; // force reflow for clean reset
+          });
+        }
+      }
+
       prevPhase = phaseIdx;
       $$(".phase").forEach((p, i) => p.classList.toggle("active", i === phaseIdx));
       document.body.classList.toggle("dense-phase", phaseIdx >= 2);
@@ -1207,21 +1252,24 @@
       });
       if (phaseIdx === 2) animateCounters();
 
+      // Staggered entry: each .extractable child flies in 160ms apart
+      const newPhaseEl = $$(".phase")[phaseIdx];
+      if (newPhaseEl) {
+        $$(".extractable", newPhaseEl).forEach((el, i) => {
+          setTimeout(() => el.classList.add("in"), i * 160);
+        });
+      }
+
       // --- Immersion triggers on phase change ---
       if (!isFirstLoad) {
-        // Glitch flash
         triggerGlitch();
-        // Text scramble reveal
         scramblePhaseElements(phaseIdx);
-        // HUD warning flash
         hudWarningFlash();
-        // Audio swoosh + ping
         audioSwoosh();
         audioPing(440 + phaseIdx * 110);
       } else {
         audioPing(440 + phaseIdx * 110);
       }
-      // Update ambient drone for new phase
       updateAmbientForPhase(phaseIdx);
     }
   }
