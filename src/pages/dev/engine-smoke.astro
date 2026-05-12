@@ -1,0 +1,164 @@
+---
+/**
+ * DEV-ONLY smoke page — /dev/engine-smoke
+ *
+ * Validates the Three.js neural engine runs standalone:
+ * - 35k brain cloud particles visible
+ * - Bloom active (synapses glowing)
+ * - FPS ~60 on M1 Chrome desktop
+ * - Zero shader compilation warnings in console
+ * - Zero Three.js 0.184 deprecation warnings
+ *
+ * Exposes window.__engine for manual inspection in DevTools.
+ * Access: pnpm dev → http://localhost:4321/dev/engine-smoke
+ */
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>[DEV] Engine Smoke — VHXCO</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      #neural {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        background: black;
+      }
+      #hud {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        color: rgba(94, 234, 255, 0.8);
+        font-size: 11px;
+        line-height: 1.8;
+        pointer-events: none;
+        text-shadow: 0 0 8px rgba(94, 234, 255, 0.5);
+      }
+      #hud .label {
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      #boot-progress {
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 1px;
+      }
+      #boot-bar {
+        height: 100%;
+        background: rgba(94, 234, 255, 0.8);
+        width: 0%;
+        transition: width 0.1s linear;
+        border-radius: 1px;
+        box-shadow: 0 0 8px rgba(94, 234, 255, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="neural" aria-label="VHXCO neural engine smoke test" role="img"></canvas>
+
+    <div id="hud">
+      <div class="label">engine</div>
+      <div id="fps">FPS: —</div>
+      <div id="phase">PHASE: 0</div>
+      <div id="particles">PARTICLES: 35000</div>
+      <div id="status">BOOTING...</div>
+    </div>
+
+    <div id="boot-progress">
+      <div id="boot-bar"></div>
+    </div>
+
+    <script>
+      // Smoke test boot sequence — runs engine standalone without Astro layout
+      // Astro handles the ES module import at build time
+      import { createNeuralEngine, bootProgress } from '@/lib/neural-engine/index';
+
+      const canvas = document.getElementById('neural') as HTMLCanvasElement | null;
+      if (!canvas) throw new Error('canvas#neural not found');
+
+      const engine = createNeuralEngine(canvas);
+
+      // Expose for DevTools inspection (dev-only)
+      if (import.meta.env.DEV) {
+        // @ts-ignore — intentional dev-only global
+        window.__engine = engine;
+      }
+
+      // Boot progress simulation — cinematic 3.8s from v0
+      const TOTAL_MS = 3800;
+      const start = performance.now();
+      const bootBar = document.getElementById('boot-bar');
+      const statusEl = document.getElementById('status');
+
+      const bootSteps = [
+        'BOOT.0 → kernel_init',
+        'BOOT.1 → vector_db_connect',
+        'BOOT.2 → genesis_sequence_start',
+        'BOOT.3 → isolated_synapse_test',
+        'BOOT.4 → massive_neurogenesis',
+        'READY → synaptic_handoff',
+      ];
+      let stepIdx = 0;
+      const stepInterval = setInterval(() => {
+        if (statusEl && bootSteps[stepIdx]) {
+          statusEl.textContent = bootSteps[stepIdx];
+        }
+        stepIdx++;
+        if (stepIdx >= bootSteps.length) clearInterval(stepInterval);
+      }, TOTAL_MS / bootSteps.length);
+
+      function tickBoot(now: number) {
+        const elapsed = now - start;
+        const bp = Math.min(elapsed / TOTAL_MS, 1.0);
+        bootProgress.set(bp);
+        if (bootBar) bootBar.style.width = (bp * 100).toFixed(1) + '%';
+        if (bp < 1.0) {
+          requestAnimationFrame(tickBoot);
+        } else {
+          if (statusEl) statusEl.textContent = 'ONLINE';
+        }
+      }
+      requestAnimationFrame(tickBoot);
+
+      // FPS counter
+      let lastTime = performance.now();
+      let frames = 0;
+      const fpsEl = document.getElementById('fps');
+
+      function fpsLoop() {
+        frames++;
+        const now = performance.now();
+        if (now - lastTime >= 1000) {
+          if (fpsEl) fpsEl.textContent = `FPS: ${frames}`;
+          frames = 0;
+          lastTime = now;
+        }
+        requestAnimationFrame(fpsLoop);
+      }
+      requestAnimationFrame(fpsLoop);
+    </script>
+  </body>
+</html>
