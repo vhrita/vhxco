@@ -1,0 +1,28 @@
+---
+export interface Props {
+  title: string;
+  description?: string;
+  locale?: 'pt' | 'en';
+}
+
+const {
+  title,
+  description = 'VHXCO — Agentic Software House',
+  locale = 'pt',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <slot name="head" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
