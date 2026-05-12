@@ -1,0 +1,87 @@
+/*
+ * VHXCO Design Tokens — v1
+ *
+ * Source of truth for all CSS custom properties.
+ * Values extracted from brand kit (agentic/docs/plans/vhxco-website-brand-kit.md).
+ * DO NOT hard-code values from this file elsewhere — always reference via var().
+ */
+
+:root {
+  /* ─── Color palette ────────────────────────────────────────────────────────
+   *
+   * OKLCH format: oklch(lightness chroma hue)
+   * Perceptually uniform — same hue shift feels the same across lightness levels.
+   * Source: brand-kit §Paleta de Cores — `:root` variables (VHXCO.html:14-25)
+   */
+
+  /* Backgrounds */
+  --color-bg: #000;                         /* Absolute black — canvas base */
+
+  /* Foreground / text */
+  --color-fg: #f4f8fb;                      /* White-blue tint — primary text */
+  --color-dim: #6f7d86;                     /* Mid grey-blue — secondary text, labels */
+
+  /* Structural */
+  --color-line: rgba(255, 255, 255, 0.08);  /* Hairline borders / dividers */
+
+  /* Cyan family — brand accent */
+  --color-cyan: oklch(0.78 0.18 200);       /* Primary brand — all accents, hover, active */
+  --color-cyan-soft: oklch(0.85 0.12 200);  /* Lighter — stack badges, secondary links */
+  --color-cyan-deep: oklch(0.55 0.22 215);  /* Deeper — glow/halo, shadows */
+
+  /* Warning */
+  --color-warn: oklch(0.78 0.16 60);        /* Amber — negative deltas, HUD warn flash */
+
+  /* ─── Typography ───────────────────────────────────────────────────────────
+   *
+   * Source: brand-kit §Tipografia (VHXCO.html:23-24)
+   * Helvetica Neue: system stack, no external load.
+   * JetBrains Mono: self-hosted via @fontsource-variable/jetbrains-mono (Card 17).
+   *   Until then, falls back to ui-monospace → SF Mono.
+   */
+
+  --font-display: 'Helvetica Neue', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', monospace;
+
+  /* ─── Z-index stack ─────────────────────────────────────────────────────────
+   *
+   * Consolidated from brand-kit §Z-index stack.
+   * Original audit values: webgl=1, hud=10, content=20, overlay=50, preFlash=101, cursor=9999.
+   */
+
+  --z-webgl: 1;          /* Three.js canvas — always at bottom */
+  --z-hud: 10;           /* HUD 4-corners, topnav */
+  --z-content: 20;       /* Phase panels, extractable panels */
+  --z-overlay: 50;       /* grain, vignette, scanline, glitchOverlay */
+  --z-overlay-flash: 101; /* #preFlash — white flash on boot completion */
+  --z-cursor: 9999;      /* Custom cursor — always on top */
+
+  /* ─── Easing ────────────────────────────────────────────────────────────────
+   *
+   * Source: brand-kit §Animação §Tokens de animação propostos.
+   * --ease-emphasized: appears 10+ times in v0 (cursor, ripple, phase transitions, nodes).
+   * --ease-extract: panel entrance — "spring" feel (Penner ease-out + overshoot).
+   */
+
+  --ease-emphasized: cubic-bezier(.2, .8, .2, 1);
+  --ease-extract: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ─── Duration ──────────────────────────────────────────────────────────────
+   *
+   * Source: brand-kit §Animação — consolidated from 15 raw values into 6 buckets.
+   * Bucket mapping:
+   *   fast        120ms  → cursor inner, keyboard hover
+   *   medium-fast 240ms  → cursor outer, rail step
+   *   medium      400ms  → ripple, HUD warn, hudWarn keyframe
+   *   medium-slow 700ms  → ripple outer, phase panels
+   *   slow        1200ms → phase transitions, slow reveals
+   *   ambient     1600ms → pre-bar fill, infinite pulses context
+   */
+
+  --dur-fast: 120ms;
+  --dur-medium-fast: 240ms;
+  --dur-medium: 400ms;
+  --dur-medium-slow: 700ms;
+  --dur-slow: 1200ms;
+  --dur-ambient: 1600ms;
+}
