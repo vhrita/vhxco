@@ -12,6 +12,11 @@
 // Three.js 0.184 note: Clock is deprecated since r183 in favor of Timer.
 // We use performance.now() directly to avoid the deprecation warning — same
 // semantics, no behavior change.
+//
+// Audio hooks (TASK-0510):
+// - Phase change → setPhase() fired via BaseLayout subscribePhase hook (not here).
+// - Synapse fire (spawn) → audioPing() with prob 0.08 per spawn, rate-limited to
+//   avoid audio spam on burst spawns.
 
 import { Vector3 } from 'three';
 import type { RendererContext, BrainCloudHandle, NeuralNetworkHandle } from './types.js';
