@@ -20,6 +20,7 @@ import type { SynapsesHandle } from './synapses.js';
 import { bootProgress } from './boot-progress.js';
 import { phaseStore } from './phase-state.js';
 import type { RenderLoopHandle } from './types.js';
+import { getTargetProgress, setLerpedProgress, setTargetProgress } from '../scroll/phase-orchestrator.js';
 
 // Lerp utility — inline to keep this module self-contained
 function lerp(a: number, b: number, t: number): number {
@@ -53,9 +54,9 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
   let startTime = 0;
   let prevTime = 0;
 
-  // Scroll progress state — mirrors v0's progress/targetProgress globals
+  // Scroll progress state — targetProgress is now owned by phase-orchestrator.
+  // render-loop reads it via getTargetProgress() and lerps toward it each frame.
   let progress = 0;
-  let targetProgress = 0.125; // Phase 0 center
 
   // Soma energy update (v0 lines 527-537) — runs in render loop where we have attrSomaEnergy
   function updateSomaEnergy(t: number): void {
@@ -75,9 +76,14 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     prevTime = now;
     const t = (now - startTime) * animSpeed;
 
+    // Read target from the orchestrator (user scroll/keyboard input)
+    const targetProgress = getTargetProgress();
     progress = lerp(progress, targetProgress, 0.07);
 
-    // Update phase store so UI can react
+    // Publish lerped progress back to orchestrator store (drives React hooks + HUD)
+    setLerpedProgress(progress);
+
+    // Update internal phase store so engine camera can react
     const phaseIdx = progressToPhase(progress);
     if (phaseStore.phase !== phaseIdx) phaseStore.setPhase(phaseIdx);
     phaseStore.setProgress(progress);
@@ -193,10 +199,11 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
   }
 
   function setPhase(phase: number, progress_: number): void {
-    // Snap targetProgress to phase center (v0 goToPhase logic)
-    targetProgress = (phase + 0.5) / 5;
-    if (progress_ !== undefined) targetProgress = progress_;
-    phaseStore.set(phase, targetProgress);
+    // Update orchestrator target so the render-loop lerps to it next frame.
+    // Kept for backward-compat with engine.setPhase() API.
+    const tp = progress_ !== undefined ? progress_ : (phase + 0.5) / 5;
+    setTargetProgress(tp, phase);
+    phaseStore.set(phase, tp);
   }
 
   return { start, stop, setPhase };

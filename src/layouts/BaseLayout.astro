@@ -30,5 +30,28 @@ const {
     <NeuralEngineIsland client:only="react" />
     <noscript><HeroFallback /></noscript>
     <slot />
+    <script>
+      // Mount scroll/phase orchestrator after hydration
+      import('@/lib/scroll/phase-orchestrator').then(
+        ({
+          createPhaseOrchestrator,
+          getPhaseState,
+          subscribePhase,
+          getTargetProgress,
+        }) => {
+          const orchestrator = createPhaseOrchestrator();
+
+          // Dev-only global for debugging: window.__phaseStore.getState()
+          if (import.meta.env.DEV) {
+            (window as unknown as Record<string, unknown>).__phaseStore = {
+              getState: getPhaseState,
+              subscribe: subscribePhase,
+              getTargetProgress,
+              goToPhase: orchestrator.goToPhase.bind(orchestrator),
+            };
+          }
+        }
+      );
+    </script>
   </body>
 </html>
