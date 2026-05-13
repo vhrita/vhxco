@@ -1,0 +1,113 @@
+---
+/**
+ * PhaseEcosystem.astro — Phase 03 / Ecossistema (Ecosystem)
+ *
+ * Displays the ecosystem phase with eyebrow, h2, sub-paragraph, and a 2-column
+ * grid of EcoCard components (Gabriel / Darkflow).
+ *
+ * Migrated from v0 VHXCO.html:1711-1742 with expanded copy (~200 words).
+ * v0 used absolute positioning — replaced with CSS Grid (2 columns).
+ *
+ * Bug fix: ecoEy was reused in 3 places (eyebrow, nav, rail). v1 splits:
+ *   - ecosystem.eyebrow → "Capítulo 03 / Ecossistema" (only for the eyebrow)
+ *   - ecosystem.chapterLabel → "Ecossistema" (for nav + rail)
+ *
+ * i18n strategy:
+ *   - eyebrow: from src/i18n/ui.ts (useTranslations — flat dict)
+ *   - h2 + sub + card content: from src/lib/i18n/locales/*.json (getT)
+ *
+ * Stack badges are hard-coded per product (not translated):
+ *   Gabriel   → REACT NATIVE, EXPO, SUPABASE, REVENUECAT, GEMINI
+ *   Darkflow  → PYTHON, AI AGENTS, AUTOMATION, DOCKER
+ *
+ * Phase orchestrator:
+ *   - data-phase="2" observed by createPhaseOrchestrator (reduced-motion mode)
+ *   - data-active toggled by subscribePhase() listener in <script>
+ */
+
+import { getLangFromUrl, useTranslations } from '@/i18n/utils';
+import { getT } from '@/lib/i18n/t';
+import type { Locale } from '@/lib/i18n/config';
+import EcoCard from './EcoCard.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const tLocale = getT(lang as Locale);
+
+// Flat dict (ui.ts) — eyebrow
+const eyebrow = t('ecosystem.eyebrow');
+
+// JSON locale — h2 + sub
+const h2  = tLocale('ecosystem.h2');
+const sub = tLocale('ecosystem.sub');
+
+const subParagraphs = sub.split('\n').filter((p) => p.trim().length > 0);
+
+// Gabriel card
+const gabrielName      = tLocale('ecosystem.cards.gabriel.title');
+const gabrielTypeBadge = tLocale('ecosystem.cards.gabriel.typeBadge');
+const gabrielDesc      = tLocale('ecosystem.cards.gabriel.desc');
+
+// Darkflow card
+const darkflowName      = tLocale('ecosystem.cards.darkflow.title');
+const darkflowTypeBadge = tLocale('ecosystem.cards.darkflow.typeBadge');
+const darkflowDesc      = tLocale('ecosystem.cards.darkflow.desc');
+---
+
+<section
+  id="phase-ecosystem"
+  class="phase phase-ecosystem"
+  data-phase="2"
+  role="region"
+  aria-labelledby="eco-heading"
+>
+  <div class="eco-content">
+    <div class="eco-header extractable" data-extractable-index="0" style="--extract-index: 0;">
+      <p class="eyebrow">{eyebrow}</p>
+      <h2 id="eco-heading" class="headline eco-headline" set:html={h2} />
+      <div class="eco-sub">
+        {subParagraphs.map((para) => <p>{para}</p>)}
+      </div>
+    </div>
+
+    <div class="eco-grid">
+      <EcoCard
+        name={gabrielName}
+        typeBadge={gabrielTypeBadge}
+        desc={gabrielDesc}
+        stack={["REACT NATIVE", "EXPO", "SUPABASE", "REVENUECAT", "GEMINI"]}
+        index={1}
+      />
+      <EcoCard
+        name={darkflowName}
+        typeBadge={darkflowTypeBadge}
+        desc={darkflowDesc}
+        stack={["PYTHON", "AI AGENTS", "AUTOMATION", "DOCKER"]}
+        index={2}
+      />
+    </div>
+  </div>
+</section>
+
+<script>
+  /**
+   * Phase 03 client-side behaviour:
+   *
+   * data-active: subscribe to phase-orchestrator store. Toggle data-active
+   * on the section when phase === 2. CSS transitions + extractIn animations
+   * are gated on [data-active] presence.
+   */
+  import { subscribePhase } from '@/lib/scroll/phase-orchestrator';
+
+  const section = document.getElementById('phase-ecosystem');
+
+  if (section) {
+    subscribePhase(({ phase }) => {
+      if (phase === 2) {
+        section.dataset.active = 'true';
+      } else {
+        delete section.dataset.active;
+      }
+    });
+  }
+</script>

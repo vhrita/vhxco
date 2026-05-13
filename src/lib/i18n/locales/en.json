@@ -4,5 +4,124 @@
     "headline": "<span class=\"strike\">Your company runs on 2024.</span> // We're already in <em>2040</em>.",
     "sub": "VHXCO is not an agency. Not a consultancy. It is an operation.\n\nA single Architect orchestrates a fleet of AI Agents that analyzes, builds, and scales systems with machine precision. No intermediaries. No human bottlenecks. No overhead of a traditional team.\n\nThe model exists because the market still runs like it's 2015 — endless sprints, backlogs that never close, software that solves the wrong problems. We cut that cycle at the root.\n\nWhat you get: purpose-built systems, delivered at a speed conventional teams cannot reach, with quality most of them cannot sustain. We don't sell a point solution. We deliver full operational elevation.\n\nThe future you postponed is available now.",
     "scrollCue": "Scroll to enter"
+  },
+  "engineering": {
+    "h2": "Our infrastructure. <em>Your unfair advantage.</em>",
+    "n1": {
+      "num": "01 / WORKFORCE",
+      "title": "Agentic Workforce",
+      "desc": "Replacing human bottlenecks with AI Agents operating 24/7. Precise decisions, human approval (HITL)."
+    },
+    "n2": {
+      "num": "02 / FOUNDATION",
+      "title": "Tailored Systems",
+      "desc": "From-scratch software engineering (Web/Mobile). The exact, simplest, and most secure solution that works for you."
+    },
+    "n3": {
+      "num": "03 / DIAGNOSTIC",
+      "title": "Operational Audit",
+      "desc": "Relentless mapping. We identify where you lose time and money, and prescribe the exact technology."
+    }
+  },
+  "diagnose": {
+    "eyebrow": "Chapter 05 / Diagnose",
+    "headline": "Twenty minutes. One <em>X-Ray</em>.",
+    "description": "No pitch, no intermediaries. A technical Diagnosis directly with me, the Architect. We identify your cash leaks and you leave with 3 efficiency levers to apply the same day.",
+    "meta": {
+      "durationLabel": "Duration",
+      "durationValue": "20 MIN",
+      "formatLabel": "Format",
+      "formatValue": "1:1 CALL (FOUNDER TO FOUNDER)",
+      "investmentLabel": "Investment",
+      "investmentValue": "FREE",
+      "nextSlotLabel": "Next slot"
+    },
+    "form": {
+      "title": "VHXCO // DIAGNOSE.SH",
+      "live": "● REC",
+      "namePrompt": "identify yourself",
+      "namePlaceholder": "> Full name",
+      "emailPrompt": "return channel",
+      "emailPlaceholder": "> corporate email",
+      "companyPrompt": "organization",
+      "companyPlaceholder": "> Company // sector",
+      "bottleneckPrompt": "current bottleneck",
+      "briefPrompt": "context",
+      "briefPlaceholder": "> What is costing you time or money today?",
+      "bn1": "AI / Agents",
+      "bn2": "Slow Systems",
+      "bn3": "Processes",
+      "bn4": "Reduce Costs",
+      "submit": "Request diagnosis directly with the architect",
+      "sending": "Sending...",
+      "ok": "Signal received. Architect returns in ≤ 24h.",
+      "configMissing": "Form not configured. Contact via email in the footer."
+    }
+  },
+  "errors": {
+    "form": {
+      "networkFailure": "Submission failed. Try again or contact via email in the footer.",
+      "configMissing": "Form not configured. Contact via email in the footer."
+    }
+  },
+  "ecosystem": {
+    "chapterLabel": "Ecosystem",
+    "h2": "We <em>eat</em> our own dog food.",
+    "sub": "What we build for the market runs on the exact same foundation we run internally. We don't sell what we don't use. Every tool, every stack, every architectural decision was validated here first — under real pressure, not in a sandbox.\n\nGabriel exists because we needed a scalable B2C product with generative AI at its core. Darkflow exists because no available tool could handle the complexity of our agentic flows.\n\nWhat you get: the same infrastructure that keeps us running 24/7.",
+    "cards": {
+      "gabriel": {
+        "title": "Gabriel",
+        "typeBadge": "B2C / Mobile App",
+        "desc": "Biblical study ecosystem with a generative AI agent at its core. Personalized devotionals, digital Bible, and guided study sessions. Currently in Google Play testing. The infrastructure keeping it alive is the same we deliver to clients."
+      },
+      "darkflow": {
+        "title": "Darkflow",
+        "typeBadge": "Internal / Tooling",
+        "desc": "Internal agentic orchestration tool. Coordinates invisible flows that generate narratives, trigger agents, and run background processes 24/7 without human intervention. It is the nervous system of the VHXCO operation."
+      }
+    }
+  },
+  "dataRoom": {
+    "eyebrow": "Chapter 04 / Data Room",
+    "h2": "Revenue up. <em>Overhead down.</em> Everything else is decoration.",
+    "metrics": {
+      "1": {
+        "label": "AGENTIC DECISIONS",
+        "delta": "▲ +18%",
+        "foot": "actions taken by AI / month"
+      },
+      "2": {
+        "label": "OVERHEAD ELIMINATED",
+        "delta": "▲ ACTIVE",
+        "foot": "human-hours automated/month"
+      },
+      "3": {
+        "label": "TIME-TO-VALUE",
+        "delta": "▼ -42%",
+        "foot": "one-man army agility"
+      },
+      "4": {
+        "label": "HUMAN ERRORS",
+        "delta": "▼ -47%",
+        "foot": "reduction via bulletproof systems"
+      },
+      "5": {
+        "label": "INFRA UPTIME",
+        "delta": "99.97%",
+        "foot": "docker/caprover monitoring"
+      },
+      "6": {
+        "label": "DELIVERY QUALITY",
+        "delta": "▲ +6",
+        "foot": "architecture focus over volume"
+      }
+    },
+    "log": {
+      "head": "AGENT REGISTRY // CLAUDE CODE",
+      "col0": "Timestamp",
+      "col1": "Client/System",
+      "col2": "Operation",
+      "col3": "Status"
+    }
   }
 }

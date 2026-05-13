@@ -1158,6 +1158,430 @@ h1.headline .strike::after {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * §11 — Phase 02 Engineering (Branches)
+ *
+ * CSS Grid 3-column layout replaces v0 absolute positioning + layoutNodes().
+ * Extractable cascade: each .node-card and .branches-header carry
+ *   --extract-index: N  (set inline by PhaseEngineering / NodeCard)
+ * and animate with extractIn keyframe (defined in §6 above) when the phase
+ * receives [data-active].
+ *
+ * Migrated from v0 VHXCO.html:886-980 + vhxco-app.js:682-805.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Engineering phase container ─────────────────────────────────────────── */
+
+.phase-engineering {
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.eng-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: clamp(720px, 88vw, 1200px);
+  padding: 0 clamp(1rem, 4vw, 3rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(2rem, 4vw, 3.5rem);
+}
+
+/* ── Branches header (eyebrow + h2) ──────────────────────────────────────── */
+
+.branches-header {
+  text-align: center;
+  /* extractable cascade: start hidden, animate in when phase is active */
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+}
+
+/* Heading h2 for Engineering — same scale as h1.headline but h2 semantics */
+.eng-headline {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.75rem, 4.5vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+  color: var(--color-fg);
+}
+
+.eng-headline em {
+  font-style: normal;
+  color: var(--color-cyan);
+  font-weight: 400;
+}
+
+/* ── Nodes grid — 3 columns ──────────────────────────────────────────────── */
+
+.nodes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  width: 100%;
+}
+
+/* Stack to single column on narrow screens */
+@media (max-width: 680px) {
+  .nodes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 900px) {
+  .nodes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Make the 3rd card span full width on 2-col layout */
+  .nodes-grid .node-card:nth-child(3) {
+    grid-column: 1 / -1;
+    max-width: 50%;
+    justify-self: center;
+  }
+}
+
+/* ── Node card ───────────────────────────────────────────────────────────── */
+
+.node-card {
+  position: relative;
+  background: rgba(5, 7, 9, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  /* extractable cascade: start hidden, animate in when phase is active */
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+  transition: border-color var(--dur-medium-fast) var(--ease-emphasized);
+}
+
+.node-card:hover {
+  border-color: rgba(94, 234, 255, 0.2);
+}
+
+/* Activate extraction animation via --extract-delay when phase is active */
+.phase[data-active] .branches-header,
+.phase[data-active] .node-card {
+  animation: extractIn 480ms var(--ease-emphasized) both;
+  animation-delay: var(--extract-delay, 0ms);
+}
+
+/* Compute stagger delay from --extract-index custom property */
+.branches-header,
+.node-card {
+  --extract-delay: calc(var(--extract-index, 0) * 160ms);
+}
+
+/* ── Glyph container ─────────────────────────────────────────────────────── */
+
+.node-glyph {
+  position: relative;
+  width: clamp(48px, 6vw, 64px);
+  height: clamp(48px, 6vw, 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-bottom: 0.25rem;
+}
+
+.node-glyph svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Spinning outer ring */
+.ring-ext {
+  position: absolute;
+  inset: -6px;
+  border: 1px solid rgba(94, 234, 255, 0.2);
+  border-radius: 50%;
+  animation: spin 8s linear infinite;
+}
+
+/* ── Node metadata ───────────────────────────────────────────────────────── */
+
+.node-num {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem; /* 9px */
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-cyan);
+  opacity: 0.8;
+}
+
+.node-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1rem, 2vw, 1.375rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--color-fg);
+}
+
+.node-desc {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1.75;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+  flex: 1;
+}
+
+/* ── Stack badges ────────────────────────────────────────────────────────── */
+
+.node-stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: auto;
+}
+
+.node-stack li {
+  font-family: var(--font-mono);
+  font-size: 0.5rem; /* 8px */
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-cyan-soft);
+  border: 1px solid rgba(94, 234, 255, 0.2);
+  padding: 0.2em 0.5em;
+  border-radius: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * §12 — Phase 03 Ecosystem
+ *
+ * CSS Grid 2-column layout for Gabriel + Darkflow eco-cards.
+ * Corner decorations via ::before + ::after pseudo-elements (L-shaped hairlines).
+ * Extractable cascade: .eco-card and .eco-header carry --extract-index and
+ * animate with extractIn keyframe (§6) when phase receives [data-active].
+ *
+ * Migrated from v0 VHXCO.html:886-980 + 1711-1742.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Ecosystem phase container ───────────────────────────────────────────── */
+
+.phase-ecosystem {
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.eco-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: clamp(640px, 88vw, 1100px);
+  padding: 0 clamp(1rem, 4vw, 3rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(2rem, 4vw, 3.5rem);
+}
+
+/* ── Ecosystem header (eyebrow + h2 + sub) ───────────────────────────────── */
+
+.eco-header {
+  text-align: center;
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+}
+
+.eco-headline {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(1.75rem, 4.5vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+  color: var(--color-fg);
+}
+
+.eco-headline em {
+  font-style: normal;
+  color: var(--color-cyan);
+  font-weight: 400;
+}
+
+.eco-sub {
+  margin-top: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem; /* 11px */
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.75;
+  max-width: 580px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.eco-sub p {
+  margin: 0 0 0.875em;
+}
+
+.eco-sub p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Eco grid — 2 columns ────────────────────────────────────────────────── */
+
+.eco-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(1rem, 2.5vw, 2rem);
+  width: 100%;
+}
+
+/* Stack to single column on narrow screens */
+@media (max-width: 600px) {
+  .eco-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Eco card ────────────────────────────────────────────────────────────── */
+
+.eco-card {
+  position: relative;
+  background: rgba(5, 7, 9, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+  transition: border-color var(--dur-medium-fast) var(--ease-emphasized);
+}
+
+.eco-card:hover {
+  border-color: rgba(94, 234, 255, 0.2);
+}
+
+/* ── Corner decorations — L-shaped hairlines ─────────────────────────────── */
+
+.eco-card .corner-tl,
+.eco-card .corner-tr,
+.eco-card .corner-bl,
+.eco-card .corner-br {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+}
+
+.eco-card .corner-tl {
+  top: 4px;
+  left: 4px;
+  border-top: 1px solid var(--color-cyan);
+  border-left: 1px solid var(--color-cyan);
+  opacity: 0.6;
+}
+
+.eco-card .corner-tr {
+  top: 4px;
+  right: 4px;
+  border-top: 1px solid var(--color-cyan);
+  border-right: 1px solid var(--color-cyan);
+  opacity: 0.6;
+}
+
+.eco-card .corner-bl {
+  bottom: 4px;
+  left: 4px;
+  border-bottom: 1px solid var(--color-cyan);
+  border-left: 1px solid var(--color-cyan);
+  opacity: 0.6;
+}
+
+.eco-card .corner-br {
+  bottom: 4px;
+  right: 4px;
+  border-bottom: 1px solid var(--color-cyan);
+  border-right: 1px solid var(--color-cyan);
+  opacity: 0.6;
+}
+
+/* ── Eco card content ────────────────────────────────────────────────────── */
+
+.eco-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.125rem, 2.2vw, 1.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--color-fg);
+}
+
+.eco-type-badge {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem; /* 9px */
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-cyan);
+  opacity: 0.8;
+  margin: 0;
+}
+
+.eco-desc {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1.75;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+  flex: 1;
+}
+
+/* ── Eco stack badges ────────────────────────────────────────────────────── */
+
+.eco-stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: auto;
+}
+
+.eco-stack li {
+  font-family: var(--font-mono);
+  font-size: 0.5rem; /* 8px */
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-cyan-soft);
+  border: 1px solid rgba(94, 234, 255, 0.2);
+  padding: 0.2em 0.5em;
+  border-radius: 1px;
+}
+
+/* ── Extractable animation cascade ──────────────────────────────────────── */
+
+.phase[data-active] .eco-header,
+.phase[data-active] .eco-card {
+  animation: extractIn 480ms var(--ease-emphasized) both;
+  animation-delay: var(--extract-delay, 0ms);
+}
+
+.eco-header,
+.eco-card {
+  --extract-delay: calc(var(--extract-index, 0) * 160ms);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * §9 — prefers-reduced-motion guard
  *
  * Users who set "reduce motion" in their OS get:

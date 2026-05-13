@@ -4,5 +4,124 @@
     "headline": "<span class=\"strike\">Sua empresa opera em 2024.</span> // Nós já estamos em <em>2040</em>.",
     "sub": "VHXCO não é uma agência. Não é uma consultoria. É uma operação.\n\nUm único Arquiteto orquestra uma frota de Agentes de IA que analisa, constrói e escala sistemas com precisão de máquina. Sem intermediários. Sem gargalos humanos. Sem o overhead de uma equipe tradicional.\n\nO modelo existe porque o mercado ainda opera como em 2015 — sprints infinitos, backlogs que nunca fecham, softwares que resolvem problemas errados. Nós cortamos esse ciclo na raiz.\n\nO que você recebe: sistemas feitos sob medida, entregues em velocidade que equipes convencionais não alcançam, com qualidade que a maioria delas não pode sustentar. Não vendemos produto pontual. Entregamos elevação completa de operação.\n\nO futuro que você adiou está disponível agora.",
     "scrollCue": "Role para entrar"
+  },
+  "engineering": {
+    "h2": "Nossa infraestrutura. <em>Sua vantagem desleal.</em>",
+    "n1": {
+      "num": "01 / WORKFORCE",
+      "title": "Força Agêntica",
+      "desc": "Substituímos gargalos humanos por Agentes de IA que operam 24/7. Decisões precisas, aprovação humana (HITL)."
+    },
+    "n2": {
+      "num": "02 / FOUNDATION",
+      "title": "Sistemas Tailored",
+      "desc": "Engenharia de software do zero (Web/Mobile). A solução exata, mais simples e segura que funciona para você."
+    },
+    "n3": {
+      "num": "03 / DIAGNOSTIC",
+      "title": "Auditoria Operacional",
+      "desc": "Mapeamento implacável. Identificamos onde você perde tempo e dinheiro, e prescrevemos a tecnologia exata."
+    }
+  },
+  "diagnose": {
+    "eyebrow": "Capítulo 05 / Diagnose",
+    "headline": "Vinte minutos. Um <em>raio-X</em>.",
+    "description": "Sem pitch, sem intermediários. Uma Diagnose técnica direto comigo, o Arquiteto. Identificamos os vazamentos de caixa e você sai com 3 alavancas de eficiência para aplicar no mesmo dia.",
+    "meta": {
+      "durationLabel": "Duração",
+      "durationValue": "20 MIN",
+      "formatLabel": "Formato",
+      "formatValue": "CALL 1:1 (FOUNDER TO FOUNDER)",
+      "investmentLabel": "Investimento",
+      "investmentValue": "R$ 0,00",
+      "nextSlotLabel": "Próx. vaga"
+    },
+    "form": {
+      "title": "VHXCO // DIAGNOSE.SH",
+      "live": "● REC",
+      "namePrompt": "identifique-se",
+      "namePlaceholder": "> Nome completo",
+      "emailPrompt": "canal de retorno",
+      "emailPlaceholder": "> email corporativo",
+      "companyPrompt": "organização",
+      "companyPlaceholder": "> Empresa // setor",
+      "bottleneckPrompt": "qual gargalo atual",
+      "briefPrompt": "contexto",
+      "briefPlaceholder": "> O que está custando tempo ou dinheiro hoje?",
+      "bn1": "IA / Agentes",
+      "bn2": "Sistemas Lentos",
+      "bn3": "Processos",
+      "bn4": "Reduzir Custos",
+      "submit": "Solicitar diagnose direto com o arquiteto",
+      "sending": "Enviando...",
+      "ok": "Sinal recebido. Retorno do Arquiteto em ≤ 24h.",
+      "configMissing": "Form não configurado. Contato pelo email no rodapé."
+    }
+  },
+  "errors": {
+    "form": {
+      "networkFailure": "Falha no envio. Tente novamente ou contate pelo email no rodapé.",
+      "configMissing": "Form não configurado. Contato pelo email no rodapé."
+    }
+  },
+  "ecosystem": {
+    "chapterLabel": "Ecossistema",
+    "h2": "Nós <em>bebemos</em> do nosso próprio veneno.",
+    "sub": "O que construímos para o mercado roda na exata mesma fundação que implementamos na nossa própria operação. Não vendemos o que não usamos. Cada ferramenta, cada stack, cada decisão de arquitetura foi validada aqui primeiro — sob pressão real, não em sandbox.\n\nGabriel existe porque precisávamos de um produto B2C escalável com IA generativa no núcleo. Darkflow existe porque nenhuma ferramenta disponível aguentava a complexidade dos nossos fluxos agênticos.\n\nO que você recebe: a mesma infraestrutura que nos mantém operando 24/7.",
+    "cards": {
+      "gabriel": {
+        "title": "Gabriel",
+        "typeBadge": "B2C / Mobile App",
+        "desc": "Ecossistema de estudo bíblico com agente de IA generativa no núcleo. Devocional personalizado, bíblia digital e sessões de estudo guiado. Em testes no Google Play. A infra que o mantém vivo é a mesma que entregamos para clientes."
+      },
+      "darkflow": {
+        "title": "Darkflow",
+        "typeBadge": "Internal / Tooling",
+        "desc": "Ferramenta interna de orquestração agêntica. Coordena fluxos invisíveis que geram narrativas, disparam agentes e executam processos em background 24/7 sem intervenção humana. É o sistema nervoso da operação VHXCO."
+      }
+    }
+  },
+  "dataRoom": {
+    "eyebrow": "Capítulo 04 / Sala de Dados",
+    "h2": "Receita sobe. <em>Overhead cai.</em> Tudo o resto é decoração.",
+    "metrics": {
+      "1": {
+        "label": "DECISÕES AGÊNTICAS",
+        "delta": "▲ +18%",
+        "foot": "ações tomadas por IA / mês"
+      },
+      "2": {
+        "label": "OVERHEAD ELIMINADO",
+        "delta": "▲ ATIVO",
+        "foot": "horas-humano automatizadas/mês"
+      },
+      "3": {
+        "label": "TIME-TO-VALUE",
+        "delta": "▼ -42%",
+        "foot": "agilidade do time de um homem só"
+      },
+      "4": {
+        "label": "ERROS HUMANOS",
+        "delta": "▼ -47%",
+        "foot": "redução via sistemas blindados"
+      },
+      "5": {
+        "label": "UPTIME DE INFRA",
+        "delta": "99.97%",
+        "foot": "monitoramento docker/caprover"
+      },
+      "6": {
+        "label": "QUALIDADE DE ENTREGA",
+        "delta": "▲ +6",
+        "foot": "foco em arquitetura sobre volume"
+      }
+    },
+    "log": {
+      "head": "REGISTRO DE AGENTES // CLAUDE CODE",
+      "col0": "Timestamp",
+      "col1": "Client/System",
+      "col2": "Operation",
+      "col3": "Status"
+    }
   }
 }
