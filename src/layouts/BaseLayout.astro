@@ -1,5 +1,7 @@
 ---
 import '../styles/global.css';
+import NeuralEngineIsland from '@/components/hero/NeuralEngineIsland';
+import HeroFallback from '@/components/hero/HeroFallback.astro';
 
 export interface Props {
   title: string;
@@ -25,6 +27,8 @@ const {
     <slot name="head" />
   </head>
   <body>
+    <NeuralEngineIsland client:only="react" />
+    <noscript><HeroFallback /></noscript>
     <slot />
   </body>
 </html>
