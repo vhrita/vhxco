@@ -1,0 +1,450 @@
+---
+/**
+ * PhaseDiagnose.astro — Phase 05 / Diagnose
+ *
+ * Terminal-styled contact phase with 2-column grid:
+ *   Left  — eyebrow + h2 + description + meta (duration / format / investment / next-slot)
+ *   Right — DiagnoseForm React island (client:visible — lazy-loads on scroll)
+ *
+ * i18n: all copy from src/lib/i18n/locales/*.json via getT helper.
+ * Formspree ID: injected from PUBLIC_FORMSPREE_ID env var (never committed).
+ *
+ * Migrated from v0 VHXCO.html:1756-1804 with i18n fixes.
+ *
+ * data-phase="4": phase-orchestrator uses this for scroll sync.
+ */
+
+import { getLangFromUrl } from '@/i18n/utils';
+import { getT } from '@/lib/i18n/t';
+import type { Locale } from '@/lib/i18n/config';
+import DiagnoseForm from '@/components/forms/DiagnoseForm';
+
+const lang = getLangFromUrl(Astro.url);
+const tLocale = getT(lang as Locale);
+
+// Pull all copy from JSON dict
+const eyebrow         = tLocale('diagnose.eyebrow');
+const headline        = tLocale('diagnose.headline');
+const description     = tLocale('diagnose.description');
+
+const durationLabel   = tLocale('diagnose.meta.durationLabel');
+const durationValue   = tLocale('diagnose.meta.durationValue');
+const formatLabel     = tLocale('diagnose.meta.formatLabel');
+const formatValue     = tLocale('diagnose.meta.formatValue');
+const investmentLabel = tLocale('diagnose.meta.investmentLabel');
+const investmentValue = tLocale('diagnose.meta.investmentValue');
+const nextSlotLabel   = tLocale('diagnose.meta.nextSlotLabel');
+
+// Form labels — passed as prop to React island (avoids i18n import in client bundle)
+const formLabels = {
+  formTitle:         tLocale('diagnose.form.title'),
+  formLive:          tLocale('diagnose.form.live'),
+  namePrompt:        tLocale('diagnose.form.namePrompt'),
+  namePlaceholder:   tLocale('diagnose.form.namePlaceholder'),
+  emailPrompt:       tLocale('diagnose.form.emailPrompt'),
+  emailPlaceholder:  tLocale('diagnose.form.emailPlaceholder'),
+  companyPrompt:     tLocale('diagnose.form.companyPrompt'),
+  companyPlaceholder:tLocale('diagnose.form.companyPlaceholder'),
+  bottleneckPrompt:  tLocale('diagnose.form.bottleneckPrompt'),
+  briefPrompt:       tLocale('diagnose.form.briefPrompt'),
+  briefPlaceholder:  tLocale('diagnose.form.briefPlaceholder'),
+  bn1:               tLocale('diagnose.form.bn1'),
+  bn2:               tLocale('diagnose.form.bn2'),
+  bn3:               tLocale('diagnose.form.bn3'),
+  bn4:               tLocale('diagnose.form.bn4'),
+  submit:            tLocale('diagnose.form.submit'),
+  sending:           tLocale('diagnose.form.sending'),
+  ok:                tLocale('diagnose.form.ok'),
+  networkFailure:    tLocale('errors.form.networkFailure'),
+  configMissing:     tLocale('diagnose.form.configMissing'),
+};
+
+// Formspree ID: set in .env.local by Vitor (never committed).
+// Falls back to undefined → DiagnoseForm shows configMissing message.
+const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
+---
+
+<section
+  id="phase-diagnose"
+  class="phase phase-diagnose"
+  data-phase="4"
+  role="region"
+  aria-labelledby="dg-heading"
+>
+  <div class="diagnose-grid">
+    <!-- LEFT: meta + description -->
+    <div class="diagnose-left">
+      <p class="eyebrow">{eyebrow}</p>
+      <h2 id="dg-heading" class="diagnose-headline" set:html={headline} />
+      <p class="diagnose-desc">{description}</p>
+
+      <dl class="diagnose-meta">
+        <div class="meta-row">
+          <dt class="meta-key">{durationLabel}</dt>
+          <dd class="meta-val">{durationValue}</dd>
+        </div>
+        <div class="meta-row">
+          <dt class="meta-key">{formatLabel}</dt>
+          <dd class="meta-val">{formatValue}</dd>
+        </div>
+        <div class="meta-row">
+          <dt class="meta-key">{investmentLabel}</dt>
+          <dd class="meta-val meta-val--highlight">{investmentValue}</dd>
+        </div>
+        <div class="meta-row">
+          <dt class="meta-key">{nextSlotLabel}</dt>
+          <!-- Next-slot value is rendered by DiagnoseForm via Intl.DateTimeFormat -->
+          <dd class="meta-val" id="nextSlotDisplay">—</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- RIGHT: terminal form (React island) -->
+    <div class="diagnose-right">
+      <DiagnoseForm
+        client:visible
+        locale={lang as Locale}
+        formspreeId={formspreeId}
+        labels={formLabels}
+      />
+    </div>
+  </div>
+</section>
+
+<script>
+  import { subscribePhase } from '@/lib/scroll/phase-orchestrator';
+
+  const section = document.getElementById('phase-diagnose');
+
+  if (section) {
+    subscribePhase(({ phase }) => {
+      if (phase === 4) {
+        section.dataset.active = 'true';
+      } else {
+        delete section.dataset.active;
+      }
+    });
+  }
+</script>
+
+<style>
+  /* ── Phase Diagnose layout ───────────────────────────────────────────────── */
+
+  .phase-diagnose {
+    align-items: center;
+    justify-content: center;
+    padding: 0 2rem;
+  }
+
+  .diagnose-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    max-width: 1100px;
+    width: 100%;
+    align-items: start;
+  }
+
+  @media (max-width: 768px) {
+    .diagnose-grid {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
+  }
+
+  /* ── Left column ─────────────────────────────────────────────────────────── */
+
+  .diagnose-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Eyebrow — shared global class, left-aligned override */
+  .diagnose-left .eyebrow {
+    justify-content: flex-start;
+  }
+
+  .diagnose-left .eyebrow::before {
+    display: none;
+  }
+
+  .diagnose-headline {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: clamp(1.75rem, 4vw, 3.25rem);
+    line-height: 1.0;
+    letter-spacing: -0.025em;
+    margin: 0;
+    color: var(--color-fg);
+  }
+
+  .diagnose-headline em {
+    font-style: normal;
+    color: var(--color-cyan);
+    font-weight: 400;
+  }
+
+  .diagnose-desc {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.8;
+    margin: 0;
+    text-transform: uppercase;
+    max-width: 400px;
+  }
+
+  /* ── Meta table ──────────────────────────────────────────────────────────── */
+
+  .diagnose-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin: 0;
+  }
+
+  .meta-row {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    border-bottom: 1px solid var(--color-line);
+    padding-bottom: 0.5rem;
+  }
+
+  .meta-key {
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-dim);
+    flex: 0 0 110px;
+  }
+
+  .meta-val {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-fg);
+    margin: 0;
+  }
+
+  .meta-val--highlight {
+    color: var(--color-cyan);
+    font-weight: 600;
+  }
+
+  /* ── Right column — terminal container ──────────────────────────────────── */
+
+  .diagnose-right {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Terminal form styles (React island renders into .terminal) ─────────── */
+  /* These are :global because they target classes inside the React component */
+
+  .diagnose-right :global(.terminal) {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    overflow: hidden;
+  }
+
+  .diagnose-right :global(.terminal-head) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.875rem;
+    background: rgba(94, 234, 255, 0.06);
+    border-bottom: 1px solid var(--color-line);
+    font-size: 0.5625rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-dim);
+  }
+
+  .diagnose-right :global(.terminal-live) {
+    color: var(--color-cyan);
+    animation: pulseDot 2s infinite;
+  }
+
+  .diagnose-right :global(.term-body) {
+    padding: 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .diagnose-right :global(.term-line) {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 0.5rem;
+  }
+
+  .diagnose-right :global(.term-line--stack) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .diagnose-right :global(.term-prompt) {
+    font-size: 0.5625rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-cyan);
+    flex-shrink: 0;
+    min-width: 90px;
+    opacity: 0.8;
+  }
+
+  .diagnose-right :global(.term-prompt--dim) {
+    color: var(--color-dim);
+  }
+
+  .diagnose-right :global(.term-input),
+  .diagnose-right :global(.term-area) {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--color-fg);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    flex: 1;
+    width: 100%;
+    caret-color: var(--color-cyan);
+    transition: color 150ms ease;
+  }
+
+  .diagnose-right :global(.term-input::placeholder),
+  .diagnose-right :global(.term-area::placeholder) {
+    color: rgba(255, 255, 255, 0.2);
+  }
+
+  .diagnose-right :global(.term-input:focus),
+  .diagnose-right :global(.term-area:focus) {
+    color: var(--color-cyan);
+  }
+
+  .diagnose-right :global(.term-area) {
+    resize: none;
+    line-height: 1.6;
+    margin-top: 0.25rem;
+  }
+
+  /* Bottleneck options */
+  .diagnose-right :global(.term-options) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-top: 0.25rem;
+  }
+
+  .diagnose-right :global(.term-option-btn) {
+    background: transparent;
+    border: 1px solid var(--color-line);
+    color: var(--color-dim);
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    transition:
+      color 150ms ease,
+      border-color 150ms ease,
+      background 150ms ease;
+  }
+
+  .diagnose-right :global(.term-option-btn:hover) {
+    color: var(--color-fg);
+    border-color: var(--color-fg);
+  }
+
+  .diagnose-right :global(.term-option-btn.active) {
+    color: var(--color-bg);
+    background: var(--color-cyan);
+    border-color: var(--color-cyan);
+  }
+
+  .diagnose-right :global(.term-option-btn:disabled) {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Next-slot row */
+  .diagnose-right :global(.term-next-slot) {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.5625rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-dim);
+    padding-top: 0.25rem;
+  }
+
+  .diagnose-right :global(.term-slot-value) {
+    color: var(--color-fg);
+    opacity: 0.7;
+  }
+
+  /* Submit button */
+  .diagnose-right :global(.term-submit) {
+    margin-top: 0.625rem;
+    width: 100%;
+    background: var(--color-cyan);
+    border: none;
+    color: var(--color-bg);
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    transition: opacity 200ms ease;
+    font-weight: 600;
+  }
+
+  .diagnose-right :global(.term-submit:hover) {
+    opacity: 0.88;
+  }
+
+  .diagnose-right :global(.term-submit:disabled) {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Messages */
+  .diagnose-right :global(.term-success-msg) {
+    color: var(--color-cyan);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 1rem 0;
+    margin: 0;
+    text-align: center;
+  }
+
+  .diagnose-right :global(.term-error-msg) {
+    color: var(--color-warn);
+    font-size: 0.5625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0;
+    padding-top: 0.25rem;
+  }
+
+  .diagnose-right :global(.term-config-error) {
+    color: var(--color-dim);
+    font-size: 0.5625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0;
+    padding: 0.5rem 0;
+  }
+</style>
