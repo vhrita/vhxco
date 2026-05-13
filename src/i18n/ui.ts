@@ -14,6 +14,8 @@ export const ui = {
     'contact.whatsapp': 'WhatsApp',
     'portfolio.cta': 'Looking for a freelancer?',
     'portfolio.button': 'View Portfolio',
+    'preloader.line1': 'VHXCO // SYNAPSE OS',
+    'preloader.line2': 'Initializing operational consciousness',
   },
   pt: {
     'comingsoon.title': 'Em Breve',
@@ -23,5 +25,7 @@ export const ui = {
     'contact.whatsapp': 'WhatsApp',
     'portfolio.cta': 'Procurando um freelancer?',
     'portfolio.button': 'Ver Portfólio',
+    'preloader.line1': 'VHXCO // SYNAPSE OS',
+    'preloader.line2': 'Inicializando consciência operacional',
   },
 } as const;
