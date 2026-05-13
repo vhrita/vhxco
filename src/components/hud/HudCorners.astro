@@ -1,0 +1,189 @@
+---
+/**
+ * HudCorners.astro
+ *
+ * 4-corner HUD overlay with telemetry + warn flash.
+ * Ported from VHXCO.html lines 1620-1641 + vhxco-app.js telemetry section.
+ *
+ * Features:
+ *  - TL: VHXCO//SYNAPSE OS v2.4.0 + dynamic node label + session ID
+ *  - TR: SYS ONLINE + waveform slot + LAT + TEMP
+ *  - BL: COORD (mouse x/y/z) + FRAME counter
+ *  - BR: UTC time + LOC SAO PAULO/BR + ENT VHXCO ARCH-01
+ *  - Warn flash on phase changes via triggerWarnFlash()
+ *  - Hides via CSS when body.dense-phase (phase >= 2)
+ *  - prefers-reduced-motion: frame counter updates every 1s instead of 4 frames
+ */
+
+// Random session ID generated at SSR time (refreshes on page load, as in v0)
+const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
+---
+
+<div class="hud" aria-hidden="true">
+  <!-- Top Left -->
+  <div class="hud-corner hud-tl" id="hud-corner-tl">
+    <div>
+      <span class="hud-label">VHXCO//</span>
+      <span class="hud-v">SYNAPSE OS</span>
+      <span class="hud-v">v2.4.0</span>
+    </div>
+    <div>
+      <span class="hud-label">NODE</span>
+      <span class="hud-v" id="hud-node">CORE/PRIMARY</span>
+    </div>
+    <div>
+      <span class="hud-label">SESSION</span>
+      <span class="hud-v" id="hud-session">{sessionId}</span>
+    </div>
+  </div>
+
+  <!-- Top Right -->
+  <div class="hud-corner hud-tr" id="hud-corner-tr">
+    <div>
+      <span class="hud-label">SYS</span>
+      <span class="hud-v hud-live">ONLINE</span>
+      <!-- Waveform canvas — HudWaveform island mounts here via id -->
+    </div>
+    <div>
+      <span class="hud-label">LAT</span>
+      <span class="hud-v" id="hud-lat">12ms</span>
+    </div>
+    <div>
+      <span class="hud-label">TEMP</span>
+      <span class="hud-v" id="hud-temp">36.4°C</span>
+    </div>
+  </div>
+
+  <!-- Bottom Left -->
+  <div class="hud-corner hud-bl" id="hud-corner-bl">
+    <div>
+      <span class="hud-label">COORD</span>
+      <span class="hud-v" id="hud-coord">x:   0 y:   0 z:   0</span>
+    </div>
+    <div>
+      <span class="hud-label">FRAME</span>
+      <span class="hud-v" id="hud-frame">000000</span>
+    </div>
+  </div>
+
+  <!-- Bottom Right -->
+  <div class="hud-corner hud-br" id="hud-corner-br">
+    <div>
+      <span class="hud-label">UTC</span>
+      <span class="hud-v" id="hud-time">--:--:--</span>
+    </div>
+    <div>
+      <span class="hud-label">LOC</span>
+      <span class="hud-v">SAO PAULO / BR</span>
+    </div>
+    <div>
+      <span class="hud-label">ENT</span>
+      <span class="hud-v">VHXCO ARCH-01</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import {
+    subscribePhase,
+  } from '@/lib/scroll/phase-orchestrator';
+  import {
+    updateMouseState,
+    updatePhaseState,
+    tickFrame,
+    getTelemetry,
+  } from '@/lib/hud/telemetry';
+  import { triggerWarnFlash } from '@/lib/effects/hud-warn';
+
+  // ── DOM refs ──────────────────────────────────────────────────────────────
+  const elNode   = document.getElementById('hud-node');
+  const elLat    = document.getElementById('hud-lat');
+  const elTemp   = document.getElementById('hud-temp');
+  const elCoord  = document.getElementById('hud-coord');
+  const elFrame  = document.getElementById('hud-frame');
+  const elTime   = document.getElementById('hud-time');
+
+  // ── prefers-reduced-motion ────────────────────────────────────────────────
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ── Mouse tracking ────────────────────────────────────────────────────────
+  let prevMx = 0;
+  let prevMy = 0;
+  let mouseSpeed = 0;
+
+  window.addEventListener('pointermove', (e: PointerEvent) => {
+    const dx = e.clientX - prevMx;
+    const dy = e.clientY - prevMy;
+    mouseSpeed = Math.sqrt(dx * dx + dy * dy);
+    prevMx = e.clientX;
+    prevMy = e.clientY;
+    updateMouseState(e.clientX, e.clientY, mouseSpeed);
+  });
+
+  // ── Phase subscription ────────────────────────────────────────────────────
+  let prevPhase = -1;
+
+  const unsubscribe = subscribePhase((state) => {
+    updatePhaseState(state.phase, state.progress);
+
+    if (elNode) {
+      const labels = [
+        'CORE/PRIMARY',
+        'ENGINEERING/VECTORS',
+        'ECOSYSTEM/PRODUCTS',
+        'DATA/ROOM',
+        'DIAGNOSE/LINK',
+      ] as const;
+      elNode.textContent = labels[state.phase] ?? labels[0];
+    }
+
+    // Dense-phase hide: body.dense-phase when phase >= 2
+    if (state.phase >= 2) {
+      document.body.classList.add('dense-phase');
+    } else {
+      document.body.classList.remove('dense-phase');
+    }
+
+    // Warn flash on phase change
+    if (prevPhase !== -1 && state.phase !== prevPhase) {
+      triggerWarnFlash(500);
+    }
+    prevPhase = state.phase;
+  });
+
+  // ── Telemetry render loop ─────────────────────────────────────────────────
+  // Normal mode: update every 4 frames via rAF
+  // Reduced-motion: update every 1 second via setInterval
+
+  if (reducedMotion) {
+    const updateReduced = () => {
+      const tel = getTelemetry();
+      if (elTime)  elTime.textContent  = tel.utc;
+      if (elFrame) elFrame.textContent = tel.frame;
+      if (elCoord) elCoord.textContent = tel.coord;
+      if (elLat)   elLat.textContent   = tel.latency;
+      if (elTemp)  elTemp.textContent  = tel.temp;
+    };
+    setInterval(updateReduced, 1000);
+    updateReduced();
+  } else {
+    const rafLoop = () => {
+      const shouldUpdate = tickFrame();
+      if (shouldUpdate) {
+        const tel = getTelemetry(performance.now());
+        if (elTime)  elTime.textContent  = tel.utc;
+        if (elFrame) elFrame.textContent = tel.frame;
+        if (elCoord) elCoord.textContent = tel.coord;
+        if (elLat)   elLat.textContent   = tel.latency;
+        if (elTemp)  elTemp.textContent  = tel.temp;
+      }
+      requestAnimationFrame(rafLoop);
+    };
+    requestAnimationFrame(rafLoop);
+  }
+
+  // Cleanup on page unload (Astro view transitions)
+  document.addEventListener('astro:before-swap', () => {
+    unsubscribe();
+  }, { once: true });
+</script>
