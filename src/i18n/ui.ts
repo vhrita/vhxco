@@ -18,6 +18,8 @@ export const ui = {
     'preloader.line2': 'Initializing operational consciousness',
     'core.eyebrow': 'Chapter 01 / The Core',
     'core.scrollCue': 'Scroll to enter',
+    'engineering.eyebrow': 'Chapter 02 / Engineering',
+    'ecosystem.eyebrow': 'Chapter 03 / Ecosystem',
   },
   pt: {
     'comingsoon.title': 'Em Breve',
@@ -31,5 +33,7 @@ export const ui = {
     'preloader.line2': 'Inicializando consciência operacional',
     'core.eyebrow': 'Capítulo 01 / O Núcleo',
     'core.scrollCue': 'Role para entrar',
+    'engineering.eyebrow': 'Capítulo 02 / Engenharia',
+    'ecosystem.eyebrow': 'Capítulo 03 / Ecossistema',
   },
 } as const;
