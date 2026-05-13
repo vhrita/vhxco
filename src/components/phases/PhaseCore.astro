@@ -1,0 +1,189 @@
+---
+/**
+ * PhaseCore.astro — Phase 01 / Núcleo (Core)
+ *
+ * The first scrollytelling phase. Houses the page <h1> — SEO-critical.
+ * Copy: eyebrow + headline (with strike/em) + expanded sub-paragraph + scroll cue.
+ *
+ * Migrated from v0 VHXCO.html:1688-1699 with expanded copy (50→150-200 words).
+ * Brand kit reference: VHXCO.html:760-849 (headline/core-sub/scroll-cue CSS).
+ *
+ * i18n strategy:
+ *   - eyebrow + scrollCue: from src/i18n/ui.ts (useTranslations pattern)
+ *   - headline + sub: from src/lib/i18n/locales/*.json (via getT, because they
+ *     contain HTML markup and long prose that don't fit the flat ui.ts dict)
+ *
+ * Scramble effect:
+ *   - <h1> carries data-scramble attribute
+ *   - Preloader.astro dispatches a 'bootComplete' custom event after its fade-out
+ *   - The <script> here subscribes to that event and calls scrambleElement()
+ *   - prefers-reduced-motion: opacity fade only (handled in scramble.ts)
+ *
+ * Phase orchestrator:
+ *   - data-phase="0" is observed by createPhaseOrchestrator (reduced-motion mode)
+ *     and used by render-loop.ts to sync phase index
+ *   - data-active is toggled by subscribePhase() listener below
+ */
+
+import { getLangFromUrl, useTranslations } from '@/i18n/utils';
+import { getT } from '@/lib/i18n/t';
+import type { Locale } from '@/lib/i18n/config';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const tLocale = getT(lang as Locale);
+
+// Eyebrow + scrollCue come from flat ui.ts dict
+const eyebrow = t('core.eyebrow');
+const scrollCue = t('core.scrollCue');
+
+// Headline and sub come from JSON locales (contain HTML / long prose)
+const headline = tLocale('core.headline');
+const sub = tLocale('core.sub');
+
+// Sub paragraph: each \n becomes a paragraph break for rich text
+const subParagraphs = sub.split('\n').filter((p) => p.trim().length > 0);
+---
+
+<section
+  id="phase-core"
+  class="phase"
+  data-phase="0"
+  role="region"
+  aria-labelledby="core-heading"
+>
+  <div class="core-content">
+    <p class="eyebrow">{eyebrow}</p>
+
+    <h1
+      id="core-heading"
+      class="headline"
+      data-scramble
+      set:html={headline}
+    />
+
+    <div class="core-sub">
+      {subParagraphs.map((para) => <p>{para}</p>)}
+    </div>
+  </div>
+
+  <a
+    class="scroll-cue"
+    href="#phase-branches"
+    aria-label={scrollCue}
+    tabindex="0"
+  >
+    <span class="scroll-cue-label">{scrollCue}</span>
+    <span class="line" aria-hidden="true"></span>
+    <span class="scroll-cue-suffix" aria-hidden="true">SCROLL // Z</span>
+  </a>
+</section>
+
+<script>
+  /**
+   * Phase 01 client-side behaviour:
+   *
+   * 1. Scramble: listen for 'bootComplete' custom event dispatched by Preloader
+   *    after its fade-out delay. Call scrambleElement() on the <h1>.
+   *
+   * 2. data-active: subscribe to phase-orchestrator store. Toggle data-active
+   *    on the section when phase === 0. Used by CSS transitions and engine.
+   */
+
+  import { SCRAMBLE_CHARS } from '@/lib/effects/scramble';
+  import { subscribePhase } from '@/lib/scroll/phase-orchestrator';
+
+  // ── HTML-aware scramble for <h1> ──────────────────────────────────────────
+  //
+  // The h1 contains inline HTML (<em>, <span class="strike">) so we cannot
+  // use scrambleElement() which replaces textContent (destroying child nodes).
+  // Instead we collect only TEXT_NODE children, scramble each one individually,
+  // then restore. This preserves the DOM structure throughout the animation.
+
+  function scrambleTextNodes(container: HTMLElement, durationMs: number): void {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reducedMotion) {
+      container.style.opacity = '0';
+      requestAnimationFrame(() => {
+        container.style.transition = 'opacity 400ms ease';
+        container.style.opacity = '1';
+      });
+      return;
+    }
+
+    // Collect all text nodes (including inside child elements)
+    const textNodes: Text[] = [];
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      if ((node as Text).textContent?.trim()) {
+        textNodes.push(node as Text);
+      }
+    }
+
+    if (textNodes.length === 0) return;
+
+    const originals = textNodes.map((n) => n.textContent ?? '');
+    const startTime = performance.now();
+
+    function tick(now: number): void {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / durationMs, 1);
+      let anyActive = false;
+
+      textNodes.forEach((textNode, ni) => {
+        const orig = originals[ni];
+        const chars = orig.split('');
+        const settled = chars.map((_, i) => progress >= (i + 1) / chars.length);
+        const result = chars.map((ch, i) => {
+          if (ch === ' ' || ch === '\n' || ch === '\t') return ch;
+          if (settled[i]) return ch;
+          anyActive = true;
+          return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+        });
+        textNode.textContent = result.join('');
+      });
+
+      if (anyActive) {
+        requestAnimationFrame(tick);
+      } else {
+        // Guarantee originals
+        textNodes.forEach((n, i) => { n.textContent = originals[i]; });
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  // ── Scramble on boot complete ─────────────────────────────────────────────
+  const h1 = document.querySelector<HTMLElement>('#phase-core [data-scramble]');
+
+  if (h1) {
+    // Preloader dispatches 'bootComplete' after its 400ms post-fade delay.
+    // We attach once to avoid duplicate scrambles on HMR / re-mounts.
+    window.addEventListener(
+      'bootComplete',
+      () => {
+        scrambleTextNodes(h1, 900);
+      },
+      { once: true }
+    );
+  }
+
+  // ── data-active from phase orchestrator ──────────────────────────────────
+  const section = document.getElementById('phase-core');
+
+  if (section) {
+    // Set initial state
+    section.dataset.active = 'true';
+
+    subscribePhase(({ phase }) => {
+      if (phase === 0) {
+        section.dataset.active = 'true';
+      } else {
+        delete section.dataset.active;
+      }
+    });
+  }
+</script>

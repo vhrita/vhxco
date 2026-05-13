@@ -972,6 +972,192 @@ body.dense-phase .topnav {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * §10 — Phase layout + Phase 01 Core
+ *
+ * Migrated from v0 VHXCO.html:523-849 (phase-core, .headline, .eyebrow,
+ * .core-sub, .scroll-cue, .core-content + diving state).
+ *
+ * Phase 01 is fullscreen + fixed, centered, fades in when data-active.
+ * Phase sections > 1 are "extracted nodes" — positioned/animated differently.
+ *
+ * z-index: var(--z-content) = 20 (above HUD=10, below overlays=48+).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Generic phase container ─────────────────────────────────────────────── */
+
+.phase {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-content);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-slow) linear;
+}
+
+/* Active phase: visible + interactive */
+.phase[data-active] {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* ── Phase 01 Core content wrapper ───────────────────────────────────────── */
+
+.core-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 900px;
+  padding: 0 2rem;
+}
+
+/* Diving state: content fades + shifts up as user scrolls away from phase 0 */
+.phase[data-phase="0"].diving .core-content {
+  opacity: 0;
+  transform: translateY(-24px) scale(0.97);
+  filter: blur(4px);
+  transition:
+    opacity 600ms var(--ease-emphasized),
+    transform 600ms var(--ease-emphasized),
+    filter 600ms var(--ease-emphasized);
+}
+
+/* ── Eyebrow ─────────────────────────────────────────────────────────────── */
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.625rem; /* 10px */
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--color-cyan);
+  margin: 0 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+/* Hairline decorations flanking eyebrow text */
+.eyebrow::before,
+.eyebrow::after {
+  content: '';
+  flex: 0 0 28px;
+  height: 1px;
+  background: var(--color-cyan);
+  opacity: 0.5;
+}
+
+/* ── Headline (h1) ───────────────────────────────────────────────────────── */
+
+h1.headline {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(2.375rem, 6.2vw, 5.75rem); /* clamp(38px, 6.2vw, 92px) */
+  line-height: 0.96;
+  letter-spacing: -0.025em;
+  margin: 0;
+  text-wrap: balance;
+  color: var(--color-fg);
+}
+
+/* Emphasis — brand cyan */
+h1.headline em {
+  font-style: normal;
+  color: var(--color-cyan);
+  font-weight: 400;
+}
+
+/* Strike-through — past/obsolete text, muted + custom line */
+h1.headline .strike {
+  position: relative;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 300;
+}
+
+h1.headline .strike::after {
+  content: '';
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  top: 52%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Core sub-paragraph ──────────────────────────────────────────────────── */
+
+.core-sub {
+  margin-top: 2.5rem; /* 40px */
+  font-family: var(--font-mono);
+  font-size: 0.75rem; /* 12px */
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.8;
+  max-width: 540px;
+  margin-left: auto;
+  margin-right: auto;
+  text-transform: uppercase;
+}
+
+.core-sub p {
+  margin: 0 0 1em;
+}
+
+.core-sub p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Scroll cue ──────────────────────────────────────────────────────────── */
+
+.scroll-cue {
+  position: absolute;
+  bottom: 2.5rem; /* 40px */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem; /* 9px */
+  letter-spacing: 0.3em;
+  color: var(--color-dim);
+  text-transform: uppercase;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem; /* 12px */
+  pointer-events: auto;
+  transition: color var(--dur-fast) var(--ease-emphasized);
+  outline-offset: 4px;
+}
+
+.scroll-cue:hover {
+  color: var(--color-cyan);
+}
+
+.scroll-cue:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  border-radius: 2px;
+}
+
+.scroll-cue-label {
+  /* Visible label for screen readers + sighted users */
+}
+
+.scroll-cue .line {
+  width: 1px;
+  height: 36px;
+  background: linear-gradient(to bottom, transparent, var(--color-cyan));
+  animation: scrollPulse 2s ease-in-out infinite;
+  transform-origin: top;
+}
+
+.scroll-cue-suffix {
+  /* Technical suffix — always visible, not translated */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * §9 — prefers-reduced-motion guard
  *
  * Users who set "reduce motion" in their OS get:
