@@ -4,5 +4,48 @@
     "headline": "<span class=\"strike\">Your company runs on 2024.</span> // We're already in <em>2040</em>.",
     "sub": "VHXCO is not an agency. Not a consultancy. It is an operation.\n\nA single Architect orchestrates a fleet of AI Agents that analyzes, builds, and scales systems with machine precision. No intermediaries. No human bottlenecks. No overhead of a traditional team.\n\nThe model exists because the market still runs like it's 2015 — endless sprints, backlogs that never close, software that solves the wrong problems. We cut that cycle at the root.\n\nWhat you get: purpose-built systems, delivered at a speed conventional teams cannot reach, with quality most of them cannot sustain. We don't sell a point solution. We deliver full operational elevation.\n\nThe future you postponed is available now.",
     "scrollCue": "Scroll to enter"
+  },
+  "dataRoom": {
+    "eyebrow": "Chapter 04 / Data Room",
+    "h2": "Revenue up. <em>Overhead down.</em> Everything else is decoration.",
+    "metrics": {
+      "1": {
+        "label": "AGENTIC DECISIONS",
+        "delta": "▲ +18%",
+        "foot": "actions taken by AI / month"
+      },
+      "2": {
+        "label": "OVERHEAD ELIMINATED",
+        "delta": "▲ ACTIVE",
+        "foot": "human-hours automated/month"
+      },
+      "3": {
+        "label": "TIME-TO-VALUE",
+        "delta": "▼ -42%",
+        "foot": "one-man army agility"
+      },
+      "4": {
+        "label": "HUMAN ERRORS",
+        "delta": "▼ -47%",
+        "foot": "reduction via bulletproof systems"
+      },
+      "5": {
+        "label": "INFRA UPTIME",
+        "delta": "99.97%",
+        "foot": "docker/caprover monitoring"
+      },
+      "6": {
+        "label": "DELIVERY QUALITY",
+        "delta": "▲ +6",
+        "foot": "architecture focus over volume"
+      }
+    },
+    "log": {
+      "head": "AGENT REGISTRY // CLAUDE CODE",
+      "col0": "Timestamp",
+      "col1": "Client/System",
+      "col2": "Operation",
+      "col3": "Status"
+    }
   }
 }

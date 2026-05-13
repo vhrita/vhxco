@@ -4,5 +4,48 @@
     "headline": "<span class=\"strike\">Sua empresa opera em 2024.</span> // Nós já estamos em <em>2040</em>.",
     "sub": "VHXCO não é uma agência. Não é uma consultoria. É uma operação.\n\nUm único Arquiteto orquestra uma frota de Agentes de IA que analisa, constrói e escala sistemas com precisão de máquina. Sem intermediários. Sem gargalos humanos. Sem o overhead de uma equipe tradicional.\n\nO modelo existe porque o mercado ainda opera como em 2015 — sprints infinitos, backlogs que nunca fecham, softwares que resolvem problemas errados. Nós cortamos esse ciclo na raiz.\n\nO que você recebe: sistemas feitos sob medida, entregues em velocidade que equipes convencionais não alcançam, com qualidade que a maioria delas não pode sustentar. Não vendemos produto pontual. Entregamos elevação completa de operação.\n\nO futuro que você adiou está disponível agora.",
     "scrollCue": "Role para entrar"
+  },
+  "dataRoom": {
+    "eyebrow": "Capítulo 04 / Sala de Dados",
+    "h2": "Receita sobe. <em>Overhead cai.</em> Tudo o resto é decoração.",
+    "metrics": {
+      "1": {
+        "label": "DECISÕES AGÊNTICAS",
+        "delta": "▲ +18%",
+        "foot": "ações tomadas por IA / mês"
+      },
+      "2": {
+        "label": "OVERHEAD ELIMINADO",
+        "delta": "▲ ATIVO",
+        "foot": "horas-humano automatizadas/mês"
+      },
+      "3": {
+        "label": "TIME-TO-VALUE",
+        "delta": "▼ -42%",
+        "foot": "agilidade do time de um homem só"
+      },
+      "4": {
+        "label": "ERROS HUMANOS",
+        "delta": "▼ -47%",
+        "foot": "redução via sistemas blindados"
+      },
+      "5": {
+        "label": "UPTIME DE INFRA",
+        "delta": "99.97%",
+        "foot": "monitoramento docker/caprover"
+      },
+      "6": {
+        "label": "QUALIDADE DE ENTREGA",
+        "delta": "▲ +6",
+        "foot": "foco em arquitetura sobre volume"
+      }
+    },
+    "log": {
+      "head": "REGISTRO DE AGENTES // CLAUDE CODE",
+      "col0": "Timestamp",
+      "col1": "Client/System",
+      "col2": "Operation",
+      "col3": "Status"
+    }
   }
 }

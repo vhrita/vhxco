@@ -1,0 +1,180 @@
+---
+/**
+ * MetricCell.astro — Reusable metric cell for Phase 04 Data Room
+ *
+ * Renders a single KPI card with:
+ *   - Label + delta badge (color-coded: cyan=positive, warn=negative)
+ *   - Sparkline SVG (hard-coded path — procedural in v1.1)
+ *   - Animated big number (counter rAF 1400ms ease-out cubic, IntersectionObserver)
+ *   - Footer context line
+ *   - 4 corner decorations (top-left, top-right, bottom-left, bottom-right)
+ *
+ * Counter animation:
+ *   - Triggers once on IntersectionObserver (threshold 0.3)
+ *   - Respects prefers-reduced-motion: jumps to final value immediately
+ *   - data-counter: integer target
+ *   - data-divisor: divide result by this (default 1) for decimals
+ *   - data-suffix: appended unit character
+ *
+ * Migrated from v0 vhxco-app.js:807-890
+ */
+
+export interface Props {
+  /** Metric label (all-caps) */
+  label: string;
+  /** Delta badge text, e.g. "▲ +18%" */
+  delta: string;
+  /** Target integer for counter animation */
+  value: number;
+  /** Optional divisor to produce decimals (e.g. 9997 / 100 = 99.97) */
+  divisor?: number;
+  /** Unit suffix appended after the number, e.g. "%" or "h" or "d" */
+  valueSuffix?: string;
+  /** Footer context line */
+  foot: string;
+  /** Optional id for accessibility / targeting */
+  cellId?: string;
+  /** Sparkline SVG path d= attribute (hard-coded per cell) */
+  sparkPath?: string;
+}
+
+const {
+  label,
+  delta,
+  value,
+  divisor = 1,
+  valueSuffix = '',
+  foot,
+  cellId,
+  sparkPath = 'M0,30 L20,28 L40,24 L60,22 L80,18 L100,20 L120,14 L140,10 L160,8 L180,4 L200,2',
+} = Astro.props;
+
+// Determine delta badge variant for colour coding
+// positive = contains ▲ or plain % without ▼ or explicit ACTIVE keyword
+// negative = contains ▼
+const isNegativeDelta = delta.includes('▼');
+const isNeutralDelta = !delta.includes('▲') && !delta.includes('▼');
+
+const deltaClass = isNegativeDelta
+  ? 'delta delta--warn'
+  : isNeutralDelta
+    ? 'delta delta--neutral'
+    : 'delta delta--positive';
+
+// Formatted initial display value (shown before counter starts)
+const initialDisplay = divisor > 1 ? '0.00' : '0';
+---
+
+<div class="cell" id={cellId}>
+  <!-- Corner decorations -->
+  <span class="corner-tl" aria-hidden="true"></span>
+  <span class="corner-tr" aria-hidden="true"></span>
+  <span class="corner-bl" aria-hidden="true"></span>
+  <span class="corner-br" aria-hidden="true"></span>
+
+  <!-- Label row -->
+  <div class="metric-label">
+    <span class="metric-label-text">{label}</span>
+    <span class={deltaClass}>{delta}</span>
+  </div>
+
+  <!-- Sparkline SVG -->
+  <svg
+    class="spark"
+    viewBox="0 0 200 36"
+    preserveAspectRatio="none"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path
+      class="spark-fill"
+      d={`${sparkPath} L200,36 L0,36 Z`}
+    />
+    <path class="spark-line" d={sparkPath} />
+  </svg>
+
+  <!-- Big number -->
+  <div
+    class="metric-num"
+    data-counter={value}
+    data-divisor={divisor}
+    data-suffix={valueSuffix}
+  >
+    <span class="num">{initialDisplay}</span><span class="unit">{valueSuffix}</span>
+  </div>
+
+  <!-- Footer -->
+  <div class="metric-foot">{foot}</div>
+</div>
+
+<script>
+  /**
+   * Counter animation — IntersectionObserver + rAF cubic ease-out (1400ms)
+   *
+   * Each .metric-num[data-counter] observed individually.
+   * Fires once. Respects prefers-reduced-motion.
+   */
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function animateCounter(el: HTMLElement): void {
+    const target = parseFloat(el.dataset.counter ?? '0');
+    const divisor = parseFloat(el.dataset.divisor ?? '1');
+    const numEl = el.querySelector<HTMLElement>('.num');
+    if (!numEl) return;
+
+    if (reducedMotion) {
+      const finalVal = target / divisor;
+      numEl.textContent =
+        divisor > 1 ? finalVal.toFixed(2) : Math.floor(finalVal).toLocaleString('pt-BR');
+      return;
+    }
+
+    const dur = 1400;
+    const startTime = performance.now();
+
+    function step(now: number): void {
+      const elapsed = now - startTime;
+      const k = Math.min(elapsed / dur, 1);
+      const eased = easeOutCubic(k);
+      const v = (target * eased) / divisor;
+
+      numEl!.textContent =
+        divisor > 1 ? v.toFixed(2) : Math.floor(v).toLocaleString('pt-BR');
+
+      if (k < 1) {
+        requestAnimationFrame(step);
+      } else {
+        // Guarantee exact final value
+        const finalVal = target / divisor;
+        numEl!.textContent =
+          divisor > 1 ? finalVal.toFixed(2) : Math.floor(finalVal).toLocaleString('pt-BR');
+      }
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  // Observe all metric counters within this page
+  const counters = document.querySelectorAll<HTMLElement>('.metric-num[data-counter]');
+
+  if (counters.length > 0) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            observer.unobserve(entry.target);
+            animateCounter(entry.target as HTMLElement);
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    counters.forEach((el) => observer.observe(el));
+  }
+</script>

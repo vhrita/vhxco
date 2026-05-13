@@ -1,0 +1,53 @@
+---
+/**
+ * LogTable.astro — Agent activity log for Phase 04 Data Room
+ *
+ * Static decorative table with 6 hard-coded log rows.
+ * Header is i18n'd; rows are language-agnostic (technical/code style).
+ *
+ * Rows sourced from: agentic/docs/plans/vhxco-website-content-inventory.md §Fase 04
+ * Companies: fictitious client names (AURELIA-FOODS, PETROBLEND-IND, etc.)
+ * Status values: intentional mix of currency, time deltas, % — decorative.
+ *
+ * Migrated from v0 vhxco-app.js:858-867 + VHXCO.html:1871-1878.
+ */
+
+export interface Props {
+  head: string;
+  cols: [string, string, string, string];
+}
+
+const { head, cols } = Astro.props;
+
+const rows: [string, string, string, string][] = [
+  ['08:42:11', 'AURELIA-FOODS',  'agent.dispatch.purchase',     '+R$ 12.4k'],
+  ['08:39:02', 'PETROBLEND-IND', 'iot.sensor.cluster_03',       'OK'],
+  ['08:31:55', 'VESTRA-LABS',    'ai.copilot.contract_review',  '-3.2h'],
+  ['08:24:18', 'NORDIK-LOG',     'auto.invoice.reconcile',      '98.4% match'],
+  ['08:11:09', 'OBSIDIAN-FIN',   'agent.audit.compliance',      'PASS'],
+  ['07:44:31', 'CIRRUS-CLINIC',  'ai.triage.patient_intake',    '-67% wait'],
+];
+---
+
+<div class="log-table" role="table" aria-label={head}>
+  <div class="log-head" role="rowgroup">
+    <div class="log-title">{head}</div>
+    <div class="log-row log-row--header" role="row">
+      <span role="columnheader">{cols[0]}</span>
+      <span role="columnheader">{cols[1]}</span>
+      <span role="columnheader">{cols[2]}</span>
+      <span role="columnheader" class="log-cell--right">{cols[3]}</span>
+    </div>
+  </div>
+
+  <div class="log-body" role="rowgroup">
+    {rows.map(([ts, client, op, status]) => (
+      <div class="log-row" role="row">
+        <span class="log-ts" role="cell">{ts}</span>
+        <span class="log-id" role="cell">{client}</span>
+        <span class="log-op" role="cell">{op}</span>
+        <span class="log-res log-cell--right" role="cell">{status}</span>
+      </div>
+    ))}
+  </div>
+</div>
