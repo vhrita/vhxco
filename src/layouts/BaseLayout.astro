@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import NeuralEngineIsland from '@/components/hero/NeuralEngineIsland';
 import HeroFallback from '@/components/hero/HeroFallback.astro';
+import CustomCursor from '@/components/cursor/CustomCursor';
 
 export interface Props {
   title: string;
@@ -28,6 +29,7 @@ const {
   </head>
   <body>
     <NeuralEngineIsland client:only="react" />
+    <CustomCursor client:idle />
     <noscript><HeroFallback /></noscript>
     <slot />
     <script>
