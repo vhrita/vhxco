@@ -1,0 +1,128 @@
+---
+/**
+ * HeroFallback.astro
+ *
+ * Static SVG stand-in for the Three.js neural engine canvas.
+ * Rendered inside <noscript> in BaseLayout — visible when JS is disabled
+ * or when prefers-reduced-motion: reduce is active (Three.js skips init).
+ *
+ * Design: abstract brain silhouette in brand cyan on black, ~6KB inline SVG.
+ * Intentionally low-detail to stay lightweight and pass Core Web Vitals.
+ *
+ * SEO: Google crawls <noscript> DOM, so the alt text here contributes to
+ * image indexability (strategy §4.6).
+ */
+---
+
+<figure
+  id="webgl-fallback"
+  aria-label="Visualização estática de uma rede neural digital — silhueta de um cérebro formada por partículas conectadas"
+  role="img"
+>
+  <!--
+    Brain silhouette SVG — ~6KB, single-colour, brand cyan (#5EEAFF ~ oklch(0.78 0.18 200)).
+    Paths approximate the v0 brain-cloud point distribution viewed from above.
+    Optimised with SVGO principles (no unnecessary groups, relative coords).
+  -->
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 800 600"
+    width="800"
+    height="600"
+    aria-hidden="true"
+  >
+    <rect width="800" height="600" fill="#000" />
+
+    <!-- Outer brain silhouette -->
+    <ellipse cx="400" cy="300" rx="230" ry="180" fill="none" stroke="oklch(0.78 0.18 200)" stroke-width="1.2" opacity="0.5" />
+
+    <!-- Left hemisphere -->
+    <path
+      d="M400,130 C340,128 285,145 255,175 C220,210 205,255 210,300
+         C215,345 235,385 265,410 C295,435 340,448 390,448"
+      fill="none"
+      stroke="oklch(0.78 0.18 200)"
+      stroke-width="1.5"
+      opacity="0.8"
+    />
+
+    <!-- Right hemisphere -->
+    <path
+      d="M400,130 C460,128 515,145 545,175 C580,210 595,255 590,300
+         C585,345 565,385 535,410 C505,435 460,448 410,448"
+      fill="none"
+      stroke="oklch(0.78 0.18 200)"
+      stroke-width="1.5"
+      opacity="0.8"
+    />
+
+    <!-- Corpus callosum divider -->
+    <line x1="400" y1="140" x2="400" y2="440" stroke="oklch(0.78 0.18 200)" stroke-width="0.8" opacity="0.3" stroke-dasharray="4 6" />
+
+    <!-- Left lobe folds -->
+    <path d="M255,220 C270,210 290,215 300,230 C310,245 305,265 290,270" fill="none" stroke="oklch(0.78 0.18 200)" stroke-width="1" opacity="0.6" />
+    <path d="M215,295 C228,285 248,290 256,308 C264,326 254,345 238,348" fill="none" stroke="oklch(0.78 0.18 200)" stroke-width="1" opacity="0.6" />
+    <path d="M240,370 C256,360 274,368 278,385 C282,402 268,418 250,415" fill="none" stroke="oklch(0.78 0.18 200)" stroke-width="1" opacity="0.6" />
+    <path d="M310,430 C322,418 340,422 344,440 C348,457 335,470 318,466" fill="none" stroke="oklch(0.78 0.18 200)" stroke-width="1" opacity="0.6" />
+
+    <!-- Right lobe folds -->
+    <path d="M545,220 C530,210 510,215 500,230 C490,245 495,265 510,270" fill="none" stroke="oklch(0.78 0.18 200)" stroke-width="1" opacity="0.6" />
+    <path d="M585,295 C572,285 552,290 544,308 C536,326 546,345 562,348" fill="none" stroke="oklch(0.78 0.18 200)" stroke-width="1" opacity="0.6" />
+    <path d="M560,370 C544,360 526,368 522,385 C518,402 532,418 550,415" fill="none" stroke="oklch(0.78 0.18 200)" stroke-width="1" opacity="0.6" />
+    <path d="M490,430 C478,418 460,422 456,440 C452,457 465,470 482,466" fill="none" stroke="oklch(0.78 0.18 200)" stroke-width="1" opacity="0.6" />
+
+    <!-- Particle dots — sparse brain-cloud approximation -->
+    <!-- Left hemisphere dots -->
+    <circle cx="280" cy="195" r="2" fill="oklch(0.78 0.18 200)" opacity="0.9" />
+    <circle cx="248" cy="255" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.7" />
+    <circle cx="232" cy="320" r="2" fill="oklch(0.78 0.18 200)" opacity="0.9" />
+    <circle cx="258" cy="385" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.7" />
+    <circle cx="300" cy="435" r="2" fill="oklch(0.78 0.18 200)" opacity="0.8" />
+    <circle cx="345" cy="158" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.6" />
+    <circle cx="320" cy="240" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.7" />
+    <circle cx="295" cy="300" r="2" fill="oklch(0.78 0.18 200)" opacity="0.8" />
+    <circle cx="320" cy="360" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.7" />
+    <circle cx="360" cy="420" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.6" />
+    <circle cx="378" cy="200" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.5" />
+    <circle cx="370" cy="340" r="2" fill="oklch(0.78 0.18 200)" opacity="0.8" />
+    <!-- Right hemisphere dots -->
+    <circle cx="520" cy="195" r="2" fill="oklch(0.78 0.18 200)" opacity="0.9" />
+    <circle cx="552" cy="255" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.7" />
+    <circle cx="568" cy="320" r="2" fill="oklch(0.78 0.18 200)" opacity="0.9" />
+    <circle cx="542" cy="385" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.7" />
+    <circle cx="500" cy="435" r="2" fill="oklch(0.78 0.18 200)" opacity="0.8" />
+    <circle cx="455" cy="158" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.6" />
+    <circle cx="480" cy="240" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.7" />
+    <circle cx="505" cy="300" r="2" fill="oklch(0.78 0.18 200)" opacity="0.8" />
+    <circle cx="480" cy="360" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.7" />
+    <circle cx="440" cy="420" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.6" />
+    <circle cx="422" cy="200" r="1.5" fill="oklch(0.78 0.18 200)" opacity="0.5" />
+    <circle cx="430" cy="340" r="2" fill="oklch(0.78 0.18 200)" opacity="0.8" />
+    <!-- Central / cross-hemisphere -->
+    <circle cx="400" cy="145" r="2.5" fill="oklch(0.78 0.18 200)" opacity="0.95" />
+    <circle cx="400" cy="290" r="3" fill="oklch(0.78 0.18 200)" opacity="0.7" />
+    <circle cx="400" cy="440" r="2" fill="oklch(0.78 0.18 200)" opacity="0.8" />
+
+    <!-- Synapse connection lines — sparse, low opacity -->
+    <line x1="280" y1="195" x2="248" y2="255" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.3" />
+    <line x1="248" y1="255" x2="232" y2="320" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.3" />
+    <line x1="232" y1="320" x2="258" y2="385" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.3" />
+    <line x1="280" y1="195" x2="320" y2="240" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.25" />
+    <line x1="320" y1="240" x2="295" y2="300" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.25" />
+    <line x1="295" y1="300" x2="320" y2="360" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.25" />
+    <line x1="400" y1="145" x2="345" y2="158" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.3" />
+    <line x1="400" y1="145" x2="455" y2="158" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.3" />
+    <line x1="520" y1="195" x2="552" y2="255" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.3" />
+    <line x1="552" y1="255" x2="568" y2="320" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.3" />
+    <line x1="568" y1="320" x2="542" y2="385" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.3" />
+    <line x1="520" y1="195" x2="480" y2="240" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.25" />
+    <line x1="480" y1="240" x2="505" y2="300" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.25" />
+    <line x1="505" y1="300" x2="480" y2="360" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.25" />
+    <line x1="295" y1="300" x2="400" y2="290" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.2" />
+    <line x1="505" y1="300" x2="400" y2="290" stroke="oklch(0.78 0.18 200)" stroke-width="0.5" opacity="0.2" />
+
+    <!-- Central glow dot -->
+    <circle cx="400" cy="290" r="8" fill="oklch(0.78 0.18 200)" opacity="0.08" />
+    <circle cx="400" cy="290" r="4" fill="oklch(0.78 0.18 200)" opacity="0.15" />
+  </svg>
+</figure>

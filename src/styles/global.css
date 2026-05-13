@@ -84,6 +84,37 @@ body {
  *   #preFlash      z=101  (white boot completion flash)
  * ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ── WebGL canvas (Three.js — always bottom of stack) ───────────────────── */
+
+#webgl {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-webgl);
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── WebGL fallback (noscript / reduced-motion) ──────────────────────────── */
+
+#webgl-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-webgl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  background: #000;
+}
+
+#webgl-fallback svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 /* ── Glitch overlay ─────────────────────────────────────────────────────── */
 
 #glitchOverlay {
