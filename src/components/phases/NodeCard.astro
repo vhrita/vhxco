@@ -1,0 +1,116 @@
+---
+/**
+ * NodeCard.astro — Reusable node card component for Phase 02 Engineering
+ *
+ * Renders a single engineering node with SVG glyph, num, title, desc, and
+ * stack badges. Designed for the extractable cascade effect.
+ *
+ * Props:
+ *   num    — display number string e.g. "01 / WORKFORCE"
+ *   title  — node title (translated)
+ *   desc   — node description (translated)
+ *   stack  — array of tech stack labels (hard-coded, not translated)
+ *   glyph  — which SVG variant: 'intelligence' | 'structure' | 'presence'
+ *   index  — 0-based position index for --extract-index CSS var (stagger delay)
+ *
+ * CSS animation:
+ *   extractIn keyframe is defined in global.css §6.
+ *   Each card applies --extract-index which drives --extract-delay via
+ *   calc(var(--extract-index) * 160ms). The .phase[data-active] state
+ *   triggers the animation via .node-card[data-extractable-index].
+ *
+ * SVG glyphs ported from vhxco-app.js:691-748.
+ * Fix: fill uses var(--color-cyan) instead of #5eeaff hard-coded.
+ */
+
+export interface Props {
+  num: string;
+  title: string;
+  desc: string;
+  stack: string[];
+  glyph: 'intelligence' | 'structure' | 'presence';
+  index: number;
+}
+
+const { num, title, desc, stack, glyph, index } = Astro.props;
+---
+
+<article
+  class="node-card"
+  data-extractable-index={index}
+  style={`--extract-index: ${index};`}
+>
+  <div class="node-glyph">
+    <div class="ring-ext"></div>
+
+    {glyph === 'intelligence' && (
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <g fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.6">
+          <circle cx="50" cy="50" r="34"/>
+          <circle cx="50" cy="50" r="22"/>
+        </g>
+        <g class="glyph-fg" fill="var(--color-cyan)">
+          <circle cx="50" cy="50" r="4"/>
+          <!-- 8 satellite dots at r=34 -->
+          <circle cx="84.0" cy="50.0" r="1.6"/>
+          <circle cx="74.0" cy="74.0" r="1.6"/>
+          <circle cx="50.0" cy="84.0" r="1.6"/>
+          <circle cx="26.0" cy="74.0" r="1.6"/>
+          <circle cx="16.0" cy="50.0" r="1.6"/>
+          <circle cx="26.0" cy="26.0" r="1.6"/>
+          <circle cx="50.0" cy="16.0" r="1.6"/>
+          <circle cx="74.0" cy="26.0" r="1.6"/>
+        </g>
+        <g stroke="rgba(94,234,255,0.5)" stroke-width="0.4" fill="none">
+          <line x1="50" y1="50" x2="84.0" y2="50.0"/>
+          <line x1="50" y1="50" x2="74.0" y2="74.0"/>
+          <line x1="50" y1="50" x2="50.0" y2="84.0"/>
+          <line x1="50" y1="50" x2="26.0" y2="74.0"/>
+          <line x1="50" y1="50" x2="16.0" y2="50.0"/>
+          <line x1="50" y1="50" x2="26.0" y2="26.0"/>
+          <line x1="50" y1="50" x2="50.0" y2="16.0"/>
+          <line x1="50" y1="50" x2="74.0" y2="26.0"/>
+        </g>
+      </svg>
+    )}
+
+    {glyph === 'structure' && (
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <g fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.6">
+          <rect x="20" y="20" width="60" height="60" transform="rotate(0 50 50)"/>
+          <rect x="28" y="28" width="44" height="44" transform="rotate(15 50 50)"/>
+          <rect x="36" y="36" width="28" height="28" transform="rotate(30 50 50)"/>
+        </g>
+        <g class="glyph-fg" fill="var(--color-cyan)">
+          <rect x="46" y="46" width="8" height="8" transform="rotate(45 50 50)"/>
+        </g>
+      </svg>
+    )}
+
+    {glyph === 'presence' && (
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <g fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.6">
+          <path d="M10,50 H30 V20 H50 V50 H70 V80 H90"/>
+          <path d="M50,10 V35 H75 V60 H35 V90"/>
+        </g>
+        <g class="glyph-fg" fill="var(--color-cyan)">
+          <circle cx="30" cy="20" r="2"/>
+          <circle cx="50" cy="50" r="3"/>
+          <circle cx="70" cy="80" r="2"/>
+          <circle cx="35" cy="60" r="2"/>
+          <circle cx="75" cy="35" r="2"/>
+        </g>
+        <g fill="none" stroke="rgba(94,234,255,0.6)" stroke-width="0.4">
+          <circle cx="50" cy="50" r="14" stroke-dasharray="2 3"/>
+        </g>
+      </svg>
+    )}
+  </div>
+
+  <span class="node-num">{num}</span>
+  <h3 class="node-title">{title}</h3>
+  <p class="node-desc">{desc}</p>
+  <ul class="node-stack" aria-label="Stack">
+    {stack.map((badge) => <li>{badge}</li>)}
+  </ul>
+</article>
