@@ -4,6 +4,7 @@ import NeuralEngineIsland from '@/components/hero/NeuralEngineIsland';
 import HeroFallback from '@/components/hero/HeroFallback.astro';
 import CustomCursor from '@/components/cursor/CustomCursor';
 import Preloader from '@/components/effects/Preloader.astro';
+import MuteButton from '@/components/hud/MuteButton.astro';
 
 export interface Props {
   title: string;
@@ -32,10 +33,31 @@ const {
     <Preloader />
     <NeuralEngineIsland client:only="react" />
     <CustomCursor client:idle />
+    <MuteButton />
     <noscript><HeroFallback /></noscript>
     <slot />
     <script>
-      // Mount scroll/phase orchestrator after hydration
+      // Audio lazy-init gate — loads audio chunk only after first user click.
+      import('@/lib/audio/lazy-init');
+
+      // Boot-complete audio hook — fires audioBoot() when bootProgress reaches 1.0,
+      // but only if the audio module has already been loaded (user clicked at least once).
+      // This covers the "user clicked during preloader" path.
+      import('@/lib/neural-engine/boot-progress').then(({ bootProgress }) => {
+        let _bootFired = false;
+        bootProgress.subscribe((v) => {
+          if (_bootFired || v < 1.0) return;
+          _bootFired = true;
+          const audio = (window as unknown as Record<string, unknown>).__audioReady as
+            | { audioBoot: () => void }
+            | undefined;
+          audio?.audioBoot();
+        });
+      });
+    </script>
+    <script>
+      // Mount scroll/phase orchestrator after hydration.
+      // On phase change, fire audioSwoosh() + update ambient tuning via __audioReady.
       import('@/lib/scroll/phase-orchestrator').then(
         ({
           createPhaseOrchestrator,
@@ -44,6 +66,25 @@ const {
           getTargetProgress,
         }) => {
           const orchestrator = createPhaseOrchestrator();
+
+          // Audio phase hook — fires on every phase transition
+          let _lastAudioPhase = -1;
+          subscribePhase((state) => {
+            if (state.phase === _lastAudioPhase) return;
+            _lastAudioPhase = state.phase;
+
+            const audio = (window as unknown as Record<string, unknown>).__audioReady as
+              | {
+                  audioSwoosh: () => void;
+                  setPhase: (n: 0 | 1 | 2 | 3 | 4) => void;
+                  isMuted: () => boolean;
+                }
+              | undefined;
+
+            if (!audio || audio.isMuted()) return;
+            audio.setPhase(state.phase as 0 | 1 | 2 | 3 | 4);
+            audio.audioSwoosh();
+          });
 
           // Dev-only global for debugging: window.__phaseStore.getState()
           if (import.meta.env.DEV) {
