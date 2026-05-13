@@ -1,0 +1,114 @@
+---
+/**
+ * TopNav.astro
+ *
+ * Fixed top navigation: VHXCO logo + 5 chapter buttons + PT/EN lang toggle.
+ * Ported from VHXCO.html lines 1643-1657.
+ *
+ * Chapter labels: PT default. i18n dict is empty for now — hard-coded with TODO.
+ * Lang toggle: PT → "/" | EN → "/en/" (Astro i18n routing).
+ * Active state driven by phase orchestrator subscription.
+ * Keyboard nav: Tab focus + roving tabindex within tablist.
+ *
+ * TODO(i18n): when pt.json / en.json have nav.chapter.0..4 keys, replace
+ *             hard-coded labels with t('nav.chapter.N').
+ */
+
+interface Props {
+  locale?: 'pt' | 'en';
+}
+
+const { locale = 'pt' } = Astro.props;
+
+const chapters = [
+  { num: '01', label: 'Núcleo',      en: 'Core' },
+  { num: '02', label: 'Engenharia',  en: 'Engineering' },
+  { num: '03', label: 'Ecossistema', en: 'Ecosystem' },
+  { num: '04', label: 'Prova',       en: 'Proof' },
+  { num: '05', label: 'Diagnose',    en: 'Diagnose' },
+] as const;
+---
+
+<nav class="topnav" aria-label="Navegação principal">
+  <a href="/" class="topnav-logo" aria-label="VHXCO — página inicial">
+    <span class="topnav-logo-mark" aria-hidden="true"></span>
+    <span>VHXCO</span>
+  </a>
+
+  <div class="topnav-chapters" id="topnav-chapters" role="tablist" aria-label="Capítulos">
+    {chapters.map((ch, i) => (
+      <button
+        class="topnav-chapter"
+        data-phase={i}
+        role="tab"
+        aria-selected={i === 0 ? 'true' : 'false'}
+        aria-controls={`phase-panel-${i}`}
+        tabindex={i === 0 ? 0 : -1}
+      >
+        <span class="topnav-chapter-num" aria-hidden="true">{ch.num}</span>
+        <span class="topnav-chapter-lbl">{locale === 'en' ? ch.en : ch.label}</span>
+      </button>
+    ))}
+  </div>
+
+  <div class="topnav-lang" aria-label="Idioma">
+    <a
+      href="/"
+      class:list={['topnav-lang-btn', { active: locale === 'pt' }]}
+      hreflang="pt"
+      aria-label="Português"
+      aria-current={locale === 'pt' ? 'true' : undefined}
+    >PT</a>
+    <a
+      href="/en/"
+      class:list={['topnav-lang-btn', { active: locale === 'en' }]}
+      hreflang="en"
+      aria-label="English"
+      aria-current={locale === 'en' ? 'true' : undefined}
+    >EN</a>
+  </div>
+</nav>
+
+<script>
+  import { subscribePhase } from '@/lib/scroll/phase-orchestrator';
+
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.topnav-chapter');
+
+  function setActiveChapter(phase: number) {
+    buttons.forEach((btn, i) => {
+      const isActive = i === phase;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      btn.tabIndex = isActive ? 0 : -1;
+    });
+  }
+
+  // Subscribe to phase changes
+  const unsub = subscribePhase((state) => {
+    setActiveChapter(state.phase);
+  });
+
+  // Click → dispatch goto-phase event (wired in BaseLayout to orchestrator.goToPhase)
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const phase = parseInt(btn.dataset.phase ?? '0', 10);
+      window.dispatchEvent(new CustomEvent('hud:goto-phase', { detail: { phase } }));
+    });
+
+    // Keyboard: roving tabindex within tablist
+    btn.addEventListener('keydown', (e: KeyboardEvent) => {
+      const idx = parseInt(btn.dataset.phase ?? '0', 10);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = buttons[idx + 1];
+        if (next) { next.focus(); next.click(); }
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = buttons[idx - 1];
+        if (prev) { prev.focus(); prev.click(); }
+      }
+    });
+  });
+
+  document.addEventListener('astro:before-swap', () => unsub(), { once: true });
+</script>

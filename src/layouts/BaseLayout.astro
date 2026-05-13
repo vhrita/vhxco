@@ -5,6 +5,10 @@ import HeroFallback from '@/components/hero/HeroFallback.astro';
 import CustomCursor from '@/components/cursor/CustomCursor';
 import Preloader from '@/components/effects/Preloader.astro';
 import MuteButton from '@/components/hud/MuteButton.astro';
+import HudCorners from '@/components/hud/HudCorners.astro';
+import TopNav from '@/components/hud/TopNav.astro';
+import ScrollRail from '@/components/hud/ScrollRail.astro';
+import HudWaveform from '@/components/hud/HudWaveform';
 
 export interface Props {
   title: string;
@@ -30,12 +34,26 @@ const {
     <slot name="head" />
   </head>
   <body>
+    <!-- a11y: skip to main content (always first in DOM) -->
+    <a href="#main" class="skip-link">Ir para o conteúdo principal</a>
+
     <Preloader />
     <NeuralEngineIsland client:only="react" />
     <CustomCursor client:idle />
     <MuteButton />
     <noscript><HeroFallback /></noscript>
-    <slot />
+
+    <!-- HUD layer (z-index: var(--z-hud)) -->
+    <TopNav locale={locale} />
+    <ScrollRail locale={locale} />
+    <HudCorners />
+    <!-- HudWaveform React island: appends its own canvas after idle hydration -->
+    <HudWaveform client:idle />
+
+    <main id="main">
+      <slot />
+    </main>
+
     <script>
       // Audio lazy-init gate — loads audio chunk only after first user click.
       import('@/lib/audio/lazy-init');
@@ -95,6 +113,12 @@ const {
               goToPhase: orchestrator.goToPhase.bind(orchestrator),
             };
           }
+
+          // HUD nav buttons dispatch hud:goto-phase — wired to orchestrator here
+          window.addEventListener('hud:goto-phase', (e: Event) => {
+            const phase = (e as CustomEvent<{ phase: number }>).detail.phase;
+            orchestrator.goToPhase(phase);
+          });
         }
       );
     </script>
