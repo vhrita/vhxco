@@ -154,8 +154,16 @@ const line2 = t('preloader.line2') ?? 'Initializing operational consciousness';
     // Scramble headings after preloader fades (~400ms delay)
     const delay = reducedMotion ? 0 : 400;
     setTimeout(() => {
+      // Dispatch custom event so phase components can run their own scramble logic
+      // (e.g. PhaseCore h1 has HTML markup that requires HTML-aware scramble)
+      window.dispatchEvent(new CustomEvent('bootComplete'));
+
+      // Scramble plain-text [data-scramble] elements (no HTML children)
       const targets = document.querySelectorAll<HTMLElement>('[data-scramble]');
       targets.forEach((el, i) => {
+        // Skip elements that have child element nodes (HTML-aware scramble
+        // is handled by each component subscribing to bootComplete event)
+        if (el.childElementCount > 0) return;
         // Stagger each heading: 600-1200ms duration spread across elements
         const duration = 600 + (i * 100);
         scrambleHeading(el, duration);

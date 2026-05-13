@@ -1,1 +1,8 @@
-{}
+{
+  "core": {
+    "eyebrow": "Chapter 01 / The Core",
+    "headline": "<span class=\"strike\">Your company runs on 2024.</span> // We're already in <em>2040</em>.",
+    "sub": "VHXCO is not an agency. Not a consultancy. It is an operation.\n\nA single Architect orchestrates a fleet of AI Agents that analyzes, builds, and scales systems with machine precision. No intermediaries. No human bottlenecks. No overhead of a traditional team.\n\nThe model exists because the market still runs like it's 2015 — endless sprints, backlogs that never close, software that solves the wrong problems. We cut that cycle at the root.\n\nWhat you get: purpose-built systems, delivered at a speed conventional teams cannot reach, with quality most of them cannot sustain. We don't sell a point solution. We deliver full operational elevation.\n\nThe future you postponed is available now.",
+    "scrollCue": "Scroll to enter"
+  }
+}

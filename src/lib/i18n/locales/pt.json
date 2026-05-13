@@ -1,1 +1,8 @@
-{}
+{
+  "core": {
+    "eyebrow": "Capítulo 01 / O Núcleo",
+    "headline": "<span class=\"strike\">Sua empresa opera em 2024.</span> // Nós já estamos em <em>2040</em>.",
+    "sub": "VHXCO não é uma agência. Não é uma consultoria. É uma operação.\n\nUm único Arquiteto orquestra uma frota de Agentes de IA que analisa, constrói e escala sistemas com precisão de máquina. Sem intermediários. Sem gargalos humanos. Sem o overhead de uma equipe tradicional.\n\nO modelo existe porque o mercado ainda opera como em 2015 — sprints infinitos, backlogs que nunca fecham, softwares que resolvem problemas errados. Nós cortamos esse ciclo na raiz.\n\nO que você recebe: sistemas feitos sob medida, entregues em velocidade que equipes convencionais não alcançam, com qualidade que a maioria delas não pode sustentar. Não vendemos produto pontual. Entregamos elevação completa de operação.\n\nO futuro que você adiou está disponível agora.",
+    "scrollCue": "Role para entrar"
+  }
+}
