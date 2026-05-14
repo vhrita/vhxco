@@ -25,7 +25,7 @@ void main() {
   vec3 baseColor = hsl2rgb(vec3(uHue, 0.9, 0.2 + fresnel * 0.4));
 
   // Red pulse when firing
-  vec3 fireColor = vec3(1.0, 0.2, 0.3) * 5.0; // Bright pink/red
+  vec3 fireColor = vec3(1.0, 0.25, 0.35) * 2.0; // Coral/pink — reduced from 5x HDR
   vec3 col = mix(baseColor, fireColor, vEnergy);
 
   gl_FragColor = vec4(col, 0.8 + vEnergy * 0.2);
