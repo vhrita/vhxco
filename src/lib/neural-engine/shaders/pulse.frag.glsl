@@ -4,5 +4,5 @@
 
 void main() {
   // Bright neon red/pink core
-  gl_FragColor = vec4(1.0, 0.2, 0.4, 1.0) * 8.0;
+  gl_FragColor = vec4(1.0, 0.3, 0.45, 1.0) * 3.0;
 }

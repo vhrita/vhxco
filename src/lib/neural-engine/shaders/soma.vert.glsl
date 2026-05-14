@@ -87,7 +87,7 @@ void main() {
   float scale = smoothstep(aBirth, aBirth + 0.05, uBootProgress);
 
   // Inflate the neuron: multiply size based on energy (red firing)
-  scale += vEnergy * 2.0;
+  scale += vEnergy * 0.8;
 
   vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(pos * scale, 1.0);
   vViewPosition = -mvPosition.xyz;
