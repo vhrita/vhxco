@@ -7,7 +7,6 @@ import Preloader from '@/components/effects/Preloader.astro';
 import MuteButton from '@/components/hud/MuteButton.astro';
 import HudCorners from '@/components/hud/HudCorners.astro';
 import TopNav from '@/components/hud/TopNav.astro';
-import ScrollRail from '@/components/hud/ScrollRail.astro';
 import HudWaveform from '@/components/hud/HudWaveform';
 
 export interface Props {
@@ -45,7 +44,6 @@ const {
 
     <!-- HUD layer (z-index: var(--z-hud)) -->
     <TopNav locale={locale} />
-    <ScrollRail locale={locale} />
     <HudCorners />
     <!-- HudWaveform React island: appends its own canvas after idle hydration -->
     <HudWaveform client:idle />

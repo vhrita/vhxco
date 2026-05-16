@@ -9,7 +9,7 @@
  *   5. Custom Cursor (ADR D6) — cursor + trail + ripple CSS
  *   6. Cinema CSS — keyframes + overlay classes (NOT Tailwind — kept as pure CSS)
  *   7. Preloader (#preloader, .pre-mark, .pre-bar, .pre-systems)
- *   8. HUD (4 corners + TopNav + ScrollRail + Waveform + skip-link)
+ *   8. HUD (4 corners + TopNav + Waveform + skip-link)
  *   9. prefers-reduced-motion guard
  */
 
@@ -641,11 +641,11 @@ body.cursor-hover-link #cursor::before {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * §8 — HUD (4 corners + TopNav + ScrollRail + Waveform + skip-link)
+ * §8 — HUD (4 corners + TopNav + Waveform + skip-link)
  *
  * All HUD elements use var(--font-mono) — Helvetica Neue is NOT used here.
  * Z-index: var(--z-hud) = 10 (above WebGL, below overlays/cursor).
- * HUD hides when body.dense-phase (phase >= 2) — toggled by HudCorners.astro.
+ * HUD corners always visible (dense-phase hide removed — TASK-0928).
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Skip link (a11y) ────────────────────────────────────────────────────── */
@@ -686,28 +686,40 @@ body.cursor-hover-link #cursor::before {
   transition: opacity var(--dur-medium-fast) var(--ease-emphasized);
 }
 
-/* Dense-phase: hide HUD when phase >= 2 */
-body.dense-phase .hud {
-  opacity: 0;
-  pointer-events: none;
-}
-
 /* ── HUD corners ─────────────────────────────────────────────────────────── */
 
 .hud-corner {
   position: absolute;
   padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+}
+
+/* Each row inside a corner: label + value on same line */
+.hud-corner > div {
+  display: flex;
+  gap: 0.5em;
+  align-items: baseline;
+  line-height: 1.5;
+}
+
+/* Right-aligned corners: flip the row direction */
+.hud-tr > div,
+.hud-br > div {
+  flex-direction: row-reverse;
 }
 
 .hud-tl { top: 0;    left: 0;  }
-.hud-tr { top: 0;    right: 0; text-align: right; }
+.hud-tr { top: 0;    right: 0; }
 .hud-bl { bottom: 0; left: 0;  }
-.hud-br { bottom: 0; right: 0; text-align: right; }
+.hud-br { bottom: 0; right: 0; }
 
 .hud-label {
   color: var(--color-dim);
   opacity: 0.7;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .hud-v {
@@ -812,6 +824,8 @@ body.dense-phase .hud {
 .topnav-chapter[aria-selected="true"] {
   color: var(--color-cyan);
   border-bottom-color: var(--color-cyan);
+  background: oklch(from var(--color-cyan) l c h / 0.08);
+  box-shadow: 0 0 12px oklch(from var(--color-cyan) l c h / 0.25);
 }
 
 .topnav-chapter-num {
@@ -857,118 +871,12 @@ body.dense-phase .hud {
   border-color: var(--color-cyan);
 }
 
-/* ── ScrollRail ──────────────────────────────────────────────────────────── */
-
-.scroll-rail {
-  position: fixed;
-  top: 50%;
-  right: 1.25rem;
-  transform: translateY(-50%);
-  z-index: var(--z-hud);
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  align-items: flex-end;
-  pointer-events: auto;
-}
-
-.rail-step {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0.25rem 0;
-  outline-offset: 4px;
-  transition: opacity var(--dur-medium-fast) var(--ease-emphasized);
-}
-
-.rail-step:hover {
-  opacity: 1;
-}
-
-.rail-step:focus-visible {
-  outline: 2px solid var(--color-cyan);
-  border-radius: 2px;
-}
-
-.rail-dot {
-  display: block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  border: 1px solid var(--color-dim);
-  background: transparent;
-  transition:
-    background var(--dur-medium-fast) var(--ease-emphasized),
-    border-color var(--dur-medium-fast) var(--ease-emphasized),
-    transform var(--dur-medium-fast) var(--ease-emphasized);
-  flex-shrink: 0;
-}
-
-/* Completed (past phases) */
-.rail-step.completed .rail-dot {
-  background: var(--color-dim);
-  border-color: var(--color-dim);
-}
-
-/* Active (current phase) */
-.rail-step.active .rail-dot,
-.rail-step[aria-current="step"] .rail-dot {
-  background: var(--color-cyan);
-  border-color: var(--color-cyan);
-  transform: scale(1.4);
-  box-shadow: 0 0 6px var(--color-cyan);
-}
-
-.rail-label {
-  font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  letter-spacing: 0.08em;
-  color: var(--color-dim);
-  opacity: 0;
-  transform: translateX(4px);
-  transition:
-    opacity var(--dur-medium-fast) var(--ease-emphasized),
-    transform var(--dur-medium-fast) var(--ease-emphasized),
-    color var(--dur-medium-fast) var(--ease-emphasized);
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.rail-step:hover .rail-label,
-.rail-step:focus-visible .rail-label {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.rail-step.active .rail-label,
-.rail-step[aria-current="step"] .rail-label {
-  color: var(--color-cyan);
-  opacity: 1;
-  transform: translateX(0);
-}
-
-/* Hide rail in dense-phase */
-body.dense-phase .scroll-rail {
-  opacity: 0;
-  pointer-events: none;
-}
-
 /* ── HudWaveform canvas ──────────────────────────────────────────────────── */
 
 #hudWaveform {
   margin-left: 0.5rem;
   vertical-align: middle;
   opacity: 0.9;
-}
-
-/* ── TopNav + HUD hide in dense-phase ────────────────────────────────────── */
-
-body.dense-phase .topnav {
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
