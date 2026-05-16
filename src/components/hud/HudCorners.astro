@@ -11,7 +11,7 @@
  *  - BL: COORD (mouse x/y/z) + FRAME counter
  *  - BR: UTC time + LOC SAO PAULO/BR + ENT VHXCO ARCH-01
  *  - Warn flash on phase changes via triggerWarnFlash()
- *  - Hides via CSS when body.dense-phase (phase >= 2)
+ *  - Always visible (dense-phase hide removed — TopNav-only nav decision)
  *  - prefers-reduced-motion: frame counter updates every 1s instead of 4 frames
  */
 
@@ -135,13 +135,6 @@ const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
         'DIAGNOSE/LINK',
       ] as const;
       elNode.textContent = labels[state.phase] ?? labels[0];
-    }
-
-    // Dense-phase hide: body.dense-phase when phase >= 2
-    if (state.phase >= 2) {
-      document.body.classList.add('dense-phase');
-    } else {
-      document.body.classList.remove('dense-phase');
     }
 
     // Warn flash on phase change
