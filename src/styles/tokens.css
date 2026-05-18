@@ -43,18 +43,31 @@
   --font-display: 'Helvetica Neue', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', monospace;
 
-  /* ─── Z-index stack ─────────────────────────────────────────────────────────
+  /* ─── Z-index layer system — 6 camadas semânticas ──────────────────────────
    *
-   * Consolidated from brand-kit §Z-index stack.
+   * Rewritten in Fix-set A (TASK-2026-0519-0001).
    * Original audit values: webgl=1, hud=10, content=20, overlay=50, preFlash=101, cursor=9999.
+   * New hierarchy: canvas < content < hud < chrome < overlay-* < preloader < cursor-* < a11y.
    */
 
-  --z-webgl: 1;          /* Three.js canvas — always at bottom */
-  --z-hud: 10;           /* HUD 4-corners, topnav */
-  --z-content: 20;       /* Phase panels, extractable panels */
-  --z-overlay: 50;       /* grain, vignette, scanline, glitchOverlay */
-  --z-overlay-flash: 101; /* #preFlash — white flash on boot completion */
-  --z-cursor: 9999;      /* Custom cursor — always on top */
+  --z-canvas: 1;               /* WebGL canvas + fallback */
+  --z-content: 10;             /* Phase content (rebaixado de 20 → 10) */
+  --z-hud: 20;                 /* HUD corners (subiu de 10 → 20) */
+  --z-chrome: 30;              /* TopNav, MuteButton (era hardcoded 9000/var(--z-hud)) */
+  --z-overlay-scanline: 48;    /* CRT scanlines */
+  --z-overlay-vignette: 49;    /* Dark edge vignette */
+  --z-overlay-grain: 50;       /* SVG fractal noise grain */
+  --z-overlay-glitch: 55;      /* Phase transition glitch flash */
+  --z-preloader: 100;          /* Boot sequence overlay */
+  --z-overlay-flash: 101;      /* #preFlash — white flash on boot completion */
+  --z-cursor-ripple: 9997;     /* DOM-injected click ripple */
+  --z-cursor-trail: 9998;      /* 2D canvas particle trail */
+  --z-cursor: 9999;            /* Custom cursor dot + ring — always on top */
+  --z-a11y: 10000;             /* Skip-link when focused */
+
+  /* Legacy alias — kept for backward compat during Fix-set A transition.
+   * Remove once B/C/D/E confirm no references remain. */
+  --z-webgl: var(--z-canvas);
 
   /* ─── Easing ────────────────────────────────────────────────────────────────
    *
