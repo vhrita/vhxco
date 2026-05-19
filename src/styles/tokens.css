@@ -69,6 +69,37 @@
    * Remove once B/C/D/E confirm no references remain. */
   --z-webgl: var(--z-canvas);
 
+  /* ─── Layout — safe-zones tokenizadas ──────────────────────────────────────
+   *
+   * Introduced in Fix-set B (TASK-2026-0519-0002).
+   * Coordinates chrome positioning so TopNav / HUD corners / phase content
+   * never overlap. Every element that touches screen edges references these.
+   */
+
+  --safe-top: 3.5rem;     /* altura reservada pra TopNav (56px) — desktop */
+  --safe-bottom: 3rem;    /* altura reservada pra MuteButton + breathing room */
+  --safe-x: 1.5rem;       /* gutter horizontal lateral (24px) */
+  --safe-gap: 1rem;       /* padding interno de HUD corners (16px) */
+
+  /* Phase padding — content interno dos phases respeitando safe-zones + extra */
+  --phase-padding-top: calc(var(--safe-top) + 1rem);
+  --phase-padding-bottom: calc(var(--safe-bottom) + 1rem);
+  --phase-padding-x: var(--safe-x);
+  --phase-max-width: 64rem; /* 1024px — content max em viewport ultra-wide */
+
+  /* ─── Breakpoints ───────────────────────────────────────────────────────────
+   *
+   * Named breakpoints for consistent responsive behaviour across fix-sets.
+   * Use in @media (min-width: var(--bp-*)) — note: CSS custom props don't work
+   * directly in @media queries, but these document the intended breakpoint scale.
+   */
+
+  --bp-sm: 30rem;   /* 480px */
+  --bp-md: 40rem;   /* 640px */
+  --bp-lg: 48rem;   /* 768px */
+  --bp-xl: 64rem;   /* 1024px */
+  --bp-2xl: 80rem;  /* 1280px */
+
   /* ─── Easing ────────────────────────────────────────────────────────────────
    *
    * Source: brand-kit §Animação §Tokens de animação propostos.
