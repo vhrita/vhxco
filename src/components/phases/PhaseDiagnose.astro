@@ -143,6 +143,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
     max-width: 1100px;
     width: 100%;
     align-items: start;
+    /* Container context — enables @container queries on child elements */
+    container-type: inline-size;
   }
 
   @media (max-width: 768px) {
