@@ -160,6 +160,13 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    /* Glass card effect (Fix-set E — Phases 02-05 only, not Phase 01) */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 2rem;
   }
 
   /* Eyebrow — shared global class, left-aligned override */

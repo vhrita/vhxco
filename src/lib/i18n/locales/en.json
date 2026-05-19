@@ -81,6 +81,9 @@
       }
     }
   },
+  "a11y": {
+    "skipToContent": "Skip to content"
+  },
   "dataRoom": {
     "eyebrow": "Chapter 04 / Data Room",
     "h2": "Revenue up. <em>Overhead down.</em> Everything else is decoration.",
