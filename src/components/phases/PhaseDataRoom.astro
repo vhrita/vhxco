@@ -190,9 +190,9 @@ const logCols: [string, string, string, string] = [
   .data-heading {
     font-family: var(--font-display);
     font-weight: 300;
-    font-size: clamp(1.5rem, 4vw, 3rem);
-    line-height: 1.1;
-    letter-spacing: -0.02em;
+    font-size: var(--text-3xl);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
     margin: 0;
     color: var(--color-fg);
   }
@@ -284,8 +284,8 @@ const logCols: [string, string, string, string] = [
 
   :global(.metric-label-text) {
     font-family: var(--font-mono);
-    font-size: 0.5625rem; /* 9px */
-    letter-spacing: 0.16em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     color: var(--color-dim);
   }
@@ -294,8 +294,8 @@ const logCols: [string, string, string, string] = [
 
   :global(.delta) {
     font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    letter-spacing: 0.1em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
     padding: 0.125rem 0.375rem;
     border-radius: 2px;
     white-space: nowrap;
@@ -354,17 +354,17 @@ const logCols: [string, string, string, string] = [
 
   :global(.metric-num .num) {
     font-family: var(--font-display);
-    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    font-size: var(--text-2xl);
     font-weight: 200;
-    letter-spacing: -0.03em;
+    letter-spacing: var(--tracking-tight);
     color: var(--color-fg);
     font-variant-numeric: tabular-nums;
   }
 
   :global(.metric-num .unit) {
     font-family: var(--font-mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
     color: var(--color-cyan);
     font-weight: 400;
   }
@@ -373,8 +373,8 @@ const logCols: [string, string, string, string] = [
 
   :global(.metric-foot) {
     font-family: var(--font-mono);
-    font-size: 0.5rem; /* 8px */
-    letter-spacing: 0.14em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     color: var(--color-dim);
     opacity: 0.7;
@@ -386,15 +386,15 @@ const logCols: [string, string, string, string] = [
   :global(.log-table) {
     border: 1px solid var(--color-line);
     font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    letter-spacing: 0.08em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wider);
   }
 
   :global(.log-title) {
     padding: 0.625rem 1rem;
     color: var(--color-cyan);
-    font-size: 0.5rem;
-    letter-spacing: 0.2em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     border-bottom: 1px solid var(--color-line);
     background: oklch(from var(--color-cyan) l c h / 0.04);
@@ -416,8 +416,8 @@ const logCols: [string, string, string, string] = [
   :global(.log-row--header) {
     color: var(--color-cyan);
     background: oklch(from var(--color-cyan) l c h / 0.04);
-    font-size: 0.5rem;
-    letter-spacing: 0.12em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wider);
     text-transform: uppercase;
     border-bottom: 1px solid var(--color-line);
   }

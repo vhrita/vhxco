@@ -172,9 +172,9 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
   .diagnose-headline {
     font-family: var(--font-display);
     font-weight: 300;
-    font-size: clamp(1.75rem, 4vw, 3.25rem);
-    line-height: 1.0;
-    letter-spacing: -0.025em;
+    font-size: var(--text-3xl);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
     margin: 0;
     color: var(--color-fg);
   }
@@ -187,12 +187,11 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 
   .diagnose-desc {
     font-family: var(--font-mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
+    font-size: var(--text-sm);
+    letter-spacing: var(--tracking-wide);
     color: rgba(255, 255, 255, 0.55);
-    line-height: 1.8;
+    line-height: var(--leading-normal);
     margin: 0;
-    text-transform: uppercase;
     max-width: 400px;
   }
 
@@ -215,8 +214,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 
   .meta-key {
     font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    letter-spacing: 0.18em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     color: var(--color-dim);
     flex: 0 0 110px;
@@ -224,8 +223,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 
   .meta-val {
     font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    letter-spacing: 0.1em;
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     color: var(--color-fg);
     margin: 0;
@@ -260,8 +259,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
     padding: 0.5rem 0.875rem;
     background: rgba(94, 234, 255, 0.06);
     border-bottom: 1px solid var(--color-line);
-    font-size: 0.5625rem;
-    letter-spacing: 0.16em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     color: var(--color-dim);
   }
@@ -292,8 +291,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
   }
 
   .diagnose-right :global(.term-prompt) {
-    font-size: 0.5625rem;
-    letter-spacing: 0.16em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     color: var(--color-cyan);
     flex-shrink: 0;
@@ -312,8 +311,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
     outline: none;
     color: var(--color-fg);
     font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    letter-spacing: 0.06em;
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-normal);
     flex: 1;
     width: 100%;
     caret-color: var(--color-cyan);
@@ -349,8 +348,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
     border: 1px solid var(--color-line);
     color: var(--color-dim);
     font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    letter-spacing: 0.1em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     padding: 0.25rem 0.5rem;
     cursor: pointer;
@@ -381,8 +380,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    font-size: 0.5625rem;
-    letter-spacing: 0.12em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wider);
     text-transform: uppercase;
     color: var(--color-dim);
     padding-top: 0.25rem;
@@ -401,8 +400,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
     border: none;
     color: var(--color-bg);
     font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    letter-spacing: 0.18em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-widest);
     text-transform: uppercase;
     padding: 0.625rem 1rem;
     cursor: pointer;
@@ -422,8 +421,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
   /* Messages */
   .diagnose-right :global(.term-success-msg) {
     color: var(--color-cyan);
-    font-size: 0.6875rem;
-    letter-spacing: 0.1em;
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     padding: 1rem 0;
     margin: 0;
@@ -432,8 +431,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 
   .diagnose-right :global(.term-error-msg) {
     color: var(--color-warn);
-    font-size: 0.5625rem;
-    letter-spacing: 0.08em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     margin: 0;
     padding-top: 0.25rem;
@@ -441,8 +440,8 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 
   .diagnose-right :global(.term-config-error) {
     color: var(--color-dim);
-    font-size: 0.5625rem;
-    letter-spacing: 0.08em;
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
     margin: 0;
     padding: 0.5rem 0;

@@ -100,6 +100,37 @@
   --bp-xl: 64rem;   /* 1024px */
   --bp-2xl: 80rem;  /* 1280px */
 
+  /* ─── Typography scale — modular 1.25x anchored at 16px base ──────────────
+   *
+   * Introduced in Fix-set C (TASK-2026-0519-0003).
+   * 9 fluid steps via clamp(min, fluid, max). All min/max in rem (16px base).
+   * HITL #4: --text-4xl max = 4.75rem = 76px (was 92px).
+   */
+
+  /* Sizes */
+  --text-2xs: clamp(0.625rem, 0.6vw + 0.5rem, 0.75rem);   /* 10–12px */
+  --text-xs:  clamp(0.75rem, 0.7vw + 0.6rem, 0.875rem);   /* 12–14px */
+  --text-sm:  clamp(0.875rem, 0.8vw + 0.7rem, 1rem);      /* 14–16px */
+  --text-base: clamp(1rem, 1vw + 0.8rem, 1.125rem);       /* 16–18px */
+  --text-lg:  clamp(1.125rem, 1.3vw + 0.85rem, 1.375rem); /* 18–22px */
+  --text-xl:  clamp(1.375rem, 1.8vw + 1rem, 1.75rem);     /* 22–28px */
+  --text-2xl: clamp(1.75rem, 2.5vw + 1.2rem, 2.5rem);     /* 28–40px */
+  --text-3xl: clamp(2rem, 3.5vw + 1.4rem, 3.25rem);       /* 32–52px */
+  --text-4xl: clamp(2.25rem, 5.5vw + 1.5rem, 4.75rem);    /* 38–76px (h1, HITL #4) */
+
+  /* Line heights */
+  --leading-tight:   1.05;
+  --leading-snug:    1.2;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.7;
+
+  /* Letter spacing (tracking) */
+  --tracking-tight:   -0.01em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.04em;
+  --tracking-wider:   0.08em;
+  --tracking-widest:  0.16em;
+
   /* ─── Easing ────────────────────────────────────────────────────────────────
    *
    * Source: brand-kit §Animação §Tokens de animação propostos.
