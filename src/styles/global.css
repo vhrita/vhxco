@@ -691,7 +691,7 @@ body.cursor-hover-link #cursor::before {
 
 .hud-corner {
   position: absolute;
-  padding: 1rem;
+  padding: var(--safe-gap);
   display: flex;
   flex-direction: column;
   gap: 0.2em;
@@ -711,10 +711,10 @@ body.cursor-hover-link #cursor::before {
   flex-direction: row-reverse;
 }
 
-.hud-tl { top: 0;    left: 0;  }
-.hud-tr { top: 0;    right: 0; }
-.hud-bl { bottom: 0; left: 0;  }
-.hud-br { bottom: 0; right: 0; }
+.hud-tl { top: var(--safe-top);    left: var(--safe-x);  }
+.hud-tr { top: var(--safe-top);    right: var(--safe-x); }
+.hud-bl { bottom: var(--safe-bottom); left: var(--safe-x);  }
+.hud-br { bottom: var(--safe-bottom); right: var(--safe-x); }
 
 .hud-label {
   color: var(--color-dim);
@@ -747,15 +747,27 @@ body.cursor-hover-link #cursor::before {
   top: 0;
   left: 0;
   right: 0;
+  height: var(--safe-top);
+  padding: 0 var(--safe-x);
   z-index: var(--z-chrome);
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  padding: 0.75rem 1.5rem;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0));
   font-family: var(--font-mono);
   font-size: 0.6875rem; /* 11px */
   letter-spacing: 0.06em;
   pointer-events: auto;
+}
+
+/* Isolation — creates stacking context for interactive chrome elements.
+ * Ensures cursor mix-blend-mode: difference works consistently on TopNav
+ * buttons, lang toggle, logo, and MuteButton regardless of paint layers. */
+.topnav-chapter,
+.topnav-lang-btn,
+.topnav-logo,
+#muteBtn {
+  isolation: isolate;
 }
 
 .topnav-logo {
@@ -901,6 +913,9 @@ body.cursor-hover-link #cursor::before {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: var(--phase-padding-top) var(--phase-padding-x) var(--phase-padding-bottom);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--dur-slow) linear;
