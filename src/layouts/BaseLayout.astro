@@ -8,6 +8,8 @@ import MuteButton from '@/components/hud/MuteButton.astro';
 import HudCorners from '@/components/hud/HudCorners.astro';
 import TopNav from '@/components/hud/TopNav.astro';
 import HudWaveform from '@/components/hud/HudWaveform';
+import { getT } from '@/lib/i18n/t';
+import type { Locale } from '@/lib/i18n/config';
 
 export interface Props {
   title: string;
@@ -20,21 +22,24 @@ const {
   description = 'VHXCO — Agentic Software House',
   locale = 'pt',
 } = Astro.props;
+
+const t = getT(locale as Locale);
 ---
 
 <!doctype html>
 <html lang={locale}>
   <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="theme-color" content="#000000" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
-    <title>{title}</title>
     <slot name="head" />
   </head>
   <body>
     <!-- a11y: skip to main content (always first in DOM) -->
-    <a href="#main" class="skip-link">Ir para o conteúdo principal</a>
+    <a href="#main" class="skip-link">{t('a11y.skipToContent')}</a>
 
     <Preloader />
     <NeuralEngineIsland client:only="react" />

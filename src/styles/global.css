@@ -1189,11 +1189,17 @@ h1.headline .strike::after {
   z-index: 2;
   width: 100%;
   max-width: clamp(720px, 88vw, 1200px);
-  padding: 0 clamp(1rem, 4vw, 3rem);
+  padding: clamp(2rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: clamp(2rem, 4vw, 3.5rem);
+  /* Glass card effect (Fix-set E — Phases 02-05 only, not Phase 01) */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
   /* Container context — enables @container queries on child grids */
   container-type: inline-size;
 }
@@ -1402,11 +1408,17 @@ h1.headline .strike::after {
   z-index: 2;
   width: 100%;
   max-width: clamp(640px, 88vw, 1100px);
-  padding: 0 clamp(1rem, 4vw, 3rem);
+  padding: clamp(2rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: clamp(2rem, 4vw, 3.5rem);
+  /* Glass card effect (Fix-set E — Phases 02-05 only, not Phase 01) */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
   /* Container context — enables @container queries on child grids */
   container-type: inline-size;
 }
@@ -1600,6 +1612,58 @@ h1.headline .strike::after {
 .eco-header,
 .eco-card {
   --extract-delay: calc(var(--extract-index, 0) * 160ms);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * §13 — Interactive hover glow (Fix-set E)
+ *
+ * Cyan box-shadow on cards, cells, log rows and TopNav chapter buttons.
+ * Keeps glow subtle — 1px ring at 20% + 24px blur at 8% — so it reads
+ * as "alive" without competing with the WebGL canvas.
+ * focus-visible mirrors hover for keyboard a11y.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.eco-card,
+.node-card,
+.topnav-chapter {
+  transition:
+    box-shadow var(--dur-medium-fast) var(--ease-emphasized),
+    transform var(--dur-medium-fast) var(--ease-emphasized),
+    border-color var(--dur-medium-fast) var(--ease-emphasized);
+}
+
+.eco-card:hover,
+.eco-card:focus-visible,
+.node-card:hover,
+.node-card:focus-visible,
+.topnav-chapter:hover,
+.topnav-chapter:focus-visible {
+  box-shadow:
+    0 0 0 1px oklch(from var(--color-cyan) l c h / 0.2),
+    0 4px 24px oklch(from var(--color-cyan) l c h / 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * §14 — Extractable cascade safety fallback (Fix-set E)
+ *
+ * .extractable elements start hidden (opacity: 0 + transform) and are
+ * animated in by extractIn when .phase[data-active] is set by the
+ * phase-orchestrator. If data-active never arrives (boot race or JS error),
+ * this rule kicks in after 1.5s and makes content visible anyway.
+ *
+ * Delay is generous enough that the normal animation path wins when JS
+ * loads correctly — this is a defensive guard only.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.extractable:not([data-extracted]) {
+  transition:
+    opacity 400ms var(--ease-emphasized) 1.5s,
+    transform 400ms var(--ease-emphasized) 1.5s;
+}
+
+/* When phase IS active (normal path), cancel the fallback delay immediately */
+.phase[data-active] .extractable:not([data-extracted]) {
+  transition: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

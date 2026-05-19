@@ -81,6 +81,9 @@
       }
     }
   },
+  "a11y": {
+    "skipToContent": "Pular para o conteúdo"
+  },
   "dataRoom": {
     "eyebrow": "Capítulo 04 / Sala de Dados",
     "h2": "Receita sobe. <em>Overhead cai.</em> Tudo o resto é decoração.",
