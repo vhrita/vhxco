@@ -685,6 +685,25 @@ body.cursor-hover-link #cursor::before {
   letter-spacing: var(--tracking-wide);
   color: var(--color-dim);
   transition: opacity var(--dur-medium-fast) var(--ease-emphasized);
+  /* Container context — enables @container queries on HUD detail rows */
+  container-type: inline-size;
+}
+
+/* HUD detail visibility — controlled by container queries on .hud.
+ * detail-2 (lowest priority): hide at ≤30rem (480px)
+ * detail-1 (medium priority): hide at ≤48rem (768px)
+ * Elements are kept in DOM — only display is toggled. */
+
+@container (max-width: 30rem) {
+  .hud-detail-2 {
+    display: none;
+  }
+}
+
+@container (max-width: 48rem) {
+  .hud-detail-1 {
+    display: none;
+  }
 }
 
 /* ── HUD corners ─────────────────────────────────────────────────────────── */
@@ -803,6 +822,8 @@ body.cursor-hover-link #cursor::before {
   gap: 0.125rem;
   flex: 1;
   justify-content: center;
+  /* Container context — enables @container label-switching queries */
+  container-type: inline-size;
 }
 
 .topnav-chapter {
@@ -845,6 +866,69 @@ body.cursor-hover-link #cursor::before {
   color: var(--color-dim);
   opacity: 0.6;
   font-size: var(--text-2xs);
+}
+
+/* ── TopNav label variants ───────────────────────────────────────────────── *
+ *
+ * Three label spans per chapter button:
+ *   .topnav-chapter-num        — numeric "01"  always present in DOM
+ *   .topnav-chapter-lbl-short  — 3-char short  "NUC"
+ *   .topnav-lbl-full           — full label     "Núcleo"
+ *
+ * Container query on .topnav-chapters selects which span is visible:
+ *   ≤30rem  → numeric only (01 02 03 04 05)
+ *   30–48rem → short labels (NUC ENG ECO PRV DIA)
+ *   ≥48rem  → full labels  (Núcleo Engenharia …)
+ *
+ * Defaults (outside container queries): show full, hide others.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* Default: full labels visible, short + num-only hidden */
+.topnav-chapter-lbl-short {
+  display: none;
+}
+
+/* ≤30rem: numeric only — hide full + short labels */
+@container (max-width: 30rem) {
+  .topnav-lbl-full,
+  .topnav-chapter-lbl-short {
+    display: none;
+  }
+
+  .topnav-chapter-num {
+    opacity: 0.9; /* bump opacity when it's the only visible element */
+  }
+
+  /* Tighten gaps to save space */
+  .topnav-chapters {
+    gap: 0;
+  }
+
+  .topnav-chapter {
+    padding: 0.375rem 0.5rem;
+  }
+}
+
+/* 30–48rem: short labels — hide full, show short */
+@container (min-width: 30rem) and (max-width: 48rem) {
+  .topnav-lbl-full {
+    display: none;
+  }
+
+  .topnav-chapter-lbl-short {
+    display: inline;
+  }
+}
+
+/* ≥48rem: full labels — already default, enforce short hidden */
+@container (min-width: 48rem) {
+  .topnav-lbl-full {
+    display: inline;
+  }
+
+  .topnav-chapter-lbl-short {
+    display: none;
+  }
 }
 
 .topnav-lang {
@@ -1110,6 +1194,8 @@ h1.headline .strike::after {
   flex-direction: column;
   align-items: center;
   gap: clamp(2rem, 4vw, 3.5rem);
+  /* Container context — enables @container queries on child grids */
+  container-type: inline-size;
 }
 
 /* ── Branches header (eyebrow + h2) ──────────────────────────────────────── */
@@ -1139,28 +1225,38 @@ h1.headline .strike::after {
   font-weight: 400;
 }
 
-/* ── Nodes grid — 3 columns ──────────────────────────────────────────────── */
+/* ── Nodes grid — container-query responsive columns ────────────────────── */
 
 .nodes-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr; /* base: 1-col (≤30rem / 480px) */
   gap: clamp(0.75rem, 2vw, 1.5rem);
   width: 100%;
 }
 
-/* Stack to single column on narrow screens */
-@media (max-width: 680px) {
-  .nodes-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (min-width: 681px) and (max-width: 900px) {
+/* 2-col at ≥30rem (480px) within .eng-content container */
+@container (min-width: 30rem) {
   .nodes-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
 
-  /* Make the 3rd card span full width on 2-col layout */
+/* 3-col at ≥45rem (720px) within .eng-content container */
+@container (min-width: 45rem) {
+  .nodes-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Reset 3rd-card centering (only needed for 2-col layout) */
+  .nodes-grid .node-card:nth-child(3) {
+    grid-column: auto;
+    max-width: none;
+    justify-self: auto;
+  }
+}
+
+/* 2-col: center the 3rd card when there are only 2 columns */
+@container (min-width: 30rem) and (max-width: 44.99rem) {
   .nodes-grid .node-card:nth-child(3) {
     grid-column: 1 / -1;
     max-width: 50%;
@@ -1311,6 +1407,8 @@ h1.headline .strike::after {
   flex-direction: column;
   align-items: center;
   gap: clamp(2rem, 4vw, 3.5rem);
+  /* Container context — enables @container queries on child grids */
+  container-type: inline-size;
 }
 
 /* ── Ecosystem header (eyebrow + h2 + sub) ───────────────────────────────── */
@@ -1358,19 +1456,19 @@ h1.headline .strike::after {
   margin-bottom: 0;
 }
 
-/* ── Eco grid — 2 columns ────────────────────────────────────────────────── */
+/* ── Eco grid — container-query responsive columns ───────────────────────── */
 
 .eco-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr; /* base: 1-col (≤30rem) */
   gap: clamp(1rem, 2.5vw, 2rem);
   width: 100%;
 }
 
-/* Stack to single column on narrow screens */
-@media (max-width: 600px) {
+/* 2-col at ≥30rem (480px) within .eco-content container */
+@container (min-width: 30rem) {
   .eco-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

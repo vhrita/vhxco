@@ -22,16 +22,18 @@ const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
 <div class="hud" aria-hidden="true">
   <!-- Top Left -->
   <div class="hud-corner hud-tl" id="hud-corner-tl">
+    <!-- Always visible: brand identity -->
     <div>
       <span class="hud-label">VHXCO//</span>
       <span class="hud-v">SYNAPSE OS</span>
-      <span class="hud-v">v2.4.0</span>
     </div>
-    <div>
+    <!-- detail-2: low priority — hide at ≤480px -->
+    <div class="hud-detail-2">
       <span class="hud-label">NODE</span>
       <span class="hud-v" id="hud-node">CORE/PRIMARY</span>
     </div>
-    <div>
+    <!-- detail-1: medium priority — hide at ≤768px -->
+    <div class="hud-detail-1">
       <span class="hud-label">SESSION</span>
       <span class="hud-v" id="hud-session">{sessionId}</span>
     </div>
@@ -39,16 +41,19 @@ const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
 
   <!-- Top Right -->
   <div class="hud-corner hud-tr" id="hud-corner-tr">
+    <!-- Always visible: system status -->
     <div>
       <span class="hud-label">SYS</span>
       <span class="hud-v hud-live">ONLINE</span>
       <!-- Waveform canvas — HudWaveform island mounts here via id -->
     </div>
-    <div>
+    <!-- detail-1: medium priority — hide at ≤768px -->
+    <div class="hud-detail-1">
       <span class="hud-label">LAT</span>
       <span class="hud-v" id="hud-lat">12ms</span>
     </div>
-    <div>
+    <!-- detail-2: low priority — hide at ≤480px -->
+    <div class="hud-detail-2">
       <span class="hud-label">TEMP</span>
       <span class="hud-v" id="hud-temp">36.4°C</span>
     </div>
@@ -56,27 +61,32 @@ const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
 
   <!-- Bottom Left -->
   <div class="hud-corner hud-bl" id="hud-corner-bl">
-    <div>
-      <span class="hud-label">COORD</span>
-      <span class="hud-v" id="hud-coord">x:   0 y:   0 z:   0</span>
-    </div>
+    <!-- Always visible: frame counter -->
     <div>
       <span class="hud-label">FRAME</span>
       <span class="hud-v" id="hud-frame">000000</span>
+    </div>
+    <!-- detail-1: medium priority — hide at ≤768px -->
+    <div class="hud-detail-1">
+      <span class="hud-label">COORD</span>
+      <span class="hud-v" id="hud-coord">x:   0 y:   0 z:   0</span>
     </div>
   </div>
 
   <!-- Bottom Right -->
   <div class="hud-corner hud-br" id="hud-corner-br">
+    <!-- Always visible: UTC time -->
     <div>
       <span class="hud-label">UTC</span>
       <span class="hud-v" id="hud-time">--:--:--</span>
     </div>
-    <div>
+    <!-- detail-1: medium priority — hide at ≤768px -->
+    <div class="hud-detail-1">
       <span class="hud-label">LOC</span>
       <span class="hud-v">SAO PAULO / BR</span>
     </div>
-    <div>
+    <!-- detail-2: low priority — hide at ≤480px -->
+    <div class="hud-detail-2">
       <span class="hud-label">ENT</span>
       <span class="hud-v">VHXCO ARCH-01</span>
     </div>

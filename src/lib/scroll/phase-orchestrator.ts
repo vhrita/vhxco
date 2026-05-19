@@ -166,22 +166,69 @@ function _createSnapOrchestrator(
   // Sync target into store initial state
   _setTarget(targetProgress, 0);
 
+  // ── Scroll-bound guard helpers ──
+  //
+  // Before consuming a wheel/touch event to change phase, check whether the
+  // active phase has internal overflow AND the user has not yet scrolled to
+  // the edge in the intended direction.  If overflow exists and the extremum
+  // hasn't been reached, return true (caller should bail out and let the
+  // browser handle the native scroll).  If the phase fits, or the user is
+  // already at the top/bottom edge, return false (consume + change phase).
+  //
+  // Threshold of 2px avoids sub-pixel rounding issues on HiDPI screens.
+
+  function _activePhaseHasScroll(direction: 'down' | 'up'): boolean {
+    const activeEl = document.querySelector<HTMLElement>('.phase[data-active]');
+    if (!activeEl) return false;
+
+    const overflow = activeEl.scrollHeight > activeEl.clientHeight + 2;
+    if (!overflow) return false;
+
+    const scrollTop = activeEl.scrollTop;
+    const scrollMax = activeEl.scrollHeight - activeEl.clientHeight;
+    const atTop    = scrollTop <= 1;
+    const atBottom = scrollTop >= scrollMax - 1;
+
+    if (direction === 'down' && !atBottom) return true; // let browser scroll
+    if (direction === 'up'   && !atTop)    return true; // let browser scroll
+    return false; // at the edge → fall through to phase change
+  }
+
   // ── Event handlers ──
 
   function onWheel(e: WheelEvent): void {
+    const direction = e.deltaY > 0 ? 'down' : 'up';
+    if (_activePhaseHasScroll(direction)) {
+      // Active phase has room to scroll internally — don't prevent default,
+      // let the browser handle native scroll on the phase element.
+      return;
+    }
     e.preventDefault();
     updateScrollProgress(e.deltaY * 0.00038);
   }
 
   let touchY: number | null = null;
+  let touchDirection: 'down' | 'up' | null = null;
 
   function onTouchStart(e: TouchEvent): void {
     touchY = e.touches[0].clientY;
+    touchDirection = null;
   }
 
   function onTouchMove(e: TouchEvent): void {
     if (touchY === null) return;
     const dy = touchY - e.touches[0].clientY;
+    // Determine swipe direction on first meaningful movement
+    if (touchDirection === null && Math.abs(dy) > 2) {
+      touchDirection = dy > 0 ? 'down' : 'up';
+    }
+    // Touch events are passive — we can't preventDefault here (already
+    // registered passive:true).  The scroll-bound guard still applies so we
+    // skip the phase progress update when the phase has internal scroll room.
+    if (touchDirection !== null && _activePhaseHasScroll(touchDirection)) {
+      touchY = e.touches[0].clientY;
+      return;
+    }
     updateScrollProgress(dy * 0.001);
     touchY = e.touches[0].clientY;
   }

@@ -21,11 +21,11 @@ interface Props {
 const { locale = 'pt' } = Astro.props;
 
 const chapters = [
-  { num: '01', label: 'Núcleo',      en: 'Core' },
-  { num: '02', label: 'Engenharia',  en: 'Engineering' },
-  { num: '03', label: 'Ecossistema', en: 'Ecosystem' },
-  { num: '04', label: 'Prova',       en: 'Proof' },
-  { num: '05', label: 'Diagnose',    en: 'Diagnose' },
+  { num: '01', label: 'Núcleo',      en: 'Core',        short: 'NUC' },
+  { num: '02', label: 'Engenharia',  en: 'Engineering', short: 'ENG' },
+  { num: '03', label: 'Ecossistema', en: 'Ecosystem',   short: 'ECO' },
+  { num: '04', label: 'Prova',       en: 'Proof',       short: 'PRV' },
+  { num: '05', label: 'Diagnose',    en: 'Diagnose',    short: 'DIA' },
 ] as const;
 ---
 
@@ -46,7 +46,8 @@ const chapters = [
         tabindex={i === 0 ? 0 : -1}
       >
         <span class="topnav-chapter-num" aria-hidden="true">{ch.num}</span>
-        <span class="topnav-chapter-lbl">{locale === 'en' ? ch.en : ch.label}</span>
+        <span class="topnav-chapter-lbl-short" aria-hidden="true">{ch.short}</span>
+        <span class="topnav-lbl-full">{locale === 'en' ? ch.en : ch.label}</span>
       </button>
     ))}
   </div>
