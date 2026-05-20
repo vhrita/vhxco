@@ -1,0 +1,11 @@
+# qa/.gitignore
+# Screenshots are local artifacts — never commit them.
+screenshots/*
+!screenshots/.gitkeep
+
+# Dev server runtime files
+.dev.log
+.dev.pid
+
+# Chromium download dir (fallback if /opt/homebrew/bin/chromium is unavailable)
+.chromium/
