@@ -40,6 +40,15 @@
     padding: 0.375rem 0.6rem;
     transition: color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
     opacity: 0.7;
+    /* QA iter-01 Batch C (P2-6): WCAG 2.1 AA Target Size — min 44×44 hit area.
+     * Old 0.375rem×0.6rem padding gave ~28×24px box on touch; bumping to a
+     * flex centring with min dimensions keeps the ♪/ø glyph visually small
+     * while guaranteeing finger-friendly tap target. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   @media (min-width: 768px) {
