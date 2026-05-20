@@ -1003,19 +1003,56 @@ body.cursor-hover-link #cursor::before {
 
 /* ── Generic phase container ─────────────────────────────────────────────── */
 
+/*
+ * QA iter-01 Batch B: safe-zone enforcement.
+ *
+ * Before: `align-items: center; justify-content: center` engoliam o padding
+ *   superior (flex centering ignora padding quando content > viewport height).
+ *   Resultado: h1 começava em y≈0, atrás do TopNav, em todas viewports < 1920px.
+ *
+ * After: `flex-direction: column; justify-content: flex-start` força o content
+ *   a respeitar `padding-top`. O child usa `margin-block: auto` (regra abaixo)
+ *   pra centralizar verticalmente quando há espaço sobrando — mesmo
+ *   comportamento visual em viewports altas, mas safe quando o content é maior
+ *   que a viewport.
+ *
+ * Padding now reserves: safe-top + hud-corner-h (top) e safe-bottom + hud-corner-h
+ *   (bottom), garantindo zero overlap com HUD corners.
+ *
+ * `scroll-padding-top`: quando o phase scrolla internamente, content para de
+ *   subir antes de cruzar a zona do TopNav.
+ */
 .phase {
   position: fixed;
   inset: 0;
   z-index: var(--z-content);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: var(--phase-padding-top) var(--phase-padding-x) var(--phase-padding-bottom);
+  justify-content: flex-start;
+  padding:
+    calc(var(--safe-top) + var(--hud-corner-h))
+    var(--safe-x)
+    calc(var(--safe-bottom) + var(--hud-corner-h));
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-padding-top: var(--safe-top);
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--dur-slow) linear;
+}
+
+/* Helper child rule: centraliza vertical quando há espaço, alinha topo
+ * quando o conteúdo excede a altura disponível. Pareado com
+ * `justify-content: flex-start` acima.
+ *
+ * Note: each phase wrapper (.core-content / .eng-content / .eco-content /
+ * .data-room-wrap / .diagnose-grid) keeps its own horizontal max-width.
+ * We don't impose `--phase-max-width` aqui porque cada wrapper já calibrou o
+ * próprio (ex: eng-content = 1200px, eco-content = 1100px). Aplicar um teto
+ * global aqui seria regressão. */
+.phase > * {
+  margin-block: auto;
 }
 
 /* Active phase: visible + interactive */
@@ -1131,12 +1168,26 @@ h1.headline .strike::after {
 
 /* ── Scroll cue ──────────────────────────────────────────────────────────── */
 
+/*
+ * QA iter-01 Batch B (P0-5): cue anchored to safe-bottom em vez de hard-coded
+ * 2.5rem. Antes, em viewports mobile (375/480/640), o cue ficava no meio do
+ * paragraph porque o `.phase` era flex centered e o cue herdava o flow
+ * vertical. Agora `position: absolute` ancorado ao `.phase` (que é `position:
+ * fixed` = coordinate space), `bottom: calc(var(--safe-bottom) + 1rem)`.
+ *
+ * `z-index: var(--z-chrome)` mantém o cue acima do content da phase mas
+ * abaixo dos overlays cinematográficos.
+ *
+ * `pointer-events: auto` preservado — o cue é um <a href="#phase-branches">
+ * com tabindex=0; precisa clicar/focar. O hit area é só o content (não a
+ * largura inteira da viewport) porque é `display: flex` shrink-to-fit.
+ */
 .scroll-cue {
   position: absolute;
-  bottom: 2.5rem; /* 40px */
+  bottom: calc(var(--safe-bottom) + 1rem);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 3;
+  z-index: var(--z-chrome);
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   letter-spacing: var(--tracking-widest);
@@ -1150,6 +1201,13 @@ h1.headline .strike::after {
   pointer-events: auto;
   transition: color var(--dur-fast) var(--ease-emphasized);
   outline-offset: 4px;
+}
+
+/* Override `.phase > *` margin-block: auto pra cue — cue não participa do
+ * fluxo flex (é `position: absolute`) e `margin-block: auto` em `position:
+ * absolute` pode confundir o solver vertical. Reset explícito. */
+.phase > .scroll-cue {
+  margin-block: 0;
 }
 
 .scroll-cue:hover {
@@ -1174,7 +1232,15 @@ h1.headline .strike::after {
 }
 
 .scroll-cue-suffix {
-  /* Technical suffix — always visible, not translated */
+  /* Technical suffix — visible only on devices with a real keyboard. */
+}
+
+/* QA iter-01 Batch B (P1-8): esconde "SCROLL // Z" em mobile / touch — sem
+ * teclado, a hint não aplica e só polui o cue. */
+@media (max-width: 768px), (pointer: coarse) {
+  .scroll-cue-suffix {
+    display: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1191,10 +1257,13 @@ h1.headline .strike::after {
 
 /* ── Engineering phase container ─────────────────────────────────────────── */
 
+/* QA iter-01 Batch B: removidos `align-items: center; justify-content: center;
+ * overflow: hidden` que sobrescreviam a `.phase`. O `overflow: hidden` quebrava
+ * o scroll interno (Fix-set D) e os align/justify centerings engoliam o
+ * padding superior (P0-3). `.phase-engineering` herda agora todo o behaviour
+ * de `.phase`. */
 .phase-engineering {
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  /* intentionally empty — kept as hook for future engineering-specific tweaks */
 }
 
 .eng-content {
@@ -1410,10 +1479,9 @@ h1.headline .strike::after {
 
 /* ── Ecosystem phase container ───────────────────────────────────────────── */
 
+/* QA iter-01 Batch B: removidos overrides — vide nota em .phase-engineering. */
 .phase-ecosystem {
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  /* intentionally empty — kept as hook for future ecosystem-specific tweaks */
 }
 
 .eco-content {
