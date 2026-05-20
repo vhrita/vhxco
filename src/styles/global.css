@@ -790,6 +790,11 @@ body.cursor-hover-link #cursor::before {
   font-size: var(--text-xs);
   letter-spacing: var(--tracking-normal);
   pointer-events: auto;
+  /* QA iter-01 Batch C (P0-7): container context for logo text @container query
+   * (hide "VHXCO" word in < 480px so logo stops fighting chapter buttons for
+   * width). Nested vs .topnav-chapters' own container — both resolve to the
+   * nearest ancestor with container-type, so no conflict. */
+  container-type: inline-size;
 }
 
 /* Isolation — creates stacking context for interactive chrome elements.
@@ -888,10 +893,17 @@ body.cursor-hover-link #cursor::before {
  *   .topnav-chapter-lbl-short  — 3-char short  "NUC"
  *   .topnav-lbl-full           — full label     "Núcleo"
  *
- * Container query on .topnav-chapters selects which span is visible:
- *   ≤30rem  → numeric only (01 02 03 04 05)
- *   30–48rem → short labels (NUC ENG ECO PRV DIA)
- *   ≥48rem  → full labels  (Núcleo Engenharia …)
+ * QA iter-01 Batch C (P0-7, P1-1, P1-2, P1-5): recalibrated breakpoints.
+ * Container query on .topnav-chapters selects which span(s) are visible:
+ *   < 30rem (< 480px)        → num-only + label on .active button inline
+ *   30–48rem (480–768px)     → num-only + label on .active button inline
+ *   48–64rem (768–1024px)    → num + short label ("NUC ENG ECO …")
+ *   ≥ 64rem  (≥ 1024px)      → num + full label  ("01 Núcleo …")
+ *
+ * Rationale: original spec had short labels in 480-768, but in practice
+ * (real devices via Puppeteer) the 5 short labels still overflowed at 600px.
+ * Showing only the *active* chapter's full label inline is a stronger signal
+ * — user always sees where they are, and the inactive ones stay compact.
  *
  * Defaults (outside container queries): show full, hide others.
  * ─────────────────────────────────────────────────────────────────────────── */
@@ -901,7 +913,7 @@ body.cursor-hover-link #cursor::before {
   display: none;
 }
 
-/* ≤30rem: numeric only — hide full + short labels */
+/* < 30rem (< 480px): num-only + active-button label inline */
 @container (max-width: 30rem) {
   .topnav-lbl-full,
   .topnav-chapter-lbl-short {
@@ -909,7 +921,15 @@ body.cursor-hover-link #cursor::before {
   }
 
   .topnav-chapter-num {
+    display: inline;
     opacity: 0.9; /* bump opacity when it's the only visible element */
+    margin-right: 0;
+  }
+
+  /* Active button shows its full label inline — clear "you are here" cue */
+  .topnav-chapter.active .topnav-lbl-full {
+    display: inline;
+    margin-left: 0.4em;
   }
 
   /* Tighten gaps to save space */
@@ -922,8 +942,27 @@ body.cursor-hover-link #cursor::before {
   }
 }
 
-/* 30–48rem: short labels — hide full, show short */
+/* 30–48rem (480–768px): num-only + active-button label inline.
+ * Same variant as < 480px but with slightly looser gaps. */
 @container (min-width: 30rem) and (max-width: 48rem) {
+  .topnav-lbl-full,
+  .topnav-chapter-lbl-short {
+    display: none;
+  }
+
+  .topnav-chapter-num {
+    display: inline;
+    opacity: 0.9;
+  }
+
+  .topnav-chapter.active .topnav-lbl-full {
+    display: inline;
+    margin-left: 0.4em;
+  }
+}
+
+/* 48–64rem (768–1024px): num + short label */
+@container (min-width: 48rem) and (max-width: 64rem) {
   .topnav-lbl-full {
     display: none;
   }
@@ -931,15 +970,34 @@ body.cursor-hover-link #cursor::before {
   .topnav-chapter-lbl-short {
     display: inline;
   }
+
+  .topnav-chapter-num {
+    display: inline;
+    margin-right: 0.3em;
+  }
 }
 
-/* ≥48rem: full labels — already default, enforce short hidden */
-@container (min-width: 48rem) {
+/* ≥ 64rem (≥ 1024px): num + full label */
+@container (min-width: 64rem) {
+  .topnav-chapter-lbl-short {
+    display: none;
+  }
+
   .topnav-lbl-full {
     display: inline;
   }
 
-  .topnav-chapter-lbl-short {
+  .topnav-chapter-num {
+    display: inline;
+    margin-right: 0.3em;
+  }
+}
+
+/* QA iter-01 Batch C (P0-7): logo text "VHXCO" hidden in < 30rem (< 480px)
+ * — only the cyan dot mark stays. Prevents logo from squishing chapter
+ * buttons when num-only variant is already at minimum width. */
+@container (max-width: 30rem) {
+  .topnav-logo-text {
     display: none;
   }
 }
@@ -1040,6 +1098,23 @@ body.cursor-hover-link #cursor::before {
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--dur-slow) linear;
+  /* QA iter-01 Batch C (P1-9): fade gradient on bottom edge as a soft
+   * scroll-progress cue — signals "more content below" when phase overflows.
+   * Mask is applied to the phase box itself; on phases that fit in viewport
+   * the bottom 3rem are simply transparent over the canvas, which is
+   * imperceptible (canvas already covers full viewport behind .phase). */
+  mask-image: linear-gradient(
+    to bottom,
+    black 0,
+    black calc(100% - 3rem),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0,
+    black calc(100% - 3rem),
+    transparent 100%
+  );
 }
 
 /* Helper child rule: centraliza vertical quando há espaço, alinha topo
