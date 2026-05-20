@@ -710,7 +710,14 @@ body.cursor-hover-link #cursor::before {
 
 .hud-corner {
   position: absolute;
-  padding: var(--safe-gap);
+  /* QA iter-01 Batch A: chip background so HUD corner text stops bleeding
+   * over phase content (h1, paragraphs, table rows). Padding is tightened
+   * from --safe-gap (1rem) to a snug chip metric to keep the box discreet. */
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 2px;
+  padding: 0.5rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.2em;
@@ -772,7 +779,13 @@ body.cursor-hover-link #cursor::before {
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0));
+  /* QA iter-01 Batch A: opaque chrome to stop phase content bleeding through.
+   * Previous translucent gradient (rgba 0.6 → 0) let h1/paragraphs read through
+   * the nav at every viewport < 1920px. */
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   letter-spacing: var(--tracking-normal);
