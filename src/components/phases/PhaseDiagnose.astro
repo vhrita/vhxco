@@ -130,16 +130,28 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 <style>
   /* ── Phase Diagnose layout ───────────────────────────────────────────────── */
 
+  /*
+   * QA iter-01 Batch B: removidos overrides de `align-items / justify-content
+   * / padding` que sobrescreviam `.phase`. O padding fixed-zone agora vem
+   * exclusivamente de `.phase` global. `.phase-diagnose` mantém só o hook.
+   */
   .phase-diagnose {
-    align-items: center;
-    justify-content: center;
-    padding: 0 2rem;
+    /* intentionally empty */
   }
 
+  /*
+   * Grid base: 1-col. 2-col só em container ≥ 90rem (1440px).
+   * Decisão de design QA iter-01 Batch B (P1-7): em 1024/1280, a coluna
+   * direita ficava esmagada e o painel terminal "FORM NÃO CONFIGURADO" só
+   * preenchia ~1/4 da altura. Agora abaixo de 1440px o grid colapsa pra
+   * single column — terminal panel cresce naturalmente. Em 1440+ o 2-col
+   * volta com `align-self: stretch` no `.diagnose-right` pra terminal ocupar
+   * altura total do row.
+   */
   .diagnose-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4rem;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
     max-width: 1100px;
     width: 100%;
     align-items: start;
@@ -147,10 +159,18 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
     container-type: inline-size;
   }
 
-  @media (max-width: 768px) {
+  /* 2-col at ≥ 90rem (1440px) viewport. Usamos `@media` aqui (não @container)
+   * porque o `.phase-diagnose` não tem `container-type` próprio — ele herda
+   * de `.phase` (fixed, full-viewport), então media query e container query
+   * dariam o mesmo resultado. @media é mais simples e óbvio neste caso. */
+  @media (min-width: 90rem) {
     .diagnose-grid {
-      grid-template-columns: 1fr;
-      gap: 2.5rem;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+    }
+
+    .diagnose-right {
+      align-self: stretch;
     }
   }
 

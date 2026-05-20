@@ -81,6 +81,15 @@
   --safe-x: 1.5rem;       /* gutter horizontal lateral (24px) */
   --safe-gap: 1rem;       /* padding interno de HUD corners (16px) */
 
+  /* HUD corner reserved dimensions — used by `.phase` padding so phase content
+   * never collides with HUD chips. Introduced in Fix-set B-iter01 (QA Batch B).
+   * Values estimated from real HUD content @ 10px font:
+   *   height ≈ 2 detail rows + chip padding = 56px
+   *   width  ≈ longest label "NODE CORE/PRIMARY" + chip padding ≈ 176px
+   */
+  --hud-corner-h: 3.5rem;     /* 56px */
+  --hud-corner-w: 11rem;      /* 176px */
+
   /* Phase padding — content interno dos phases respeitando safe-zones + extra */
   --phase-padding-top: calc(var(--safe-top) + 1rem);
   --phase-padding-bottom: calc(var(--safe-bottom) + 1rem);
