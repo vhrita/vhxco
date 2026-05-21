@@ -1331,6 +1331,41 @@ h1.headline .strike::after {
   margin-bottom: 0;
 }
 
+/* iter-12: 2-column layout for paragraphs on wide desktop (≥1280px).
+ *
+ * H1 stays full-width centered (outside .core-sub). The paragraphs spread
+ * into 2 balanced columns, exploiting the 1600px max-width of .core-content.
+ *
+ * Why 80rem (1280px) and not 64rem (1024px):
+ *   - At 1024px each column would be ~420px after gap — workable but tight.
+ *   - 1024px viewports are often only 768px tall (1024×768), so the
+ *     height-tightening rules (max-height: 900px) already reduce margins.
+ *     Adding 2-col on top risks stacking visual complexity.
+ *   - 1280px gives each column ~560px — comfortable reading width.
+ *
+ * column-count (Option A) chosen over CSS Grid (Option B): browser auto-
+ * balances column height, no need to manually distribute 5 paragraphs.
+ *
+ * Overrides in 2-col mode:
+ *   - max-width: 540px → min(100%, 1100px): need room for two columns.
+ *   - text-align: center (inherited from .core-content) → left: centered
+ *     text in narrow columns reads poorly.
+ *   - column-rule: subtle divider between columns. */
+@media (min-width: 80rem) {
+  .core-sub {
+    column-count: 2;
+    column-gap: 3rem;
+    column-rule: 1px solid rgba(255, 255, 255, 0.08);
+    max-width: min(100%, 1100px);
+    text-align: left;
+  }
+
+  /* Prevent paragraph breaks across columns on short paras */
+  .core-sub p {
+    break-inside: avoid;
+  }
+}
+
 /* iter-11: vertical tightening for Phase 1 Hero on short viewports.
  *
  * With overflow:hidden on .phase, all content must fit in the available
