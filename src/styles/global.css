@@ -126,7 +126,9 @@ body[data-cursor="custom"] {
   inset: 0;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 240ms;
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 240ms;
 }
 
 /* Hover-link state: ring expands + turns brand cyan */
@@ -314,7 +316,7 @@ body.cursor-hover-link #cursor::before {
 }
 
 #glitchOverlay.active::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background-image: repeating-linear-gradient(
@@ -546,7 +548,9 @@ body.cursor-hover-link #cursor::before {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  transition: opacity 800ms ease, visibility 800ms;
+  transition:
+    opacity 800ms ease,
+    visibility 800ms;
 }
 
 #preloader.done {
@@ -589,7 +593,9 @@ body.cursor-hover-link #cursor::before {
   height: 8px;
   background: var(--color-cyan);
   border-radius: 50%;
-  box-shadow: 0 0 30px var(--color-cyan), 0 0 60px var(--color-cyan-deep);
+  box-shadow:
+    0 0 30px var(--color-cyan),
+    0 0 60px var(--color-cyan-deep);
   animation: pulseCore 1.4s ease-in-out infinite;
 }
 
@@ -770,10 +776,22 @@ body.cursor-hover-link #cursor::before {
   flex-direction: row-reverse;
 }
 
-.hud-tl { top: var(--safe-top);    left: var(--safe-x);  }
-.hud-tr { top: var(--safe-top);    right: var(--safe-x); }
-.hud-bl { bottom: var(--safe-bottom); left: var(--safe-x);  }
-.hud-br { bottom: var(--safe-bottom); right: var(--safe-x); }
+.hud-tl {
+  top: var(--safe-top);
+  left: var(--safe-x);
+}
+.hud-tr {
+  top: var(--safe-top);
+  right: var(--safe-x);
+}
+.hud-bl {
+  bottom: var(--safe-bottom);
+  left: var(--safe-x);
+}
+.hud-br {
+  bottom: var(--safe-bottom);
+  right: var(--safe-x);
+}
 
 .hud-label {
   color: var(--color-dim);
@@ -1110,71 +1128,36 @@ body.cursor-hover-link #cursor::before {
 
 /* ── Generic phase container ─────────────────────────────────────────────── */
 
-/*
- * QA iter-01 Batch B: safe-zone enforcement.
+/* iter-08 Move A: scroll container encolhido pra zona útil entre TopNav e
+ * HUD-bottom band. Antes: `inset: 0` + padding interno reservava safe-zones
+ * mas o padding era scrollável — content atingia zona dos chips via scroll.
+ * Agora: top/bottom posicionados fora das chrome bands, padding interno
+ * simétrico 1.5rem apenas pra respiro. Content fisicamente não existe atrás
+ * dos chips — overlap de categorias #1/3/5 é impossível.
  *
- * Before: `align-items: center; justify-content: center` engoliam o padding
- *   superior (flex centering ignora padding quando content > viewport height).
- *   Resultado: h1 começava em y≈0, atrás do TopNav, em todas viewports < 1920px.
+ * justify-content: center (D1): com scroll container menor, center+overflow-y
+ * garante: centra quando cabe, top-alinha quando estoura (scroll resolve).
  *
- * After: `flex-direction: column; justify-content: flex-start` força o content
- *   a respeitar `padding-top`. O child usa `margin-block: auto` (regra abaixo)
- *   pra centralizar verticalmente quando há espaço sobrando — mesmo
- *   comportamento visual em viewports altas, mas safe quando o content é maior
- *   que a viewport.
- *
- * Padding now reserves: safe-top + hud-corner-h (top) e safe-bottom + hud-corner-h
- *   (bottom), garantindo zero overlap com HUD corners.
- *
- * `scroll-padding-top`: quando o phase scrolla internamente, content para de
- *   subir antes de cruzar a zona do TopNav.
- */
+ * scroll-padding-block: apenas pra anchor jumps. scroll-padding-top NUNCA
+ * funcionou pra wheel/touch scroll manual (red herring iter-04..06). */
 .phase {
   position: fixed;
-  inset: 0;
+  top: calc(var(--safe-top) + var(--hud-corner-h));
+  right: 0;
+  bottom: calc(var(--safe-bottom) + var(--hud-corner-h));
+  left: 0;
   z-index: var(--z-content);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  /* QA iter-02 (P0-B): padding horizontal padrão = --safe-x. Em <1280px o
-   * override abaixo amplia o gutter pra reservar largura dos HUD corners. */
-  padding:
-    calc(var(--safe-top) + var(--hud-corner-h))
-    var(--safe-x)
-    calc(var(--safe-bottom) + var(--hud-corner-h));
+  justify-content: center;
+  padding: 1.5rem var(--safe-x);
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* QA iter-06 (P1-A/B): scroll-padding-top aumentado pra incluir --hud-corner-h
-   * (was: var(--safe-top) = 56px; agora: 56+56 = 112px) evita que headers/h1
-   * em phases 4/5 fiquem atrás do HUD chip ao scrollar. */
-  scroll-padding-top: calc(var(--safe-top) + var(--hud-corner-h));
+  scroll-padding-block: 1.5rem;
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--dur-slow) linear;
-  /* QA iter-04 (Issue #2): mask-image fade-bottom REMOVED.
-   * Iter-01 Batch C added a 3rem fade gradient to suggest "more content below".
-   * In practice, in 1024w phase 4 (DataRoom) screenshots, the bottom HUD
-   * corners (BR: UTC/SAO PAULO/ENT, BL: FRAME/COORD) showed up as fadeados.
-   * Even though HUD is z=hud (20) above .phase z=content (10), browsers
-   * may rasterize a masked element with its own compositing layer that
-   * interacts with sibling backdrop-filter rendering — and on 1024w with
-   * dense DataRoom rows the visual degradation was perceptible.
-   * Fade cue removed entirely; phase scroll affordance is the HUD scroll-cue
-   * and the natural scrollbar (when visible). */
-}
-
-/* Helper child rule: centraliza vertical quando há espaço, alinha topo
- * quando o conteúdo excede a altura disponível. Pareado com
- * `justify-content: flex-start` acima.
- *
- * Note: each phase wrapper (.core-content / .eng-content / .eco-content /
- * .data-room-wrap / .diagnose-grid) keeps its own horizontal max-width.
- * We don't impose `--phase-max-width` aqui porque cada wrapper já calibrou o
- * próprio (ex: eng-content = 1200px, eco-content = 1100px). Aplicar um teto
- * global aqui seria regressão. */
-.phase > * {
-  margin-block: auto;
 }
 
 /* Active phase: visible + interactive */
@@ -1182,17 +1165,9 @@ body.cursor-hover-link #cursor::before {
   pointer-events: auto;
   opacity: 1;
 }
-
-/* QA iter-07: revertido. Iter-06 reservou 5.5rem extra em phase[data-phase="0"]
- * para o cue chip (position:fixed). Cue agora é inline (último filho de
- * .core-content) e segue o flow — base padding-bottom do .phase já basta. */
-
-/* QA iter-06 (data-room): Phase 3 (PhaseDataRoom) reserva espaço extra
- * inferior pra HUD-BL chip não cobrir KPI labels "AÇÕES TOMADAS POR IA / MÊS".
- * +1rem above base (safe-bottom + hud-corner-h) é suficiente pra labels. */
-.phase[data-phase="3"] {
-  padding-bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 1rem);
-}
+/* iter-08: .phase > * { margin-block: auto } removido — flex center do parent
+ * gerencia alinhamento vertical. .phase[data-phase="3"] padding-bottom extra
+ * removido — obsoleto com Move A (scroll container já não inclui zona dos chips). */
 
 /* QA iter-03: revertido. Iter-02 P0-B aplicou padding lateral igual a
  * `calc(--safe-x + --hud-corner-w)` em <1280px pra evitar bleed de content
@@ -1207,24 +1182,14 @@ body.cursor-hover-link #cursor::before {
   position: relative;
   z-index: 2;
   text-align: center;
-  max-width: 900px;
-  padding: 0 2rem;
-
-  /* QA iter-07: subtle bottom fade indica que há mais content abaixo (cue +
-   * eventual overflow). Mask aplicado em .core-content (não em .phase) pra
-   * não afetar HUD corners. Apenas os últimos 32px sumem suavemente. */
-  mask-image: linear-gradient(
-    to bottom,
-    black 0,
-    black calc(100% - 2rem),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    black 0,
-    black calc(100% - 2rem),
-    transparent 100%
-  );
+  /* iter-08 Move C: max-width bump 900→1100 pra reduzir deadspace lateral em
+   * 1280/1920. 80vw mid-range mantém respiro. padding-inline >= hud-corner-w
+   * + safe-gap (≈12rem) em viewports ≥768 onde chips renderizam full content.
+   * Em <768, chips colapsam via container queries existentes, mantém 2rem min.
+   * mask-image REMOVIDA (iter-07 re-introduziu): cortava paragraph no fundo.
+   * scroll-cue inline é a affordance "more below" — mask era redundante e ruim. */
+  max-width: clamp(640px, 80vw, 1100px);
+  padding-inline: max(2rem, calc(var(--hud-corner-w) + var(--safe-gap)));
 }
 
 /* Diving state: content fades + shifts up as user scrolls away from phase 0 */
@@ -1256,7 +1221,7 @@ body.cursor-hover-link #cursor::before {
 /* Hairline decorations flanking eyebrow text */
 .eyebrow::before,
 .eyebrow::after {
-  content: '';
+  content: "";
   flex: 0 0 28px;
   height: 1px;
   background: var(--color-cyan);
@@ -1291,7 +1256,7 @@ h1.headline .strike {
 }
 
 h1.headline .strike::after {
-  content: '';
+  content: "";
   position: absolute;
   left: -2%;
   right: -2%;
@@ -1423,7 +1388,11 @@ h1.headline .strike::after {
   /* Glass card effect (Fix-set E — Phases 02-05 only, not Phase 01) */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.45),
+    rgba(0, 0, 0, 0.15)
+  );
   border: 1px solid var(--color-line);
   border-radius: 12px;
   /* Container context — enables @container queries on child grids */
@@ -1641,7 +1610,11 @@ h1.headline .strike::after {
   /* Glass card effect (Fix-set E — Phases 02-05 only, not Phase 01) */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.45),
+    rgba(0, 0, 0, 0.15)
+  );
   border: 1px solid var(--color-line);
   border-radius: 12px;
   /* Container context — enables @container queries on child grids */
