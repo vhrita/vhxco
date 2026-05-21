@@ -1333,9 +1333,24 @@ h1.headline .strike::after {
   align-items: center;
   gap: 0.75rem;
   margin-top: 2rem;
-  /* Respiro inferior pra não colar no HUD-BR/BL/mute em viewports curtas */
+  /* iter-09 Bug B/D: sticky ao fundo do scroll container (.phase).
+   * Quando content > .phase height, browser top-alinha (safe center →
+   * start) e a cue sai do viewport. Com sticky bottom:0 ela permanece
+   * visível como affordance "more below".
+   * O gradient background cria o fade que indica conteúdo abaixo sem
+   * precisar de mask-image no .core-content (que cortaria o próprio cue).
+   * Ancestor chain: .scroll-cue → .core-content (position: relative,
+   * sem overflow) → .phase (overflow-y: auto = scroll container).
+   * Sticky resolve contra .phase — comportamento esperado. */
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 60%, transparent);
+  padding-top: 1.5rem;
   padding-bottom: 1rem;
   align-self: center;
+  /* width: 100% garante que o gradient cobre toda a largura da coluna */
+  width: 100%;
+  justify-content: center;
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   letter-spacing: var(--tracking-widest);
@@ -1345,6 +1360,7 @@ h1.headline .strike::after {
   pointer-events: auto;
   transition: color var(--dur-fast) var(--ease-emphasized);
   outline-offset: 4px;
+  z-index: 1;
 }
 
 .scroll-cue:hover {
