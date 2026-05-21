@@ -1203,9 +1203,21 @@ body.cursor-hover-link #cursor::before {
    * + safe-gap (≈12rem) em viewports ≥768 onde chips renderizam full content.
    * Em <768, chips colapsam via container queries existentes, mantém 2rem min.
    * mask-image REMOVIDA (iter-07 re-introduziu): cortava paragraph no fundo.
-   * scroll-cue inline é a affordance "more below" — mask era redundante e ruim. */
-  max-width: clamp(640px, 80vw, 1100px);
+   * scroll-cue inline é a affordance "more below" — mask era redundante e ruim.
+   * iter-09 Bug A: min(100%, ...) garante que o container não excede o viewport
+   * em mobile onde clamp() min=640px > viewport width. */
+  max-width: min(100%, clamp(640px, 80vw, 1100px));
   padding-inline: max(2rem, calc(var(--hud-corner-w) + var(--safe-gap)));
+}
+
+/* iter-09 Bug A: em viewports <768, padding-inline do .core-content via
+ * max(2rem, hud-corner-w + safe-gap) resulta em ~12rem que come a coluna toda.
+ * Em mobile os chips colapsam via container queries (single row ≈ 2rem height),
+ * então padding largo é desnecessário — reduzir pra safe-x (1.5rem). */
+@media (max-width: 47.99rem) {
+  .core-content {
+    padding-inline: var(--safe-x);
+  }
 }
 
 /* Diving state: content fades + shifts up as user scrolls away from phase 0 */
