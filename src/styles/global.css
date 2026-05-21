@@ -1195,17 +1195,21 @@ body.cursor-hover-link #cursor::before {
  *
  * Apenas em phase 0 — outros phases têm glass cards com seus próprios bounds. */
 .phase[data-phase="0"] {
+  /* dim (não transparent) mantém legibilidade do scroll-cue quando
+   * o utilizador rola até ao fim do conteúdo (o cue fica na zona de fade).
+   * rgba(0,0,0,0.4) per task spec — iter-04 usou transparent e o scroll-cue
+   * ficava invisível; rgba mantém affordance + legibilidade. */
   mask-image: linear-gradient(
     to bottom,
     black 0,
     black calc(100% - 3rem),
-    transparent 100%
+    rgba(0, 0, 0, 0.4) 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
     black 0,
     black calc(100% - 3rem),
-    transparent 100%
+    rgba(0, 0, 0, 0.4) 100%
   );
 }
 
