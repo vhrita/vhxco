@@ -1162,7 +1162,11 @@ body.cursor-hover-link #cursor::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* R2 mitigation: `safe center` — centers when content fits, top-aligns when
+   * content overflows (avoids cutting h1 above fold at 1024/1280 tall content).
+   * CSS Box Alignment L3 "safe" keyword: spec says overflow => start alignment.
+   * Fallback: `center` for browsers without safe (rare; all modern support it). */
+  justify-content: safe center;
   padding: 1.5rem var(--safe-x);
   overflow-y: auto;
   overscroll-behavior: contain;
