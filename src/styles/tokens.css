@@ -125,7 +125,10 @@
   --text-xl:  clamp(1.375rem, 1.8vw + 1rem, 1.75rem);     /* 22–28px */
   --text-2xl: clamp(1.75rem, 2.5vw + 1.2rem, 2.5rem);     /* 28–40px */
   --text-3xl: clamp(2rem, 3.5vw + 1.4rem, 3.25rem);       /* 32–52px */
-  --text-4xl: clamp(2.25rem, 5.5vw + 1.5rem, 4.75rem);    /* 38–76px (h1, HITL #4) */
+  /* QA iter-02 (P0-C): floor reduzido de 2.25rem (38px) → 1.75rem (28px) e slope
+   * mais suave (4vw + 0.5rem) para evitar h1 phase 1 ocupar 6 linhas em 375px.
+   * Em 375w: 28px (era 44.6). Em 1280w: ~59px (era 76). Em 1920w: cap em 76px. */
+  --text-4xl: clamp(1.75rem, 4vw + 0.5rem, 4.75rem);      /* 28–76px (h1) */
 
   /* Line heights */
   --leading-tight:   1.05;

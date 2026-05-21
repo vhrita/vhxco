@@ -698,6 +698,13 @@ body.cursor-hover-link #cursor::before {
   .hud-detail-2 {
     display: none;
   }
+
+  /* QA iter-02 (P1-A): chips HUD-TL/TR mais opacos em <480px pra esconder
+   * bleed de eyebrow phase 1 (centralizado, cai atrás do chip translúcido). */
+  .hud-tl,
+  .hud-tr {
+    background: rgba(0, 0, 0, 0.85);
+  }
 }
 
 @container (max-width: 48rem) {
@@ -942,9 +949,12 @@ body.cursor-hover-link #cursor::before {
   }
 }
 
-/* 30–48rem (480–768px): num-only + active-button label inline.
- * Same variant as < 480px but with slightly looser gaps. */
-@container (min-width: 30rem) and (max-width: 48rem) {
+/* 30–47.99rem (480–767px): num-only + active-button label inline.
+ * Same variant as < 480px but with slightly looser gaps.
+ * QA iter-02 (P1-D): cap em 47.99rem pra evitar overlap com a regra 48rem+ —
+ * em 768w exato a regra anterior (max-width: 48rem) também matchava, fazendo
+ * cascade decidir errado e mostrando num-only quando deveria ser short labels. */
+@container (min-width: 30rem) and (max-width: 47.99rem) {
   .topnav-lbl-full,
   .topnav-chapter-lbl-short {
     display: none;
@@ -961,8 +971,9 @@ body.cursor-hover-link #cursor::before {
   }
 }
 
-/* 48–64rem (768–1024px): num + short label */
-@container (min-width: 48rem) and (max-width: 64rem) {
+/* 48–63.99rem (768–1023px): num + short label.
+ * QA iter-02 (P1-D): cap em 63.99rem espelhando o ajuste acima. */
+@container (min-width: 48rem) and (max-width: 63.99rem) {
   .topnav-lbl-full {
     display: none;
   }
@@ -1088,6 +1099,8 @@ body.cursor-hover-link #cursor::before {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+  /* QA iter-02 (P0-B): padding horizontal padrão = --safe-x. Em <1280px o
+   * override abaixo amplia o gutter pra reservar largura dos HUD corners. */
   padding:
     calc(var(--safe-top) + var(--hud-corner-h))
     var(--safe-x)
@@ -1134,6 +1147,28 @@ body.cursor-hover-link #cursor::before {
 .phase[data-active] {
   pointer-events: auto;
   opacity: 1;
+}
+
+/* QA iter-02 (P0-B): em viewports < 1280px, ampliar padding horizontal pra
+ * reservar largura dos HUD corners (--hud-corner-w). Sem isso, paragraphs/cards
+ * passam debaixo do chip HUD-BR (que tem background opaco — Batch A) e o leitor
+ * vê texto cortado/mordido na lateral inferior direita. Em ≥1280px, os wrappers
+ * de cada phase (.eng-content, .eco-content, .data-room-wrap, .diagnose-grid)
+ * têm max-width que naturalmente cria buffer — não precisa do override aqui. */
+@media (max-width: 79.99rem) {
+  .phase {
+    padding-left: calc(var(--safe-x) + var(--hud-corner-w));
+    padding-right: calc(var(--safe-x) + var(--hud-corner-w));
+  }
+}
+
+/* QA iter-02 (P0-B sub-fix): em <480px o chip HUD-BR é menor (sem detail-1/2
+ * spans visíveis) — apenas "UTC HH:MM:SS". Reduzir --hud-corner-w pra 8rem
+ * evita gutter excessivo que comprime conteúdo em telas pequenas. */
+@media (max-width: 30rem) {
+  :root {
+    --hud-corner-w: 8rem;
+  }
 }
 
 /* ── Phase 01 Core content wrapper ───────────────────────────────────────── */
@@ -1244,22 +1279,27 @@ h1.headline .strike::after {
 /* ── Scroll cue ──────────────────────────────────────────────────────────── */
 
 /*
- * QA iter-01 Batch B (P0-5): cue anchored to safe-bottom em vez de hard-coded
- * 2.5rem. Antes, em viewports mobile (375/480/640), o cue ficava no meio do
- * paragraph porque o `.phase` era flex centered e o cue herdava o flow
- * vertical. Agora `position: absolute` ancorado ao `.phase` (que é `position:
- * fixed` = coordinate space), `bottom: calc(var(--safe-bottom) + 1rem)`.
+ * QA iter-02 (P0-A, P1-B): cue agora `position: fixed` ancorado à viewport,
+ * não ao padding box do `.phase` (que rola junto com o overflow-y: auto e
+ * arrastava o cue pro meio do paragraph). Antes (iter-01 Batch B): `position:
+ * absolute` resolvia contra `.phase` mas como `.phase` rola, o cue ia junto.
  *
- * `z-index: var(--z-chrome)` mantém o cue acima do content da phase mas
- * abaixo dos overlays cinematográficos.
+ * Bottom offset agora reserva também `--hud-corner-h` pra empurrar o cue
+ * acima da zona do HUD-BR chip — antes em viewports 1280/1920 o cue caía
+ * sobre o paragraph e era engolido pelo chip dark.
+ *
+ * Visibilidade: apenas o cue da phase ativa (phase 1) aparece. O <a> só
+ * existe na DOM em PhaseCore.astro, então não há duplicação entre phases.
+ *
+ * `z-index: var(--z-chrome)` mantém o cue acima do content (HUD layer está
+ * em z=20, chrome em z=30 — cue fica entre eles).
  *
  * `pointer-events: auto` preservado — o cue é um <a href="#phase-branches">
- * com tabindex=0; precisa clicar/focar. O hit area é só o content (não a
- * largura inteira da viewport) porque é `display: flex` shrink-to-fit.
+ * com tabindex=0; precisa clicar/focar.
  */
 .scroll-cue {
-  position: absolute;
-  bottom: calc(var(--safe-bottom) + 1rem);
+  position: fixed;
+  bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 1rem);
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-chrome);
@@ -1274,15 +1314,23 @@ h1.headline .strike::after {
   align-items: center;
   gap: 0.75rem; /* 12px */
   pointer-events: auto;
-  transition: color var(--dur-fast) var(--ease-emphasized);
+  transition: color var(--dur-fast) var(--ease-emphasized), opacity var(--dur-medium) var(--ease-emphasized);
   outline-offset: 4px;
 }
 
 /* Override `.phase > *` margin-block: auto pra cue — cue não participa do
- * fluxo flex (é `position: absolute`) e `margin-block: auto` em `position:
- * absolute` pode confundir o solver vertical. Reset explícito. */
+ * fluxo flex (é `position: fixed`) e `margin-block: auto` pode confundir o
+ * solver vertical. Reset explícito. */
 .phase > .scroll-cue {
   margin-block: 0;
+}
+
+/* Cue só visível quando phase 1 (Core) está ativa. Quando o usuário roda
+ * pra phase 2+, a phase 1 perde [data-active] e o cue fica invisível (mas
+ * mantém-se no DOM porque é filho de PhaseCore). */
+.phase:not([data-active]) > .scroll-cue {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .scroll-cue:hover {
