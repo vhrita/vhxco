@@ -24,11 +24,12 @@
 <style>
   #muteBtn {
     position: fixed;
-    /* QA iter-01 Batch A: on mobile (<768px) the HUD-BR chip lives in the
+    /* QA iter-01 Batch A: on mobile (<480px) the HUD-BR chip lives in the
      * same corner — lift the mute button above it so the two stop overlapping.
      * Desktop keeps the original snug bottom-right placement. */
     bottom: calc(var(--safe-bottom) + 3rem + var(--safe-gap));
     right: var(--safe-x);
+    left: auto;
     z-index: var(--z-chrome);
     background: transparent;
     border: 1px solid color-mix(in srgb, var(--color-cyan, #00e5ff) 30%, transparent);
@@ -51,9 +52,23 @@
     min-height: 44px;
   }
 
-  @media (min-width: 768px) {
+  /* QA iter-02 (P1-E): em 480-767px viewport curta, mover mute pro left bottom
+   * (oposto ao HUD-BR) evita overlap com content + chip direito. Em <480 o
+   * mute fica acima do HUD-BR à direita (regra base acima). Em >=768 volta
+   * pra posição padrão direita inferior. */
+  @media (min-width: 30rem) and (max-width: 47.99rem) {
+    #muteBtn {
+      bottom: var(--safe-bottom);
+      right: auto;
+      left: var(--safe-x);
+    }
+  }
+
+  @media (min-width: 48rem) {
     #muteBtn {
       bottom: var(--safe-gap);
+      right: var(--safe-x);
+      left: auto;
     }
   }
 
