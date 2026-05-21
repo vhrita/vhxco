@@ -1183,15 +1183,9 @@ body.cursor-hover-link #cursor::before {
   opacity: 1;
 }
 
-/* QA iter-06 (core): Phase 0 (PhaseCore) reserva altura do scroll-cue chip.
- * O cue chip é position:fixed bottom=112px, height~80px → range [112,192]px
- * from viewport bottom. O .phase base já tem padding-bottom = safe-bottom +
- * hud-corner-h (104px) — mas isso deixa 88px de overlap. Extra 5.5rem (88px)
- * elimina o overlap completamente + 8px breathing. */
-.phase[data-phase="0"] {
-  padding-bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 5.5rem);
-  scroll-padding-bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 5.5rem);
-}
+/* QA iter-07: revertido. Iter-06 reservou 5.5rem extra em phase[data-phase="0"]
+ * para o cue chip (position:fixed). Cue agora é inline (último filho de
+ * .core-content) e segue o flow — base padding-bottom do .phase já basta. */
 
 /* QA iter-06 (data-room): Phase 3 (PhaseDataRoom) reserva espaço extra
  * inferior pra HUD-BL chip não cobrir KPI labels "AÇÕES TOMADAS POR IA / MÊS".
@@ -1215,6 +1209,22 @@ body.cursor-hover-link #cursor::before {
   text-align: center;
   max-width: 900px;
   padding: 0 2rem;
+
+  /* QA iter-07: subtle bottom fade indica que há mais content abaixo (cue +
+   * eventual overflow). Mask aplicado em .core-content (não em .phase) pra
+   * não afetar HUD corners. Apenas os últimos 32px sumem suavemente. */
+  mask-image: linear-gradient(
+    to bottom,
+    black 0,
+    black calc(100% - 2rem),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0,
+    black calc(100% - 2rem),
+    transparent 100%
+  );
 }
 
 /* Diving state: content fades + shifts up as user scrolls away from phase 0 */
@@ -1315,69 +1325,33 @@ h1.headline .strike::after {
 /* ── Scroll cue ──────────────────────────────────────────────────────────── */
 
 /*
- * QA iter-04 (Issue #1): cue agora vive em BaseLayout (nivel global) com
- * `position: fixed` ancorado ao viewport. Iter-03 usou `position: absolute`
- * dentro de `.phase`, mas `.phase` tem `overflow-y: auto` — `absolute` ficou
- * relativo ao **conteúdo scrollável**, então o cue subia junto com o content
- * e aparecia em y≈520 sobre os paragraphs do core.
+ * QA iter-07: cue back inline. Lives as the last child of .core-content and
+ * flows naturally at the foot of the core copy. No fixed/absolute positioning,
+ * no chip background, no body[data-active-phase] gating — by virtue of being
+ * nested in PhaseCore.astro it only exists for phase 0.
  *
- * Como agora é fixed-to-viewport, a visibilidade NÃO pode mais ser ligada à
- * herança DOM (`.phase[data-active] > .scroll-cue`). Em vez disso usamos um
- * marker global: `body[data-active-phase]`, escrito pelo subscribePhase
- * handler em BaseLayout. O cue só fica visível quando a phase ativa é "0"
- * (Core); nas demais o opacity vai a 0 + pointer-events: none.
- *
- * Bottom offset reserva `--hud-corner-h` pra empurrar o cue acima da zona do
- * HUD-BR chip.
- *
- * `z-index: var(--z-chrome)` mantém o cue acima do content (HUD layer está
- * em z=20, chrome em z=30 — cue fica entre eles).
- *
- * `pointer-events: auto` preservado — o cue é um <a href="#phase-branches">
- * com tabindex=0; precisa clicar/focar.
+ * Layout: column flex inside .core-content (which is itself column on its
+ * inner children via text-align: center). `align-self: center` keeps the
+ * anchor centered horizontally regardless of the surrounding text-align.
  */
 .scroll-cue {
-  position: fixed;
-  bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 0.5rem);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--z-chrome);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  /* Respiro inferior pra não colar no HUD-BR/BL/mute em viewports curtas */
+  padding-bottom: 1rem;
+  align-self: center;
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   letter-spacing: var(--tracking-widest);
   color: var(--color-dim);
   text-transform: uppercase;
   text-decoration: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem; /* 12px */
   pointer-events: auto;
-  /* Background chip — bloqueia texto do paragraph atrás (iter-05) */
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 0.5rem 1rem 1.25rem; /* extra bottom para .line respirar */
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-  /* Default hidden — toggled visible only when body[data-active-phase="0"] */
-  opacity: 0;
-  transition: color var(--dur-fast) var(--ease-emphasized), opacity var(--dur-medium) var(--ease-emphasized);
+  transition: color var(--dur-fast) var(--ease-emphasized);
   outline-offset: 4px;
-}
-
-/* Visible apenas em phase 1 (Core). Fallback inicial: enquanto o orchestrator
- * não escreveu `data-active-phase` ainda (SSR / pre-hydration), assumimos
- * phase 0 e mostramos o cue — match com o estado inicial de PhaseCore que
- * boota com `data-active="true"`. */
-body[data-active-phase="0"] .scroll-cue,
-body:not([data-active-phase]) .scroll-cue {
-  opacity: 1;
-}
-
-body:not([data-active-phase="0"])[data-active-phase] .scroll-cue {
-  opacity: 0;
-  pointer-events: none;
 }
 
 .scroll-cue:hover {
@@ -1395,7 +1369,7 @@ body:not([data-active-phase="0"])[data-active-phase] .scroll-cue {
 
 .scroll-cue .line {
   width: 1px;
-  height: 18px; /* iter-05: reduzido de 36px — chip container limita altura visual */
+  height: 24px;
   background: linear-gradient(to bottom, transparent, var(--color-cyan));
   animation: scrollPulse 2s ease-in-out infinite;
   transform-origin: top;

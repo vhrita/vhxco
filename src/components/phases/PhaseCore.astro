@@ -42,6 +42,9 @@ const eyebrow = t('core.eyebrow');
 const headline = tLocale('core.headline');
 const sub = tLocale('core.sub');
 
+// Scroll cue label (iter-07: cue is back inline as last child of .core-content)
+const scrollCue = tLocale('core.scrollCue');
+
 // Sub paragraph: each \n becomes a paragraph break for rich text
 const subParagraphs = sub.split('\n').filter((p) => p.trim().length > 0);
 ---
@@ -66,12 +69,25 @@ const subParagraphs = sub.split('\n').filter((p) => p.trim().length > 0);
     <div class="core-sub">
       {subParagraphs.map((para) => <p>{para}</p>)}
     </div>
+
+    <!--
+      QA iter-07: scroll-cue back inline (last child of .core-content). Lives
+      in the natural flow so it sits at the foot of the core copy and scrolls
+      with it. On short viewports (mobile / 375) it appears only after the
+      user scrolls past the sub paragraph; on tall viewports it sits at the
+      bottom of the content column.
+    -->
+    <a
+      class="scroll-cue"
+      href="#phase-branches"
+      aria-label={scrollCue}
+      tabindex="0"
+    >
+      <span class="scroll-cue-label">{scrollCue}</span>
+      <span class="line" aria-hidden="true"></span>
+      <span class="scroll-cue-suffix" aria-hidden="true">SCROLL // Z</span>
+    </a>
   </div>
-  <!--
-    QA iter-04 (Issue #1): scroll-cue moved to BaseLayout (global level, fixed
-    to viewport). Inside .phase (overflow-y: auto) position:absolute followed
-    the scrollable content, dropping the cue into the middle of paragraphs.
-  -->
 </section>
 
 <script>

@@ -24,7 +24,6 @@ const {
 } = Astro.props;
 
 const t = getT(locale as Locale);
-const scrollCue = t('core.scrollCue');
 ---
 
 <!doctype html>
@@ -59,22 +58,13 @@ const scrollCue = t('core.scrollCue');
     </main>
 
     <!--
-      QA iter-04 (Issue #1): scroll-cue moved from PhaseCore to global level.
-      Reason: inside .phase (overflow-y: auto), position:absolute is relative to
-      the scrollable content, so the cue scrolled into the middle of paragraphs.
-      Here it's position:fixed against viewport, visibility gated by
-      body[data-active-phase="0"] (set by the phase subscription script below).
+      QA iter-07: scroll-cue moved back inline into PhaseCore.astro (last child
+      of .core-content). Iter-04..06 used position:fixed at body level which
+      caused the chip to occlude paragraphs. Inline placement lets the cue flow
+      naturally at the foot of the core content and scrolls with it.
+      The subscribePhase script below still writes `data-active-phase` on the
+      body — kept because other future chrome may depend on it.
     -->
-    <a
-      class="scroll-cue"
-      href="#phase-branches"
-      aria-label={scrollCue}
-      tabindex="0"
-    >
-      <span class="scroll-cue-label">{scrollCue}</span>
-      <span class="line" aria-hidden="true"></span>
-      <span class="scroll-cue-suffix" aria-hidden="true">SCROLL // Z</span>
-    </a>
 
     <script>
       // Audio lazy-init gate — loads audio chunk only after first user click.
