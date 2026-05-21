@@ -1181,6 +1181,34 @@ body.cursor-hover-link #cursor::before {
   pointer-events: auto;
   opacity: 1;
 }
+
+/* iter-09 Bug B/D: fade "more below" no fundo de phase 0.
+ * mask-image no .phase[data-phase="0"] cria fade persistente na borda inferior
+ * do scroll viewport — independente da posição de scroll. Quando content >
+ * .phase height, a fade indica ao utilizador que existe mais conteúdo abaixo.
+ *
+ * Aplicado ao .phase (scroll container) e não ao .core-content:
+ *   - No .core-content (iter-04 tentativa): cortava o scroll-cue que é o
+ *     último filho e ficava na zona transparente.
+ *   - No .phase: a mask clippa o VIEWPORT da área scrollável, não elementos
+ *     individuais. Scroll-cue fica visível quando user rola o conteúdo.
+ *
+ * Apenas em phase 0 — outros phases têm glass cards com seus próprios bounds. */
+.phase[data-phase="0"] {
+  mask-image: linear-gradient(
+    to bottom,
+    black 0,
+    black calc(100% - 3rem),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0,
+    black calc(100% - 3rem),
+    transparent 100%
+  );
+}
+
 /* iter-08: .phase > * { margin-block: auto } removido — flex center do parent
  * gerencia alinhamento vertical. .phase[data-phase="3"] padding-bottom extra
  * removido — obsoleto com Move A (scroll container já não inclui zona dos chips). */
@@ -1333,32 +1361,9 @@ h1.headline .strike::after {
   align-items: center;
   gap: 0.75rem;
   margin-top: 2rem;
-  /* iter-09 Bug B/D: sticky ao fundo do scroll container (.phase).
-   * Quando content > .phase height, browser top-alinha (safe center →
-   * start) e a cue sai do viewport. Com sticky bottom:0 ela permanece
-   * visível como affordance "more below".
-   *
-   * Background sólido (var(--color-bg)) no chip + gradient ::before acima
-   * criam o fade "more below" sem text-bleed. Gradient no bg diretamente
-   * (to top → opaco embaixo, transparente em cima) deixava o label "ROLE
-   * PARA ENTRAR" — no topo do box — no zone transparente, expondo o texto
-   * do parágrafo por baixo.
-   *
-   * Ancestor chain: .scroll-cue → .core-content (position: relative,
-   * sem overflow) → .phase (overflow-y: auto = scroll container).
-   * Sticky resolve contra .phase — comportamento esperado.
-   *
-   * Em viewports muito curtos (max-height: 500px — landscape mobile) o
-   * sticky retorna a static para evitar overlap com o H1. */
-  position: sticky;
-  bottom: 0;
-  background: var(--color-bg);
-  padding-top: 0.75rem;
+  /* Respiro inferior pra não colar no HUD-BR/BL/mute em viewports curtas */
   padding-bottom: 1rem;
   align-self: center;
-  /* width: 100% garante que o background cobre toda a largura da coluna */
-  width: 100%;
-  justify-content: center;
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   letter-spacing: var(--tracking-widest);
@@ -1368,35 +1373,6 @@ h1.headline .strike::after {
   pointer-events: auto;
   transition: color var(--dur-fast) var(--ease-emphasized);
   outline-offset: 4px;
-  z-index: 1;
-}
-
-/* Gradient fade acima do chip sólido — affordance "more below" */
-.scroll-cue::before {
-  content: "";
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  right: 0;
-  height: 2rem;
-  background: linear-gradient(to top, var(--color-bg), transparent);
-  pointer-events: none;
-}
-
-/* Em landscape muito curto (max-height: 500px): sticky causaria overlap
- * com H1 pois o .phase visible budget é insuficiente (≈ 144px). Retornar
- * a static — cue ficará fora do fold mas sem colidir com o headline. */
-@media (max-height: 31.25rem) {
-  .scroll-cue {
-    position: static;
-    background: transparent;
-    padding-top: 0;
-    width: auto;
-  }
-
-  .scroll-cue::before {
-    display: none;
-  }
 }
 
 .scroll-cue:hover {
