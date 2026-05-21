@@ -1333,6 +1333,13 @@ h1.headline .strike::after {
   align-items: center;
   gap: 0.75rem; /* 12px */
   pointer-events: auto;
+  /* Background chip — bloqueia texto do paragraph atrás (iter-05) */
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.5rem 1rem 1.25rem; /* extra bottom para .line respirar */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
   /* Default hidden — toggled visible only when body[data-active-phase="0"] */
   opacity: 0;
   transition: color var(--dur-fast) var(--ease-emphasized), opacity var(--dur-medium) var(--ease-emphasized);
@@ -1368,7 +1375,7 @@ body:not([data-active-phase="0"])[data-active-phase] .scroll-cue {
 
 .scroll-cue .line {
   width: 1px;
-  height: 36px;
+  height: 18px; /* iter-05: reduzido de 36px — chip container limita altura visual */
   background: linear-gradient(to bottom, transparent, var(--color-cyan));
   animation: scrollPulse 2s ease-in-out infinite;
   transform-origin: top;
