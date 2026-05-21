@@ -1168,9 +1168,13 @@ body.cursor-hover-link #cursor::before {
    * Fallback: `center` for browsers without safe (rare; all modern support it). */
   justify-content: safe center;
   padding: 1.5rem var(--safe-x);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scroll-padding-block: 1.5rem;
+  /* iter-11: overflow changed to hidden — no internal scroll on .phase ever.
+   * Scroll driver for the 3D animation is body / the phase-orchestrator wheel
+   * handler. overflow-y: auto (added iter-08 Move A) allowed phases to absorb
+   * wheel events before the orchestrator could consume them, breaking phase
+   * transitions when Hero text was long enough to overflow. overscroll-behavior
+   * and scroll-padding-block are now dead props — removed to avoid confusion. */
+  overflow: hidden;
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--dur-slow) linear;
@@ -1182,36 +1186,11 @@ body.cursor-hover-link #cursor::before {
   opacity: 1;
 }
 
-/* iter-09 Bug B/D: fade "more below" no fundo de phase 0.
- * mask-image no .phase[data-phase="0"] cria fade persistente na borda inferior
- * do scroll viewport — independente da posição de scroll. Quando content >
- * .phase height, a fade indica ao utilizador que existe mais conteúdo abaixo.
- *
- * Aplicado ao .phase (scroll container) e não ao .core-content:
- *   - No .core-content (iter-04 tentativa): cortava o scroll-cue que é o
- *     último filho e ficava na zona transparente.
- *   - No .phase: a mask clippa o VIEWPORT da área scrollável, não elementos
- *     individuais. Scroll-cue fica visível quando user rola o conteúdo.
- *
- * Apenas em phase 0 — outros phases têm glass cards com seus próprios bounds. */
-.phase[data-phase="0"] {
-  /* dim (não transparent) mantém legibilidade do scroll-cue quando
-   * o utilizador rola até ao fim do conteúdo (o cue fica na zona de fade).
-   * rgba(0,0,0,0.4) per task spec — iter-04 usou transparent e o scroll-cue
-   * ficava invisível; rgba mantém affordance + legibilidade. */
-  mask-image: linear-gradient(
-    to bottom,
-    black 0,
-    black calc(100% - 3rem),
-    rgba(0, 0, 0, 0.4) 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    black 0,
-    black calc(100% - 3rem),
-    rgba(0, 0, 0, 0.4) 100%
-  );
-}
+/* iter-09 Bug B/D: mask-image "more below" fade was added to .phase[data-phase="0"]
+ * as a scroll affordance when .phase had overflow-y: auto (iter-08 Move A).
+ * iter-11: overflow changed to hidden — no internal scroll, so a fade implying
+ * "scroll to see more" would be a lie. mask-image rule removed entirely.
+ * (iter-11 removed: .phase[data-phase="0"] { mask-image / -webkit-mask-image }) */
 
 /* iter-08: .phase > * { margin-block: auto } removido — flex center do parent
  * gerencia alinhamento vertical. .phase[data-phase="3"] padding-bottom extra
@@ -1237,9 +1216,14 @@ body.cursor-hover-link #cursor::before {
    * mask-image REMOVIDA (iter-07 re-introduziu): cortava paragraph no fundo.
    * scroll-cue inline é a affordance "more below" — mask era redundante e ruim.
    * iter-09 Bug A: min(100%, ...) garante que o container não excede o viewport
-   * em mobile onde clamp() min=640px > viewport width. */
-  max-width: min(100%, clamp(640px, 80vw, 1100px));
-  padding-inline: max(2rem, calc(var(--hud-corner-w) + var(--safe-gap)));
+   * em mobile onde clamp() min=640px > viewport width.
+   * iter-11: max-width bump 1100→1600, padding-inline min 2rem→1.5rem — gives
+   * Hero H1 substantially more horizontal room so long text wraps fewer lines
+   * and reduces vertical height, avoiding overflow into the (now-hidden) overflow
+   * zone. 92vw mid-range is aggressive but still respects HUD-corner padding via
+   * the inner max() calc at ≥768px. */
+  max-width: min(100%, clamp(320px, 92vw, 1600px));
+  padding-inline: max(1.5rem, calc(var(--hud-corner-w) + var(--safe-gap)));
 }
 
 /* iter-09 Bug A: em viewports <768, padding-inline do .core-content via
