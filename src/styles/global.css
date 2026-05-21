@@ -1358,7 +1358,9 @@ h1.headline .strike::after {
  *   - line-height intentionally NOT set here: iter-11's max-height: 900px
  *     rule sets .core-sub { line-height: 1.4 } which has lower specificity
  *     (0,1,0) than .core-sub p (0,2,0). We rely on that cascade — do not
- *     add line-height to .core-sub p here or it will override iter-11. */
+ *     add line-height to .core-sub p here or it will override iter-11.
+ *   - break-inside: avoid-column on tall viewports; overridden to auto on
+ *     short+wide (min-width: 64rem and max-height: 900px) — see block below. */
 @media (min-width: 64rem) {
   .core-sub {
     column-count: 2;
@@ -1369,12 +1371,27 @@ h1.headline .strike::after {
     text-align: left;
   }
 
-  /* Tighten inter-paragraph gap in 2-col mode.
-   * Base rule sets margin: 0 0 1em; we reduce to 0.5em so the paragraph
-   * block fits within constrained viewport heights (1280×800, 1024×768).
-   * The last-child margin-bottom: 0 override from the base rule still applies. */
+  /* Prevent paragraph breaks across columns on tall viewports (≥900px).
+   * This keeps each paragraph intact within a single column at 1920×1080
+   * and other tall desktops where there is enough height to accommodate
+   * whole paragraphs. */
   .core-sub p {
+    break-inside: avoid-column;
     margin-bottom: 0.5em;
+  }
+}
+
+/* iter-13: on short+wide viewports (1024×768, 1280×800), allow paragraph
+ * splitting across columns. With break-inside: avoid-column the browser cannot
+ * fit all 5 paragraphs into the available height, causing overflow. Allowing
+ * splits lets the balance algorithm distribute text by line count rather than
+ * by paragraph count — the total block height halves, making scroll-cue visible.
+ *
+ * Monospace text with a mid-paragraph column break reads acceptably (similar to
+ * newsprint); the alternative (hidden scroll-cue) is worse UX. */
+@media (min-width: 64rem) and (max-height: 900px) {
+  .core-sub p {
+    break-inside: auto;
   }
 }
 
