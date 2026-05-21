@@ -1456,6 +1456,24 @@ h1.headline .strike::after {
   }
 }
 
+/* iter-14: further shrink H1 specifically for iPad landscape (1024×768).
+ *
+ * Threshold max-height: 49.9rem (799.4px) catches 1024×768 (height 768)
+ * but NOT 1280×800 (height 800) — keeps 1280 showcase intact.
+ * min-width: 64rem ensures mobile never receives this shrink (mobile
+ * already has its own smaller H1 via the 700px / 900px rules above).
+ *
+ * Problem: at 1024×768 the H1 still spans ~2 lines at ~43px each (~105px
+ * total) after iter-13's max-height:900px rule, leaving insufficient height
+ * for 5 paragraphs in 2-col + scroll-cue. Reducing H1 to line-height 1.1
+ * and a tighter clamp reclaims ~25-30px — enough to expose the cue. */
+@media (max-height: 49.9rem) and (min-width: 64rem) {
+  #phase-core h1.headline {
+    font-size: clamp(1.875rem, 3.5vw, 2.75rem);
+    line-height: 1.1;
+  }
+}
+
 /* ── Scroll cue ──────────────────────────────────────────────────────────── */
 
 /*
