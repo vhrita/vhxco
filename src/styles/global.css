@@ -1331,6 +1331,67 @@ h1.headline .strike::after {
   margin-bottom: 0;
 }
 
+/* iter-11: vertical tightening for Phase 1 Hero on short viewports.
+ *
+ * With overflow:hidden on .phase, all content must fit in the available
+ * height. The primary vertical budget killers are:
+ *   - .eyebrow margin-bottom (1.5rem → 0.75rem)
+ *   - .core-sub margin-top (2.5rem → 1.25rem)
+ *   - .scroll-cue margin-top (2rem → 0.75rem)
+ *   - h1.headline font-size (text-4xl clamp floor raised, slope reduced in
+ *     short viewports so 1024×768 gets ~2.75rem instead of ~3.0rem)
+ *
+ * Breakpoints chosen to match the fail cases from iter-11 screenshots:
+ *   - max-height: 900px catches 1024×768, 1280×800, and tall-but-narrow mobile
+ *   - max-height: 700px catches 375×667, 480×854 (854 > 700 → not caught, ok)
+ *   NOTE: 480×854 is tall enough (854 > 900 no; only 375 is ≤700).
+ *
+ * Does NOT change font size on tall screens (768×1024 portrait has height
+ * of 1024 > 900 — it has more vertical room so light tightening via reduced
+ * margins is sufficient there). */
+@media (max-height: 900px) {
+  /* Reduce eyebrow bottom margin */
+  #phase-core .eyebrow {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Tighten h1 font-size at mid viewports to reduce line-wrapping height */
+  #phase-core h1.headline {
+    font-size: clamp(1.5rem, 3.5vw + 0.5rem, 4rem);
+  }
+
+  /* Reduce gap between h1 and paragraph block */
+  .core-sub {
+    margin-top: 1.25rem;
+    line-height: 1.4; /* between leading-snug (1.2) and leading-normal (1.5) */
+  }
+
+  /* Reduce scroll-cue top spacing */
+  .scroll-cue {
+    margin-top: 0.75rem;
+  }
+}
+
+@media (max-height: 700px) {
+  /* Very short screens (375×667 mobile) — further tighten */
+  #phase-core .eyebrow {
+    margin-bottom: 0.5rem;
+  }
+
+  #phase-core h1.headline {
+    font-size: clamp(1.25rem, 3vw + 0.4rem, 3rem);
+  }
+
+  .core-sub {
+    margin-top: 0.75rem;
+  }
+
+  .scroll-cue {
+    margin-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
 /* ── Scroll cue ──────────────────────────────────────────────────────────── */
 
 /*
