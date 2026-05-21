@@ -3,13 +3,15 @@
  * PhaseCore.astro — Phase 01 / Núcleo (Core)
  *
  * The first scrollytelling phase. Houses the page <h1> — SEO-critical.
- * Copy: eyebrow + headline (with strike/em) + expanded sub-paragraph + scroll cue.
+ * Copy: eyebrow + headline (with strike/em) + expanded sub-paragraph.
  *
  * Migrated from v0 VHXCO.html:1688-1699 with expanded copy (50→150-200 words).
- * Brand kit reference: VHXCO.html:760-849 (headline/core-sub/scroll-cue CSS).
+ * Brand kit reference: VHXCO.html:760-849 (headline/core-sub CSS).
+ *
+ * QA iter-04 (Issue #1): scroll-cue moved to BaseLayout (global, position:fixed).
  *
  * i18n strategy:
- *   - eyebrow + scrollCue: from src/i18n/ui.ts (useTranslations pattern)
+ *   - eyebrow: from src/i18n/ui.ts (useTranslations pattern)
  *   - headline + sub: from src/lib/i18n/locales/*.json (via getT, because they
  *     contain HTML markup and long prose that don't fit the flat ui.ts dict)
  *
@@ -33,9 +35,8 @@ const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 const tLocale = getT(lang as Locale);
 
-// Eyebrow + scrollCue come from flat ui.ts dict
+// Eyebrow comes from flat ui.ts dict
 const eyebrow = t('core.eyebrow');
-const scrollCue = t('core.scrollCue');
 
 // Headline and sub come from JSON locales (contain HTML / long prose)
 const headline = tLocale('core.headline');
@@ -66,17 +67,11 @@ const subParagraphs = sub.split('\n').filter((p) => p.trim().length > 0);
       {subParagraphs.map((para) => <p>{para}</p>)}
     </div>
   </div>
-
-  <a
-    class="scroll-cue"
-    href="#phase-branches"
-    aria-label={scrollCue}
-    tabindex="0"
-  >
-    <span class="scroll-cue-label">{scrollCue}</span>
-    <span class="line" aria-hidden="true"></span>
-    <span class="scroll-cue-suffix" aria-hidden="true">SCROLL // Z</span>
-  </a>
+  <!--
+    QA iter-04 (Issue #1): scroll-cue moved to BaseLayout (global level, fixed
+    to viewport). Inside .phase (overflow-y: auto) position:absolute followed
+    the scrollable content, dropping the cue into the middle of paragraphs.
+  -->
 </section>
 
 <script>
