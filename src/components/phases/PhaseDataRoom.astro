@@ -514,6 +514,20 @@ const logCols: [string, string, string, string] = [
     text-align: right;
   }
 
+  /* ── iter-12: hide log table below 1440px ──────────────────────────────── */
+  /* At 1024×768 and 1280×800 the KPI grid + log table together overflow the
+   * phase height. Hiding the log table lets the 6-cell KPI grid breathe and
+   * sit comfortably within the viewport. The log table is a decorative element;
+   * KPIs are the primary proof content. At ≥1440px both are visible as before.
+   *
+   * Breakpoint 89.9375rem = 1439px (max-width uses < semantics so 1440 is
+   * the first viewport that sees the table). */
+  @media (max-width: 89.9375rem) {
+    :global(.log-table) {
+      display: none;
+    }
+  }
+
   /* ── Responsive: log table on small screens ─────────────────────────────── */
   /* data-grid columns are now handled via @container above.
    * Log table still uses media query as it has no dedicated container. */
