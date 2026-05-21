@@ -52,17 +52,11 @@
     min-height: 44px;
   }
 
-  /* QA iter-02 (P1-E): em 480-767px viewport curta, mover mute pro left bottom
-   * (oposto ao HUD-BR) evita overlap com content + chip direito. Em <480 o
-   * mute fica acima do HUD-BR à direita (regra base acima). Em >=768 volta
-   * pra posição padrão direita inferior. */
-  @media (min-width: 30rem) and (max-width: 47.99rem) {
-    #muteBtn {
-      bottom: var(--safe-bottom);
-      right: auto;
-      left: var(--safe-x);
-    }
-  }
+  /* QA iter-03: revertido o override 480-767px que movia mute pro left bottom.
+   * Em phase 1 ele ficava sobre HUD-BL (FRAME / COORD). Como HUD-BL agora
+   * encolhe via container query no mesmo range (mostra só FRAME), o overlap
+   * voltaria — e mute right-bottom (acima do HUD-BR também encolhido) é
+   * consistente em todos os ranges <768. */
 
   @media (min-width: 48rem) {
     #muteBtn {

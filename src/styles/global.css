@@ -690,11 +690,19 @@ body.cursor-hover-link #cursor::before {
 }
 
 /* HUD detail visibility — controlled by container queries on .hud.
- * detail-2 (lowest priority): hide at ≤30rem (480px)
- * detail-1 (medium priority): hide at ≤48rem (768px)
- * Elements are kept in DOM — only display is toggled. */
+ *
+ * QA iter-03: classes têm semântica de "qual viewport mínimo eu apareço":
+ *   .hud-detail-2 = aparece em ≥480px (480-768 + 768+; some em <480)
+ *   .hud-detail-1 = aparece em ≥768px (some em <768)
+ * Elements stay in DOM — só `display` é toggled.
+ *
+ * Estratégia: viewport pequeno → corner mostra só a linha primária; cada
+ * range agrega uma row a mais. Substitui o approach iter-02 de empurrar
+ * `.phase` lateralmente pra "evitar" o canto direito (que esmagava o
+ * content em telas pequenas — width útil caía pra 119px em 375w). */
 
 @container (max-width: 30rem) {
+  .hud-detail-1,
   .hud-detail-2 {
     display: none;
   }
@@ -707,9 +715,20 @@ body.cursor-hover-link #cursor::before {
   }
 }
 
-@container (max-width: 48rem) {
+@container (min-width: 30rem) and (max-width: 47.99rem) {
+  .hud-detail-2 {
+    display: flex;
+  }
+
   .hud-detail-1 {
     display: none;
+  }
+}
+
+@container (min-width: 48rem) {
+  .hud-detail-1,
+  .hud-detail-2 {
+    display: flex;
   }
 }
 
@@ -1149,27 +1168,12 @@ body.cursor-hover-link #cursor::before {
   opacity: 1;
 }
 
-/* QA iter-02 (P0-B): em viewports < 1280px, ampliar padding horizontal pra
- * reservar largura dos HUD corners (--hud-corner-w). Sem isso, paragraphs/cards
- * passam debaixo do chip HUD-BR (que tem background opaco — Batch A) e o leitor
- * vê texto cortado/mordido na lateral inferior direita. Em ≥1280px, os wrappers
- * de cada phase (.eng-content, .eco-content, .data-room-wrap, .diagnose-grid)
- * têm max-width que naturalmente cria buffer — não precisa do override aqui. */
-@media (max-width: 79.99rem) {
-  .phase {
-    padding-left: calc(var(--safe-x) + var(--hud-corner-w));
-    padding-right: calc(var(--safe-x) + var(--hud-corner-w));
-  }
-}
-
-/* QA iter-02 (P0-B sub-fix): em <480px o chip HUD-BR é menor (sem detail-1/2
- * spans visíveis) — apenas "UTC HH:MM:SS". Reduzir --hud-corner-w pra 8rem
- * evita gutter excessivo que comprime conteúdo em telas pequenas. */
-@media (max-width: 30rem) {
-  :root {
-    --hud-corner-w: 8rem;
-  }
-}
+/* QA iter-03: revertido. Iter-02 P0-B aplicou padding lateral igual a
+ * `calc(--safe-x + --hud-corner-w)` em <1280px pra evitar bleed de content
+ * sob HUD-BR. Resultado: em 375px largura útil caía pra ~119px e h1 quebrava
+ * em 8 linhas. Estratégia trocada: encolher HUD corners (esconder spans via
+ * container queries) em vez de empurrar todo o content. Vide regras
+ * `@container` na seção .hud. */
 
 /* ── Phase 01 Core content wrapper ───────────────────────────────────────── */
 
@@ -1279,14 +1283,15 @@ h1.headline .strike::after {
 /* ── Scroll cue ──────────────────────────────────────────────────────────── */
 
 /*
- * QA iter-02 (P0-A, P1-B): cue agora `position: fixed` ancorado à viewport,
- * não ao padding box do `.phase` (que rola junto com o overflow-y: auto e
- * arrastava o cue pro meio do paragraph). Antes (iter-01 Batch B): `position:
- * absolute` resolvia contra `.phase` mas como `.phase` rola, o cue ia junto.
+ * QA iter-03: cue volta pra `position: absolute` ancorada à `.phase` (a phase
+ * tem `position: fixed; inset: 0` então o coordinate space é o viewport).
+ * Iter-02 tinha mudado pra `position: fixed` mas isso conflitava com phases
+ * que scrollam internamente: o cue desaparecia da phase ativa porque viewport
+ * coords incluem outras phases inativas no mesmo z. `absolute` resolvendo
+ * contra `.phase` mantém o cue ligado à phase 1 (a única que renderiza o cue).
  *
- * Bottom offset agora reserva também `--hud-corner-h` pra empurrar o cue
- * acima da zona do HUD-BR chip — antes em viewports 1280/1920 o cue caía
- * sobre o paragraph e era engolido pelo chip dark.
+ * Bottom offset reserva `--hud-corner-h` pra empurrar o cue acima da zona do
+ * HUD-BR chip.
  *
  * Visibilidade: apenas o cue da phase ativa (phase 1) aparece. O <a> só
  * existe na DOM em PhaseCore.astro, então não há duplicação entre phases.
@@ -1298,8 +1303,8 @@ h1.headline .strike::after {
  * com tabindex=0; precisa clicar/focar.
  */
 .scroll-cue {
-  position: fixed;
-  bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 1rem);
+  position: absolute;
+  bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 0.5rem);
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-chrome);

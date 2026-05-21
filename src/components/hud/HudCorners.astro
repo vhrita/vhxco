@@ -47,13 +47,13 @@ const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
       <span class="hud-v hud-live">ONLINE</span>
       <!-- Waveform canvas — HudWaveform island mounts here via id -->
     </div>
-    <!-- detail-1: medium priority — hide at ≤768px -->
-    <div class="hud-detail-1">
+    <!-- detail-2: shows at ≥480px (LAT é mais útil que TEMP, prioridade maior) -->
+    <div class="hud-detail-2">
       <span class="hud-label">LAT</span>
       <span class="hud-v" id="hud-lat">12ms</span>
     </div>
-    <!-- detail-2: low priority — hide at ≤480px -->
-    <div class="hud-detail-2">
+    <!-- detail-1: shows at ≥768px (TEMP secundário, só em viewports maiores) -->
+    <div class="hud-detail-1">
       <span class="hud-label">TEMP</span>
       <span class="hud-v" id="hud-temp">36.4°C</span>
     </div>
@@ -66,8 +66,8 @@ const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
       <span class="hud-label">FRAME</span>
       <span class="hud-v" id="hud-frame">000000</span>
     </div>
-    <!-- detail-1: medium priority — hide at ≤768px -->
-    <div class="hud-detail-1">
+    <!-- detail-2: shows at ≥480px (COORD é a única linha extra; aparece cedo) -->
+    <div class="hud-detail-2">
       <span class="hud-label">COORD</span>
       <span class="hud-v" id="hud-coord">x:   0 y:   0 z:   0</span>
     </div>
@@ -80,13 +80,13 @@ const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
       <span class="hud-label">UTC</span>
       <span class="hud-v" id="hud-time">--:--:--</span>
     </div>
-    <!-- detail-1: medium priority — hide at ≤768px -->
-    <div class="hud-detail-1">
+    <!-- detail-2: shows at ≥480px (LOC mais útil que ENT) -->
+    <div class="hud-detail-2">
       <span class="hud-label">LOC</span>
       <span class="hud-v">SAO PAULO / BR</span>
     </div>
-    <!-- detail-2: low priority — hide at ≤480px -->
-    <div class="hud-detail-2">
+    <!-- detail-1: shows at ≥768px (ENT é label menos crítico) -->
+    <div class="hud-detail-1">
       <span class="hud-label">ENT</span>
       <span class="hud-v">VHXCO ARCH-01</span>
     </div>
