@@ -1337,18 +1337,26 @@ h1.headline .strike::after {
    * Quando content > .phase height, browser top-alinha (safe center →
    * start) e a cue sai do viewport. Com sticky bottom:0 ela permanece
    * visível como affordance "more below".
-   * O gradient background cria o fade que indica conteúdo abaixo sem
-   * precisar de mask-image no .core-content (que cortaria o próprio cue).
+   *
+   * Background sólido (var(--color-bg)) no chip + gradient ::before acima
+   * criam o fade "more below" sem text-bleed. Gradient no bg diretamente
+   * (to top → opaco embaixo, transparente em cima) deixava o label "ROLE
+   * PARA ENTRAR" — no topo do box — no zone transparente, expondo o texto
+   * do parágrafo por baixo.
+   *
    * Ancestor chain: .scroll-cue → .core-content (position: relative,
    * sem overflow) → .phase (overflow-y: auto = scroll container).
-   * Sticky resolve contra .phase — comportamento esperado. */
+   * Sticky resolve contra .phase — comportamento esperado.
+   *
+   * Em viewports muito curtos (max-height: 500px — landscape mobile) o
+   * sticky retorna a static para evitar overlap com o H1. */
   position: sticky;
   bottom: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 60%, transparent);
-  padding-top: 1.5rem;
+  background: var(--color-bg);
+  padding-top: 0.75rem;
   padding-bottom: 1rem;
   align-self: center;
-  /* width: 100% garante que o gradient cobre toda a largura da coluna */
+  /* width: 100% garante que o background cobre toda a largura da coluna */
   width: 100%;
   justify-content: center;
   font-family: var(--font-mono);
@@ -1361,6 +1369,34 @@ h1.headline .strike::after {
   transition: color var(--dur-fast) var(--ease-emphasized);
   outline-offset: 4px;
   z-index: 1;
+}
+
+/* Gradient fade acima do chip sólido — affordance "more below" */
+.scroll-cue::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 2rem;
+  background: linear-gradient(to top, var(--color-bg), transparent);
+  pointer-events: none;
+}
+
+/* Em landscape muito curto (max-height: 500px): sticky causaria overlap
+ * com H1 pois o .phase visible budget é insuficiente (≈ 144px). Retornar
+ * a static — cue ficará fora do fold mas sem colidir com o headline. */
+@media (max-height: 31.25rem) {
+  .scroll-cue {
+    position: static;
+    background: transparent;
+    padding-top: 0;
+    width: auto;
+  }
+
+  .scroll-cue::before {
+    display: none;
+  }
 }
 
 .scroll-cue:hover {
