@@ -1145,7 +1145,10 @@ body.cursor-hover-link #cursor::before {
     calc(var(--safe-bottom) + var(--hud-corner-h));
   overflow-y: auto;
   overscroll-behavior: contain;
-  scroll-padding-top: var(--safe-top);
+  /* QA iter-06 (P1-A/B): scroll-padding-top aumentado pra incluir --hud-corner-h
+   * (was: var(--safe-top) = 56px; agora: 56+56 = 112px) evita que headers/h1
+   * em phases 4/5 fiquem atrás do HUD chip ao scrollar. */
+  scroll-padding-top: calc(var(--safe-top) + var(--hud-corner-h));
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--dur-slow) linear;
@@ -1178,6 +1181,23 @@ body.cursor-hover-link #cursor::before {
 .phase[data-active] {
   pointer-events: auto;
   opacity: 1;
+}
+
+/* QA iter-06 (core): Phase 0 (PhaseCore) reserva altura do scroll-cue chip.
+ * O cue chip é position:fixed bottom=112px, height~80px → range [112,192]px
+ * from viewport bottom. O .phase base já tem padding-bottom = safe-bottom +
+ * hud-corner-h (104px) — mas isso deixa 88px de overlap. Extra 5.5rem (88px)
+ * elimina o overlap completamente + 8px breathing. */
+.phase[data-phase="0"] {
+  padding-bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 5.5rem);
+  scroll-padding-bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 5.5rem);
+}
+
+/* QA iter-06 (data-room): Phase 3 (PhaseDataRoom) reserva espaço extra
+ * inferior pra HUD-BL chip não cobrir KPI labels "AÇÕES TOMADAS POR IA / MÊS".
+ * +1rem above base (safe-bottom + hud-corner-h) é suficiente pra labels. */
+.phase[data-phase="3"] {
+  padding-bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 1rem);
 }
 
 /* QA iter-03: revertido. Iter-02 P0-B aplicou padding lateral igual a
