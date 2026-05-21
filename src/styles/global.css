@@ -1353,10 +1353,12 @@ h1.headline .strike::after {
  *     text in narrow columns reads poorly.
  *   - column-rule: subtle divider between columns.
  *   - column-fill: balance: explicit — ensures columns equalize height.
- *   - line-height: 1.5 (tightened from 1.625): reduces per-paragraph height
- *     so all 5 paragraphs fit in the shorter dimension (800px, 768px).
- *   - p + p margin-top: 0.75rem: tightens inter-paragraph gap in columns
- *     to prevent left-col overflow at 1280×800. */
+ *   - p margin-bottom: 0.5em (down from 1em): tightens inter-paragraph gap
+ *     in columns to prevent overflow at 1280×800 and 1024×768.
+ *   - line-height intentionally NOT set here: iter-11's max-height: 900px
+ *     rule sets .core-sub { line-height: 1.4 } which has lower specificity
+ *     (0,1,0) than .core-sub p (0,2,0). We rely on that cascade — do not
+ *     add line-height to .core-sub p here or it will override iter-11. */
 @media (min-width: 64rem) {
   .core-sub {
     column-count: 2;
@@ -1367,16 +1369,12 @@ h1.headline .strike::after {
     text-align: left;
   }
 
-  /* Prevent paragraph breaks across columns */
+  /* Tighten inter-paragraph gap in 2-col mode.
+   * Base rule sets margin: 0 0 1em; we reduce to 0.5em so the paragraph
+   * block fits within constrained viewport heights (1280×800, 1024×768).
+   * The last-child margin-bottom: 0 override from the base rule still applies. */
   .core-sub p {
-    break-inside: avoid-column;
-    line-height: 1.5;
-  }
-
-  /* Tighten inter-paragraph gap in columns to prevent left-col overflow
-   * at constrained heights (1280×800, 1024×768) */
-  .core-sub p + p {
-    margin-top: 0.75rem;
+    margin-bottom: 0.5em;
   }
 }
 
