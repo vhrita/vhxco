@@ -67,9 +67,8 @@ const VIEWPORTS = cliArgs.viewports
 // Chromium binary
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH || "/opt/homebrew/bin/chromium";
 
-// Phases that have internal scroll content (0-indexed)
-// DataRoom = phase 3 (Prova), Diagnose = phase 4 (Diagnose)
-const SCROLLABLE_PHASES = new Set([3, 4]);
+// iter-11: SCROLLABLE_PHASES removed — .phase overflow changed to hidden,
+// no inner phase scroll exists anymore. All content must fit in the viewport.
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -129,25 +128,6 @@ async function navigateToPhase(page, phaseIdx) {
   await sleep(1500);
 }
 
-async function scrollToBottom(page) {
-  // Find active phase element and scroll it to bottom
-  await page.evaluate(() => {
-    const el = document.querySelector(".phase[data-active]");
-    if (el) el.scrollTop = el.scrollHeight;
-    else window.scrollTo(0, document.body.scrollHeight);
-  });
-  await sleep(400);
-}
-
-async function scrollToTop(page) {
-  await page.evaluate(() => {
-    const el = document.querySelector(".phase[data-active]");
-    if (el) el.scrollTop = 0;
-    else window.scrollTo(0, 0);
-  });
-  await sleep(200);
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -204,22 +184,9 @@ async function runViewport(browser, width, consoleErrorsMap, summary) {
         phase: phaseLabel,
         scrolled: false,
       });
-
-      // Scrolled screenshot for phases with internal overflow
-      if (SCROLLABLE_PHASES.has(phaseIdx)) {
-        await scrollToBottom(page);
-        const scrollFilename = `${label}-phase${phaseLabel}-scrolled.png`;
-        const scrollFilepath = path.join(OUT_DIR, scrollFilename);
-        await page.screenshot({ path: scrollFilepath, fullPage: false });
-        console.log(`    saved ${scrollFilename}`);
-        summary.push({
-          file: scrollFilename,
-          viewport: width,
-          phase: phaseLabel,
-          scrolled: true,
-        });
-        await scrollToTop(page);
-      }
+      // iter-11: no scrolled screenshots — .phase overflow:hidden means all
+      // content must be visible in the viewport. A clipped phase is a bug, not
+      // something to work around with a scrolled screenshot.
     }
 
     consoleErrorsMap[label] = errors;
