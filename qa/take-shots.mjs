@@ -73,8 +73,18 @@ const SCROLLABLE_PHASES = new Set([3, 4]);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+const REAL_HEIGHTS = {
+  375: 667, // iPhone SE / 12 mini portrait
+  480: 854, // small phone landscape / mid-range mobile
+  640: 960, // small tablet portrait
+  768: 1024, // iPad portrait
+  1024: 768, // iPad landscape
+  1280: 800, // small laptop
+  1920: 1080, // desktop FHD
+};
+
 function viewportHeight(width) {
-  return width <= 480 ? 667 : Math.round(width * (9 / 16));
+  return REAL_HEIGHTS[width] ?? Math.round(width * 0.75);
 }
 
 async function waitForPreloaderDone(page, timeoutMs = 12000) {
