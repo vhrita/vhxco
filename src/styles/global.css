@@ -696,14 +696,21 @@ body.cursor-hover-link #cursor::before {
  *   .hud-detail-1 = aparece em ≥768px (some em <768)
  * Elements stay in DOM — só `display` é toggled.
  *
+ * QA iter-04 (Issue #4): selectors raised to `.hud-corner > .hud-detail-N`
+ * specificity (0,2,0) to override the base `.hud-corner > div { display: flex }`
+ * rule (same specificity 0,2,0 — but the base rule loses on cascade order
+ * because @container blocks here come AFTER). Iter-03 selectors `.hud-detail-N`
+ * (0,1,0) were losing to the base rule, so NODE/SESSION lines stayed visible
+ * in 375 viewport even though the @container query matched.
+ *
  * Estratégia: viewport pequeno → corner mostra só a linha primária; cada
  * range agrega uma row a mais. Substitui o approach iter-02 de empurrar
  * `.phase` lateralmente pra "evitar" o canto direito (que esmagava o
  * content em telas pequenas — width útil caía pra 119px em 375w). */
 
 @container (max-width: 30rem) {
-  .hud-detail-1,
-  .hud-detail-2 {
+  .hud-corner > .hud-detail-1,
+  .hud-corner > .hud-detail-2 {
     display: none;
   }
 
@@ -716,18 +723,18 @@ body.cursor-hover-link #cursor::before {
 }
 
 @container (min-width: 30rem) and (max-width: 47.99rem) {
-  .hud-detail-2 {
+  .hud-corner > .hud-detail-2 {
     display: flex;
   }
 
-  .hud-detail-1 {
+  .hud-corner > .hud-detail-1 {
     display: none;
   }
 }
 
 @container (min-width: 48rem) {
-  .hud-detail-1,
-  .hud-detail-2 {
+  .hud-corner > .hud-detail-1,
+  .hud-corner > .hud-detail-2 {
     display: flex;
   }
 }
@@ -919,28 +926,35 @@ body.cursor-hover-link #cursor::before {
  *   .topnav-chapter-lbl-short  — 3-char short  "NUC"
  *   .topnav-lbl-full           — full label     "Núcleo"
  *
- * QA iter-01 Batch C (P0-7, P1-1, P1-2, P1-5): recalibrated breakpoints.
- * Container query on .topnav-chapters selects which span(s) are visible:
- *   < 30rem (< 480px)        → num-only + label on .active button inline
- *   30–48rem (480–768px)     → num-only + label on .active button inline
- *   48–64rem (768–1024px)    → num + short label ("NUC ENG ECO …")
- *   ≥ 64rem  (≥ 1024px)      → num + full label  ("01 Núcleo …")
+ * QA iter-04 (Issue #3): thresholds re-calibrated against actual **container**
+ * width (not viewport). `.topnav-chapters` is sandwiched between logo
+ * (~100px) and lang toggle (~70px) plus paddings — at 1024w viewport the
+ * container measures only ~800px (~50rem); at 768w ~550px (~34rem).
  *
- * Rationale: original spec had short labels in 480-768, but in practice
- * (real devices via Puppeteer) the 5 short labels still overflowed at 600px.
- * Showing only the *active* chapter's full label inline is a stronger signal
- * — user always sees where they are, and the inactive ones stay compact.
+ * Old (iter-01/02) breakpoints were tuned as if the container == viewport,
+ * so every range fired one step too late: 768w showed num+active when it
+ * should have shown short; 1024w showed short when it should have shown full.
+ *
+ * New ranges (in rem of .topnav-chapters container width):
+ *   < 15rem  (~ < 240px container ≈ < 375px viewport) → num-only
+ *   15–25rem (~ 240–400px ≈ 375–480px vw)             → num + active inline
+ *   25–44rem (~ 400–704px ≈ 480–1023px vw)            → num + short label
+ *   ≥ 44rem  (~ ≥ 704px ≈ ≥ 1024px vw)                → num + full label
+ *
+ * Net effect: 375w num-only, 480w num+active, 768w short, 1024w + 1280w full.
  *
  * Defaults (outside container queries): show full, hide others.
  * ─────────────────────────────────────────────────────────────────────────── */
 
-/* Default: full labels visible, short + num-only hidden */
+/* Default: full labels visible, short hidden */
 .topnav-chapter-lbl-short {
   display: none;
 }
 
-/* < 30rem (< 480px): num-only + active-button label inline */
-@container (max-width: 30rem) {
+/* < 15rem (~ container < 240px / viewport ~ < 375px): num-only, NO active label.
+ * Tightest mode — even the active chapter just shows its number, otherwise
+ * a 3-letter label on the active button would still overflow. */
+@container (max-width: 15rem) {
   .topnav-lbl-full,
   .topnav-chapter-lbl-short {
     display: none;
@@ -948,17 +962,14 @@ body.cursor-hover-link #cursor::before {
 
   .topnav-chapter-num {
     display: inline;
-    opacity: 0.9; /* bump opacity when it's the only visible element */
+    opacity: 0.9;
     margin-right: 0;
   }
 
-  /* Active button shows its full label inline — clear "you are here" cue */
   .topnav-chapter.active .topnav-lbl-full {
-    display: inline;
-    margin-left: 0.4em;
+    display: none;
   }
 
-  /* Tighten gaps to save space */
   .topnav-chapters {
     gap: 0;
   }
@@ -968,12 +979,11 @@ body.cursor-hover-link #cursor::before {
   }
 }
 
-/* 30–47.99rem (480–767px): num-only + active-button label inline.
- * Same variant as < 480px but with slightly looser gaps.
- * QA iter-02 (P1-D): cap em 47.99rem pra evitar overlap com a regra 48rem+ —
- * em 768w exato a regra anterior (max-width: 48rem) também matchava, fazendo
- * cascade decidir errado e mostrando num-only quando deveria ser short labels. */
-@container (min-width: 30rem) and (max-width: 47.99rem) {
+/* 15–24.99rem (~ container 240–400px / viewport ~ 375–479px):
+ * num + active-button label inline.
+ * In 375w (container ≈ 155px we're actually in the num-only block above,
+ * so this range mostly serves 400-480 viewports). */
+@container (min-width: 15rem) and (max-width: 24.99rem) {
   .topnav-lbl-full,
   .topnav-chapter-lbl-short {
     display: none;
@@ -988,11 +998,19 @@ body.cursor-hover-link #cursor::before {
     display: inline;
     margin-left: 0.4em;
   }
+
+  .topnav-chapters {
+    gap: 0;
+  }
+
+  .topnav-chapter {
+    padding: 0.375rem 0.5rem;
+  }
 }
 
-/* 48–63.99rem (768–1023px): num + short label.
- * QA iter-02 (P1-D): cap em 63.99rem espelhando o ajuste acima. */
-@container (min-width: 48rem) and (max-width: 63.99rem) {
+/* 25–43.99rem (~ container 400–704px / viewport ~ 480–1023px):
+ * num + short label ("01 NUC 02 ENG …"). */
+@container (min-width: 25rem) and (max-width: 43.99rem) {
   .topnav-lbl-full {
     display: none;
   }
@@ -1007,8 +1025,9 @@ body.cursor-hover-link #cursor::before {
   }
 }
 
-/* ≥ 64rem (≥ 1024px): num + full label */
-@container (min-width: 64rem) {
+/* ≥ 44rem (~ container ≥ 704px / viewport ≥ 1024px):
+ * num + full label ("01 Núcleo 02 Engenharia …"). */
+@container (min-width: 44rem) {
   .topnav-chapter-lbl-short {
     display: none;
   }
@@ -1130,23 +1149,16 @@ body.cursor-hover-link #cursor::before {
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--dur-slow) linear;
-  /* QA iter-01 Batch C (P1-9): fade gradient on bottom edge as a soft
-   * scroll-progress cue — signals "more content below" when phase overflows.
-   * Mask is applied to the phase box itself; on phases that fit in viewport
-   * the bottom 3rem are simply transparent over the canvas, which is
-   * imperceptible (canvas already covers full viewport behind .phase). */
-  mask-image: linear-gradient(
-    to bottom,
-    black 0,
-    black calc(100% - 3rem),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    black 0,
-    black calc(100% - 3rem),
-    transparent 100%
-  );
+  /* QA iter-04 (Issue #2): mask-image fade-bottom REMOVED.
+   * Iter-01 Batch C added a 3rem fade gradient to suggest "more content below".
+   * In practice, in 1024w phase 4 (DataRoom) screenshots, the bottom HUD
+   * corners (BR: UTC/SAO PAULO/ENT, BL: FRAME/COORD) showed up as fadeados.
+   * Even though HUD is z=hud (20) above .phase z=content (10), browsers
+   * may rasterize a masked element with its own compositing layer that
+   * interacts with sibling backdrop-filter rendering — and on 1024w with
+   * dense DataRoom rows the visual degradation was perceptible.
+   * Fade cue removed entirely; phase scroll affordance is the HUD scroll-cue
+   * and the natural scrollbar (when visible). */
 }
 
 /* Helper child rule: centraliza vertical quando há espaço, alinha topo
@@ -1283,18 +1295,20 @@ h1.headline .strike::after {
 /* ── Scroll cue ──────────────────────────────────────────────────────────── */
 
 /*
- * QA iter-03: cue volta pra `position: absolute` ancorada à `.phase` (a phase
- * tem `position: fixed; inset: 0` então o coordinate space é o viewport).
- * Iter-02 tinha mudado pra `position: fixed` mas isso conflitava com phases
- * que scrollam internamente: o cue desaparecia da phase ativa porque viewport
- * coords incluem outras phases inativas no mesmo z. `absolute` resolvendo
- * contra `.phase` mantém o cue ligado à phase 1 (a única que renderiza o cue).
+ * QA iter-04 (Issue #1): cue agora vive em BaseLayout (nivel global) com
+ * `position: fixed` ancorado ao viewport. Iter-03 usou `position: absolute`
+ * dentro de `.phase`, mas `.phase` tem `overflow-y: auto` — `absolute` ficou
+ * relativo ao **conteúdo scrollável**, então o cue subia junto com o content
+ * e aparecia em y≈520 sobre os paragraphs do core.
+ *
+ * Como agora é fixed-to-viewport, a visibilidade NÃO pode mais ser ligada à
+ * herança DOM (`.phase[data-active] > .scroll-cue`). Em vez disso usamos um
+ * marker global: `body[data-active-phase]`, escrito pelo subscribePhase
+ * handler em BaseLayout. O cue só fica visível quando a phase ativa é "0"
+ * (Core); nas demais o opacity vai a 0 + pointer-events: none.
  *
  * Bottom offset reserva `--hud-corner-h` pra empurrar o cue acima da zona do
  * HUD-BR chip.
- *
- * Visibilidade: apenas o cue da phase ativa (phase 1) aparece. O <a> só
- * existe na DOM em PhaseCore.astro, então não há duplicação entre phases.
  *
  * `z-index: var(--z-chrome)` mantém o cue acima do content (HUD layer está
  * em z=20, chrome em z=30 — cue fica entre eles).
@@ -1303,7 +1317,7 @@ h1.headline .strike::after {
  * com tabindex=0; precisa clicar/focar.
  */
 .scroll-cue {
-  position: absolute;
+  position: fixed;
   bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 0.5rem);
   left: 50%;
   transform: translateX(-50%);
@@ -1319,21 +1333,22 @@ h1.headline .strike::after {
   align-items: center;
   gap: 0.75rem; /* 12px */
   pointer-events: auto;
+  /* Default hidden — toggled visible only when body[data-active-phase="0"] */
+  opacity: 0;
   transition: color var(--dur-fast) var(--ease-emphasized), opacity var(--dur-medium) var(--ease-emphasized);
   outline-offset: 4px;
 }
 
-/* Override `.phase > *` margin-block: auto pra cue — cue não participa do
- * fluxo flex (é `position: fixed`) e `margin-block: auto` pode confundir o
- * solver vertical. Reset explícito. */
-.phase > .scroll-cue {
-  margin-block: 0;
+/* Visible apenas em phase 1 (Core). Fallback inicial: enquanto o orchestrator
+ * não escreveu `data-active-phase` ainda (SSR / pre-hydration), assumimos
+ * phase 0 e mostramos o cue — match com o estado inicial de PhaseCore que
+ * boota com `data-active="true"`. */
+body[data-active-phase="0"] .scroll-cue,
+body:not([data-active-phase]) .scroll-cue {
+  opacity: 1;
 }
 
-/* Cue só visível quando phase 1 (Core) está ativa. Quando o usuário roda
- * pra phase 2+, a phase 1 perde [data-active] e o cue fica invisível (mas
- * mantém-se no DOM porque é filho de PhaseCore). */
-.phase:not([data-active]) > .scroll-cue {
+body:not([data-active-phase="0"])[data-active-phase] .scroll-cue {
   opacity: 0;
   pointer-events: none;
 }

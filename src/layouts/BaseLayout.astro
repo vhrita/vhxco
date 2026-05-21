@@ -24,6 +24,7 @@ const {
 } = Astro.props;
 
 const t = getT(locale as Locale);
+const scrollCue = t('core.scrollCue');
 ---
 
 <!doctype html>
@@ -57,6 +58,24 @@ const t = getT(locale as Locale);
       <slot />
     </main>
 
+    <!--
+      QA iter-04 (Issue #1): scroll-cue moved from PhaseCore to global level.
+      Reason: inside .phase (overflow-y: auto), position:absolute is relative to
+      the scrollable content, so the cue scrolled into the middle of paragraphs.
+      Here it's position:fixed against viewport, visibility gated by
+      body[data-active-phase="0"] (set by the phase subscription script below).
+    -->
+    <a
+      class="scroll-cue"
+      href="#phase-branches"
+      aria-label={scrollCue}
+      tabindex="0"
+    >
+      <span class="scroll-cue-label">{scrollCue}</span>
+      <span class="line" aria-hidden="true"></span>
+      <span class="scroll-cue-suffix" aria-hidden="true">SCROLL // Z</span>
+    </a>
+
     <script>
       // Audio lazy-init gate — loads audio chunk only after first user click.
       import('@/lib/audio/lazy-init');
@@ -87,6 +106,14 @@ const t = getT(locale as Locale);
           getTargetProgress,
         }) => {
           const orchestrator = createPhaseOrchestrator();
+
+          // QA iter-04 (Issue #1): write active phase to body dataset so global
+          // chrome (scroll-cue, etc.) can target CSS at the right phase.
+          // Initialize at phase 0 — PhaseCore boots with data-active="true".
+          document.body.dataset.activePhase = '0';
+          subscribePhase((state) => {
+            document.body.dataset.activePhase = String(state.phase);
+          });
 
           // Audio phase hook — fires on every phase transition
           let _lastAudioPhase = -1;
