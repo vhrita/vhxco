@@ -55,7 +55,10 @@
       "submit": "Solicitar diagnose direto com o arquiteto",
       "sending": "Enviando...",
       "ok": "Sinal recebido. Retorno do Arquiteto em ≤ 24h.",
-      "configMissing": "Form não configurado. Contato pelo email no rodapé."
+      "configMissing": "Form não configurado. Contato pelo email no rodapé.",
+      "fallbackTag": "AGUARDANDO LINK",
+      "fallbackCopy": "Form em provisionamento. Enquanto isso, dispara um email — resposta em ≤24h.",
+      "fallbackCta": "ABRIR EMAIL →"
     }
   },
   "errors": {
