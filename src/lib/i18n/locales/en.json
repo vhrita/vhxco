@@ -55,7 +55,10 @@
       "submit": "Request diagnosis directly with the architect",
       "sending": "Sending...",
       "ok": "Signal received. Architect returns in ≤ 24h.",
-      "configMissing": "Form not configured. Contact via email in the footer."
+      "configMissing": "Form not configured. Contact via email in the footer.",
+      "fallbackTag": "AWAITING LINK",
+      "fallbackCopy": "Form provisioning. Meanwhile, drop an email — I reply in ≤24h.",
+      "fallbackCta": "OPEN EMAIL →"
     }
   },
   "errors": {

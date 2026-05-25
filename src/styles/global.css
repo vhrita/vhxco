@@ -126,7 +126,9 @@ body[data-cursor="custom"] {
   inset: 0;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 240ms;
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 240ms;
 }
 
 /* Hover-link state: ring expands + turns brand cyan */
@@ -314,7 +316,7 @@ body.cursor-hover-link #cursor::before {
 }
 
 #glitchOverlay.active::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background-image: repeating-linear-gradient(
@@ -546,7 +548,9 @@ body.cursor-hover-link #cursor::before {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  transition: opacity 800ms ease, visibility 800ms;
+  transition:
+    opacity 800ms ease,
+    visibility 800ms;
 }
 
 #preloader.done {
@@ -589,7 +593,9 @@ body.cursor-hover-link #cursor::before {
   height: 8px;
   background: var(--color-cyan);
   border-radius: 50%;
-  box-shadow: 0 0 30px var(--color-cyan), 0 0 60px var(--color-cyan-deep);
+  box-shadow:
+    0 0 30px var(--color-cyan),
+    0 0 60px var(--color-cyan-deep);
   animation: pulseCore 1.4s ease-in-out infinite;
 }
 
@@ -770,10 +776,22 @@ body.cursor-hover-link #cursor::before {
   flex-direction: row-reverse;
 }
 
-.hud-tl { top: var(--safe-top);    left: var(--safe-x);  }
-.hud-tr { top: var(--safe-top);    right: var(--safe-x); }
-.hud-bl { bottom: var(--safe-bottom); left: var(--safe-x);  }
-.hud-br { bottom: var(--safe-bottom); right: var(--safe-x); }
+.hud-tl {
+  top: var(--safe-top);
+  left: var(--safe-x);
+}
+.hud-tr {
+  top: var(--safe-top);
+  right: var(--safe-x);
+}
+.hud-bl {
+  bottom: var(--safe-bottom);
+  left: var(--safe-x);
+}
+.hud-br {
+  bottom: var(--safe-bottom);
+  right: var(--safe-x);
+}
 
 .hud-label {
   color: var(--color-dim);
@@ -811,7 +829,10 @@ body.cursor-hover-link #cursor::before {
   z-index: var(--z-chrome);
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  /* iter-08 Move B R3: gap reduced from 1.5rem — MuteButton added as sibling.
+   * At 375w: logo(~16px) + chapters(flex:1, shrinks) + lang(~70px) + mute(44px)
+   * + gutters already tight. Shrink gap to 0.75rem to recover ~18px. */
+  gap: 0.75rem;
   /* QA iter-01 Batch A: opaque chrome to stop phase content bleeding through.
    * Previous translucent gradient (rgba 0.6 → 0) let h1/paragraphs read through
    * the nav at every viewport < 1920px. */
@@ -1088,6 +1109,15 @@ body.cursor-hover-link #cursor::before {
   border-color: var(--color-cyan);
 }
 
+/* iter-08 Move B: small-viewport padding relief.
+ * At ≤ 30rem (480px) the nav row is tight with logo+chapters+lang+mute.
+ * Reduce horizontal padding from --safe-x to 0.75rem to recover ~24px. */
+@container (max-width: 30rem) {
+  .topnav {
+    padding-inline: 0.75rem;
+  }
+}
+
 /* ── HudWaveform canvas ──────────────────────────────────────────────────── */
 
 #hudWaveform {
@@ -1110,71 +1140,44 @@ body.cursor-hover-link #cursor::before {
 
 /* ── Generic phase container ─────────────────────────────────────────────── */
 
-/*
- * QA iter-01 Batch B: safe-zone enforcement.
+/* iter-08 Move A: scroll container encolhido pra zona útil entre TopNav e
+ * HUD-bottom band. Antes: `inset: 0` + padding interno reservava safe-zones
+ * mas o padding era scrollável — content atingia zona dos chips via scroll.
+ * Agora: top/bottom posicionados fora das chrome bands, padding interno
+ * simétrico 1.5rem apenas pra respiro. Content fisicamente não existe atrás
+ * dos chips — overlap de categorias #1/3/5 é impossível.
  *
- * Before: `align-items: center; justify-content: center` engoliam o padding
- *   superior (flex centering ignora padding quando content > viewport height).
- *   Resultado: h1 começava em y≈0, atrás do TopNav, em todas viewports < 1920px.
+ * justify-content: center (D1): com scroll container menor, center+overflow-y
+ * garante: centra quando cabe, top-alinha quando estoura (scroll resolve).
  *
- * After: `flex-direction: column; justify-content: flex-start` força o content
- *   a respeitar `padding-top`. O child usa `margin-block: auto` (regra abaixo)
- *   pra centralizar verticalmente quando há espaço sobrando — mesmo
- *   comportamento visual em viewports altas, mas safe quando o content é maior
- *   que a viewport.
- *
- * Padding now reserves: safe-top + hud-corner-h (top) e safe-bottom + hud-corner-h
- *   (bottom), garantindo zero overlap com HUD corners.
- *
- * `scroll-padding-top`: quando o phase scrolla internamente, content para de
- *   subir antes de cruzar a zona do TopNav.
- */
+ * scroll-padding-block: apenas pra anchor jumps. scroll-padding-top NUNCA
+ * funcionou pra wheel/touch scroll manual (red herring iter-04..06). */
 .phase {
   position: fixed;
-  inset: 0;
+  top: calc(var(--safe-top) + var(--hud-corner-h));
+  right: 0;
+  bottom: calc(var(--safe-bottom) + var(--hud-corner-h));
+  left: 0;
   z-index: var(--z-content);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  /* QA iter-02 (P0-B): padding horizontal padrão = --safe-x. Em <1280px o
-   * override abaixo amplia o gutter pra reservar largura dos HUD corners. */
-  padding:
-    calc(var(--safe-top) + var(--hud-corner-h))
-    var(--safe-x)
-    calc(var(--safe-bottom) + var(--hud-corner-h));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  /* QA iter-06 (P1-A/B): scroll-padding-top aumentado pra incluir --hud-corner-h
-   * (was: var(--safe-top) = 56px; agora: 56+56 = 112px) evita que headers/h1
-   * em phases 4/5 fiquem atrás do HUD chip ao scrollar. */
-  scroll-padding-top: calc(var(--safe-top) + var(--hud-corner-h));
+  /* R2 mitigation: `safe center` — centers when content fits, top-aligns when
+   * content overflows (avoids cutting h1 above fold at 1024/1280 tall content).
+   * CSS Box Alignment L3 "safe" keyword: spec says overflow => start alignment.
+   * Fallback: `center` for browsers without safe (rare; all modern support it). */
+  justify-content: safe center;
+  padding: 1.5rem var(--safe-x);
+  /* iter-11: overflow changed to hidden — no internal scroll on .phase ever.
+   * Scroll driver for the 3D animation is body / the phase-orchestrator wheel
+   * handler. overflow-y: auto (added iter-08 Move A) allowed phases to absorb
+   * wheel events before the orchestrator could consume them, breaking phase
+   * transitions when Hero text was long enough to overflow. overscroll-behavior
+   * and scroll-padding-block are now dead props — removed to avoid confusion. */
+  overflow: hidden;
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--dur-slow) linear;
-  /* QA iter-04 (Issue #2): mask-image fade-bottom REMOVED.
-   * Iter-01 Batch C added a 3rem fade gradient to suggest "more content below".
-   * In practice, in 1024w phase 4 (DataRoom) screenshots, the bottom HUD
-   * corners (BR: UTC/SAO PAULO/ENT, BL: FRAME/COORD) showed up as fadeados.
-   * Even though HUD is z=hud (20) above .phase z=content (10), browsers
-   * may rasterize a masked element with its own compositing layer that
-   * interacts with sibling backdrop-filter rendering — and on 1024w with
-   * dense DataRoom rows the visual degradation was perceptible.
-   * Fade cue removed entirely; phase scroll affordance is the HUD scroll-cue
-   * and the natural scrollbar (when visible). */
-}
-
-/* Helper child rule: centraliza vertical quando há espaço, alinha topo
- * quando o conteúdo excede a altura disponível. Pareado com
- * `justify-content: flex-start` acima.
- *
- * Note: each phase wrapper (.core-content / .eng-content / .eco-content /
- * .data-room-wrap / .diagnose-grid) keeps its own horizontal max-width.
- * We don't impose `--phase-max-width` aqui porque cada wrapper já calibrou o
- * próprio (ex: eng-content = 1200px, eco-content = 1100px). Aplicar um teto
- * global aqui seria regressão. */
-.phase > * {
-  margin-block: auto;
 }
 
 /* Active phase: visible + interactive */
@@ -1183,16 +1186,15 @@ body.cursor-hover-link #cursor::before {
   opacity: 1;
 }
 
-/* QA iter-07: revertido. Iter-06 reservou 5.5rem extra em phase[data-phase="0"]
- * para o cue chip (position:fixed). Cue agora é inline (último filho de
- * .core-content) e segue o flow — base padding-bottom do .phase já basta. */
+/* iter-09 Bug B/D: mask-image "more below" fade was added to .phase[data-phase="0"]
+ * as a scroll affordance when .phase had overflow-y: auto (iter-08 Move A).
+ * iter-11: overflow changed to hidden — no internal scroll, so a fade implying
+ * "scroll to see more" would be a lie. mask-image rule removed entirely.
+ * (iter-11 removed: .phase[data-phase="0"] { mask-image / -webkit-mask-image }) */
 
-/* QA iter-06 (data-room): Phase 3 (PhaseDataRoom) reserva espaço extra
- * inferior pra HUD-BL chip não cobrir KPI labels "AÇÕES TOMADAS POR IA / MÊS".
- * +1rem above base (safe-bottom + hud-corner-h) é suficiente pra labels. */
-.phase[data-phase="3"] {
-  padding-bottom: calc(var(--safe-bottom) + var(--hud-corner-h) + 1rem);
-}
+/* iter-08: .phase > * { margin-block: auto } removido — flex center do parent
+ * gerencia alinhamento vertical. .phase[data-phase="3"] padding-bottom extra
+ * removido — obsoleto com Move A (scroll container já não inclui zona dos chips). */
 
 /* QA iter-03: revertido. Iter-02 P0-B aplicou padding lateral igual a
  * `calc(--safe-x + --hud-corner-w)` em <1280px pra evitar bleed de content
@@ -1207,24 +1209,31 @@ body.cursor-hover-link #cursor::before {
   position: relative;
   z-index: 2;
   text-align: center;
-  max-width: 900px;
-  padding: 0 2rem;
+  /* iter-08 Move C: max-width bump 900→1100 pra reduzir deadspace lateral em
+   * 1280/1920. 80vw mid-range mantém respiro. padding-inline >= hud-corner-w
+   * + safe-gap (≈12rem) em viewports ≥768 onde chips renderizam full content.
+   * Em <768, chips colapsam via container queries existentes, mantém 2rem min.
+   * mask-image REMOVIDA (iter-07 re-introduziu): cortava paragraph no fundo.
+   * scroll-cue inline é a affordance "more below" — mask era redundante e ruim.
+   * iter-09 Bug A: min(100%, ...) garante que o container não excede o viewport
+   * em mobile onde clamp() min=640px > viewport width.
+   * iter-11: max-width bump 1100→1600, padding-inline min 2rem→1.5rem — gives
+   * Hero H1 substantially more horizontal room so long text wraps fewer lines
+   * and reduces vertical height, avoiding overflow into the (now-hidden) overflow
+   * zone. 92vw mid-range is aggressive but still respects HUD-corner padding via
+   * the inner max() calc at ≥768px. */
+  max-width: min(100%, clamp(320px, 92vw, 1600px));
+  padding-inline: max(1.5rem, calc(var(--hud-corner-w) + var(--safe-gap)));
+}
 
-  /* QA iter-07: subtle bottom fade indica que há mais content abaixo (cue +
-   * eventual overflow). Mask aplicado em .core-content (não em .phase) pra
-   * não afetar HUD corners. Apenas os últimos 32px sumem suavemente. */
-  mask-image: linear-gradient(
-    to bottom,
-    black 0,
-    black calc(100% - 2rem),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    black 0,
-    black calc(100% - 2rem),
-    transparent 100%
-  );
+/* iter-09 Bug A: em viewports <768, padding-inline do .core-content via
+ * max(2rem, hud-corner-w + safe-gap) resulta em ~12rem que come a coluna toda.
+ * Em mobile os chips colapsam via container queries (single row ≈ 2rem height),
+ * então padding largo é desnecessário — reduzir pra safe-x (1.5rem). */
+@media (max-width: 47.99rem) {
+  .core-content {
+    padding-inline: var(--safe-x);
+  }
 }
 
 /* Diving state: content fades + shifts up as user scrolls away from phase 0 */
@@ -1256,7 +1265,7 @@ body.cursor-hover-link #cursor::before {
 /* Hairline decorations flanking eyebrow text */
 .eyebrow::before,
 .eyebrow::after {
-  content: '';
+  content: "";
   flex: 0 0 28px;
   height: 1px;
   background: var(--color-cyan);
@@ -1291,7 +1300,7 @@ h1.headline .strike {
 }
 
 h1.headline .strike::after {
-  content: '';
+  content: "";
   position: absolute;
   left: -2%;
   right: -2%;
@@ -1320,6 +1329,149 @@ h1.headline .strike::after {
 
 .core-sub p:last-child {
   margin-bottom: 0;
+}
+
+/* iter-13: 2-column layout for paragraphs on desktop ≥1024px (iPad landscape+).
+ *
+ * H1 stays full-width centered (outside .core-sub). The paragraphs spread
+ * into 2 balanced columns, exploiting the 1600px max-width of .core-content.
+ *
+ * Threshold is 64rem (1024px), not 80rem (1280px):
+ *   - iPad landscape (1024×768) is a primary target and must get 2-col.
+ *   - 2-col actually reduces vertical demand at 1024×768 — by distributing
+ *     paragraphs horizontally, total stacking height halves. The iter-12
+ *     concern that 2-col would add complexity was empirically inverted.
+ *   - Each column at 1024px is ~420px after the 3rem gap — workable reading
+ *     width for a premium DataRoom context.
+ *
+ * column-count (Option A) chosen over CSS Grid (Option B): browser auto-
+ * balances column height, no need to manually distribute 5 paragraphs.
+ *
+ * Overrides in 2-col mode:
+ *   - max-width: 540px → min(100%, 1100px): need room for two columns.
+ *   - text-align: center (inherited from .core-content) → left: centered
+ *     text in narrow columns reads poorly.
+ *   - column-rule: subtle divider between columns.
+ *   - column-fill: balance: explicit — ensures columns equalize height.
+ *   - p margin-bottom: 0.5em (down from 1em): tightens inter-paragraph gap
+ *     in columns to prevent overflow at 1280×800 and 1024×768.
+ *   - line-height intentionally NOT set here: iter-11's max-height: 900px
+ *     rule sets .core-sub { line-height: 1.4 } which has lower specificity
+ *     (0,1,0) than .core-sub p (0,2,0). We rely on that cascade — do not
+ *     add line-height to .core-sub p here or it will override iter-11.
+ *   - break-inside: avoid-column on tall viewports; overridden to auto on
+ *     short+wide (min-width: 64rem and max-height: 900px) — see block below. */
+@media (min-width: 64rem) {
+  .core-sub {
+    column-count: 2;
+    column-gap: 3rem;
+    column-fill: balance;
+    column-rule: 1px solid rgba(255, 255, 255, 0.08);
+    max-width: min(100%, 1100px);
+    text-align: left;
+  }
+
+  /* Prevent paragraph breaks across columns on tall viewports (≥900px).
+   * This keeps each paragraph intact within a single column at 1920×1080
+   * and other tall desktops where there is enough height to accommodate
+   * whole paragraphs. */
+  .core-sub p {
+    break-inside: avoid-column;
+    margin-bottom: 0.5em;
+  }
+}
+
+/* iter-13: on short+wide viewports (1024×768, 1280×800), allow paragraph
+ * splitting across columns. With break-inside: avoid-column the browser cannot
+ * fit all 5 paragraphs into the available height, causing overflow. Allowing
+ * splits lets the balance algorithm distribute text by line count rather than
+ * by paragraph count — the total block height halves, making scroll-cue visible.
+ *
+ * Monospace text with a mid-paragraph column break reads acceptably (similar to
+ * newsprint); the alternative (hidden scroll-cue) is worse UX. */
+@media (min-width: 64rem) and (max-height: 900px) {
+  .core-sub p {
+    break-inside: auto;
+  }
+}
+
+/* iter-11: vertical tightening for Phase 1 Hero on short viewports.
+ *
+ * With overflow:hidden on .phase, all content must fit in the available
+ * height. The primary vertical budget killers are:
+ *   - .eyebrow margin-bottom (1.5rem → 0.75rem)
+ *   - .core-sub margin-top (2.5rem → 1.25rem)
+ *   - .scroll-cue margin-top (2rem → 0.75rem)
+ *   - h1.headline font-size (text-4xl clamp floor raised, slope reduced in
+ *     short viewports so 1024×768 gets ~2.75rem instead of ~3.0rem)
+ *
+ * Breakpoints chosen to match the fail cases from iter-11 screenshots:
+ *   - max-height: 900px catches 1024×768, 1280×800, and tall-but-narrow mobile
+ *   - max-height: 700px catches 375×667, 480×854 (854 > 700 → not caught, ok)
+ *   NOTE: 480×854 is tall enough (854 > 900 no; only 375 is ≤700).
+ *
+ * Does NOT change font size on tall screens (768×1024 portrait has height
+ * of 1024 > 900 — it has more vertical room so light tightening via reduced
+ * margins is sufficient there). */
+@media (max-height: 900px) {
+  /* Reduce eyebrow bottom margin */
+  #phase-core .eyebrow {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Tighten h1 font-size at mid viewports to reduce line-wrapping height */
+  #phase-core h1.headline {
+    font-size: clamp(1.5rem, 3.5vw + 0.5rem, 4rem);
+  }
+
+  /* Reduce gap between h1 and paragraph block */
+  .core-sub {
+    margin-top: 1.25rem;
+    line-height: 1.4; /* between leading-snug (1.2) and leading-normal (1.5) */
+  }
+
+  /* Reduce scroll-cue top spacing */
+  .scroll-cue {
+    margin-top: 0.75rem;
+  }
+}
+
+@media (max-height: 700px) {
+  /* Very short screens (375×667 mobile) — further tighten */
+  #phase-core .eyebrow {
+    margin-bottom: 0.5rem;
+  }
+
+  #phase-core h1.headline {
+    font-size: clamp(1.25rem, 3vw + 0.4rem, 3rem);
+  }
+
+  .core-sub {
+    margin-top: 0.75rem;
+  }
+
+  .scroll-cue {
+    margin-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* iter-14: further shrink H1 specifically for iPad landscape (1024×768).
+ *
+ * Threshold max-height: 49.9rem (799.4px) catches 1024×768 (height 768)
+ * but NOT 1280×800 (height 800) — keeps 1280 showcase intact.
+ * min-width: 64rem ensures mobile never receives this shrink (mobile
+ * already has its own smaller H1 via the 700px / 900px rules above).
+ *
+ * Problem: at 1024×768 the H1 still spans ~2 lines at ~43px each (~105px
+ * total) after iter-13's max-height:900px rule, leaving insufficient height
+ * for 5 paragraphs in 2-col + scroll-cue. Reducing H1 to line-height 1.1
+ * and a tighter clamp reclaims ~25-30px — enough to expose the cue. */
+@media (max-height: 49.9rem) and (min-width: 64rem) {
+  #phase-core h1.headline {
+    font-size: clamp(1.875rem, 3.5vw, 2.75rem);
+    line-height: 1.1;
+  }
 }
 
 /* ── Scroll cue ──────────────────────────────────────────────────────────── */
@@ -1423,7 +1575,11 @@ h1.headline .strike::after {
   /* Glass card effect (Fix-set E — Phases 02-05 only, not Phase 01) */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.45),
+    rgba(0, 0, 0, 0.15)
+  );
   border: 1px solid var(--color-line);
   border-radius: 12px;
   /* Container context — enables @container queries on child grids */
@@ -1641,7 +1797,11 @@ h1.headline .strike::after {
   /* Glass card effect (Fix-set E — Phases 02-05 only, not Phase 01) */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.15));
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.45),
+    rgba(0, 0, 0, 0.15)
+  );
   border: 1px solid var(--color-line);
   border-radius: 12px;
   /* Container context — enables @container queries on child grids */

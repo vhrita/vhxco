@@ -26,7 +26,11 @@ export interface PhaseOrchestratorState {
 
 type PhaseListener = (state: PhaseOrchestratorState) => void;
 
-let _state: PhaseOrchestratorState = { phase: 0, progress: 0.125, target: 0.125 };
+let _state: PhaseOrchestratorState = {
+  phase: 0,
+  progress: 0.125,
+  target: 0.125,
+};
 const _listeners = new Set<PhaseListener>();
 
 function _notify(): void {
@@ -62,7 +66,7 @@ function _setTarget(target: number, phase: number): void {
 const PHASE_COUNT = 5;
 const SNAP_THRESHOLDS: number[] = Array.from(
   { length: PHASE_COUNT },
-  (_, i) => (i + 0.5) / PHASE_COUNT // [0.125, 0.375, 0.625, 0.875, 1.125 (clamped)]
+  (_, i) => (i + 0.5) / PHASE_COUNT, // [0.125, 0.375, 0.625, 0.875, 1.125 (clamped)]
 );
 const SCROLL_LOCK_AUTO_MS = 600;
 const SCROLL_LOCK_MANUAL_MS = 1200;
@@ -96,12 +100,12 @@ export interface PhaseOrchestratorController {
 }
 
 export function createPhaseOrchestrator(
-  opts: PhaseOrchestratorOpts = {}
+  opts: PhaseOrchestratorOpts = {},
 ): PhaseOrchestratorController {
   const reducedMotion =
     opts.reducedMotion ??
-    (typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    (typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
   // Reset store to initial state on mount
   _state = { phase: 0, progress: 0.125, target: 0.125 };
@@ -116,7 +120,7 @@ export function createPhaseOrchestrator(
 // ─── Normal mode (magnetic snap) ─────────────────────────────────────────────
 
 function _createSnapOrchestrator(
-  container: Window | HTMLElement
+  container: Window | HTMLElement,
 ): PhaseOrchestratorController {
   let targetProgress = 0.125;
   let scrollLock = false;
@@ -134,11 +138,16 @@ function _createSnapOrchestrator(
       const crossedBackward = prevTarget > center && targetProgress <= center;
       const closeEnough = Math.abs(targetProgress - center) < SNAP_TOLERANCE;
 
-      if ((crossedForward || crossedBackward || closeEnough) && lastPhaseSnapped !== i) {
+      if (
+        (crossedForward || crossedBackward || closeEnough) &&
+        lastPhaseSnapped !== i
+      ) {
         targetProgress = center;
         lastPhaseSnapped = i;
         scrollLock = true;
-        setTimeout(() => { scrollLock = false; }, SCROLL_LOCK_AUTO_MS);
+        setTimeout(() => {
+          scrollLock = false;
+        }, SCROLL_LOCK_AUTO_MS);
         break;
       }
     }
@@ -159,7 +168,9 @@ function _createSnapOrchestrator(
     targetProgress = SNAP_THRESHOLDS[clamped];
     lastPhaseSnapped = clamped;
     scrollLock = true;
-    setTimeout(() => { scrollLock = false; }, SCROLL_LOCK_MANUAL_MS);
+    setTimeout(() => {
+      scrollLock = false;
+    }, SCROLL_LOCK_MANUAL_MS);
     _setTarget(targetProgress, clamped);
   }
 
@@ -177,27 +188,36 @@ function _createSnapOrchestrator(
   //
   // Threshold of 2px avoids sub-pixel rounding issues on HiDPI screens.
 
-  function _activePhaseHasScroll(direction: 'down' | 'up'): boolean {
-    const activeEl = document.querySelector<HTMLElement>('.phase[data-active]');
+  function _activePhaseHasScroll(direction: "down" | "up"): boolean {
+    const activeEl = document.querySelector<HTMLElement>(".phase[data-active]");
     if (!activeEl) return false;
 
     const overflow = activeEl.scrollHeight > activeEl.clientHeight + 2;
     if (!overflow) return false;
 
+    // iter-11: if the phase has overflow:hidden, scrollHeight > clientHeight
+    // can still be true (content is clipped) but the user cannot scroll —
+    // scrollTop is always 0 and no wheel event will advance it. Without this
+    // guard, _activePhaseHasScroll returns true → wheel never consumed →
+    // phase transitions blocked indefinitely. Gate on computed overflow first:
+    // only yield to browser-native scroll when the element is actually scrollable.
+    const overflowY = getComputedStyle(activeEl).overflowY;
+    if (overflowY === "hidden") return false;
+
     const scrollTop = activeEl.scrollTop;
     const scrollMax = activeEl.scrollHeight - activeEl.clientHeight;
-    const atTop    = scrollTop <= 1;
+    const atTop = scrollTop <= 1;
     const atBottom = scrollTop >= scrollMax - 1;
 
-    if (direction === 'down' && !atBottom) return true; // let browser scroll
-    if (direction === 'up'   && !atTop)    return true; // let browser scroll
+    if (direction === "down" && !atBottom) return true; // let browser scroll
+    if (direction === "up" && !atTop) return true; // let browser scroll
     return false; // at the edge → fall through to phase change
   }
 
   // ── Event handlers ──
 
   function onWheel(e: WheelEvent): void {
-    const direction = e.deltaY > 0 ? 'down' : 'up';
+    const direction = e.deltaY > 0 ? "down" : "up";
     if (_activePhaseHasScroll(direction)) {
       // Active phase has room to scroll internally — don't prevent default,
       // let the browser handle native scroll on the phase element.
@@ -208,7 +228,7 @@ function _createSnapOrchestrator(
   }
 
   let touchY: number | null = null;
-  let touchDirection: 'down' | 'up' | null = null;
+  let touchDirection: "down" | "up" | null = null;
 
   function onTouchStart(e: TouchEvent): void {
     touchY = e.touches[0].clientY;
@@ -220,7 +240,7 @@ function _createSnapOrchestrator(
     const dy = touchY - e.touches[0].clientY;
     // Determine swipe direction on first meaningful movement
     if (touchDirection === null && Math.abs(dy) > 2) {
-      touchDirection = dy > 0 ? 'down' : 'up';
+      touchDirection = dy > 0 ? "down" : "up";
     }
     // Touch events are passive — we can't preventDefault here (already
     // registered passive:true).  The scroll-bound guard still applies so we
@@ -240,25 +260,25 @@ function _createSnapOrchestrator(
   function onKeyDown(e: KeyboardEvent): void {
     // Don't intercept shortcuts when focus is inside a form element
     const tag = (e.target as HTMLElement)?.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
     switch (e.key) {
-      case 'ArrowDown':
-      case 'PageDown':
-      case ' ':
+      case "ArrowDown":
+      case "PageDown":
+      case " ":
         e.preventDefault();
         updateScrollProgress(0.05);
         break;
-      case 'ArrowUp':
-      case 'PageUp':
+      case "ArrowUp":
+      case "PageUp":
         e.preventDefault();
         updateScrollProgress(-0.05);
         break;
-      case 'Home':
+      case "Home":
         e.preventDefault();
         goToPhase(0);
         break;
-      case 'End':
+      case "End":
         e.preventDefault();
         goToPhase(PHASE_COUNT - 1);
         break;
@@ -268,18 +288,26 @@ function _createSnapOrchestrator(
   // Attach listeners
   // wheel: {passive: false} required for preventDefault — Chrome DevTools will
   // show "non-passive" warning; this is intentional and documented (same as v0).
-  container.addEventListener('wheel', onWheel as EventListener, { passive: false });
-  container.addEventListener('touchstart', onTouchStart as EventListener, { passive: true });
-  container.addEventListener('touchmove', onTouchMove as EventListener, { passive: true });
-  container.addEventListener('touchend', onTouchEnd as EventListener, { passive: true });
-  container.addEventListener('keydown', onKeyDown as EventListener);
+  container.addEventListener("wheel", onWheel as EventListener, {
+    passive: false,
+  });
+  container.addEventListener("touchstart", onTouchStart as EventListener, {
+    passive: true,
+  });
+  container.addEventListener("touchmove", onTouchMove as EventListener, {
+    passive: true,
+  });
+  container.addEventListener("touchend", onTouchEnd as EventListener, {
+    passive: true,
+  });
+  container.addEventListener("keydown", onKeyDown as EventListener);
 
   function destroy(): void {
-    container.removeEventListener('wheel', onWheel as EventListener);
-    container.removeEventListener('touchstart', onTouchStart as EventListener);
-    container.removeEventListener('touchmove', onTouchMove as EventListener);
-    container.removeEventListener('touchend', onTouchEnd as EventListener);
-    container.removeEventListener('keydown', onKeyDown as EventListener);
+    container.removeEventListener("wheel", onWheel as EventListener);
+    container.removeEventListener("touchstart", onTouchStart as EventListener);
+    container.removeEventListener("touchmove", onTouchMove as EventListener);
+    container.removeEventListener("touchend", onTouchEnd as EventListener);
+    container.removeEventListener("keydown", onKeyDown as EventListener);
   }
 
   return { goToPhase, destroy, reducedMotion: false };
@@ -293,7 +321,7 @@ function _createReducedMotionOrchestrator(): PhaseOrchestratorController {
   let observer: IntersectionObserver | null = null;
 
   function _observePhaseElements(): void {
-    if (typeof IntersectionObserver === 'undefined') return;
+    if (typeof IntersectionObserver === "undefined") return;
 
     const entries: Map<number, IntersectionObserverEntry> = new Map();
 
@@ -301,8 +329,8 @@ function _createReducedMotionOrchestrator(): PhaseOrchestratorController {
       (observed) => {
         for (const entry of observed) {
           const idx = parseInt(
-            (entry.target as HTMLElement).dataset.phase ?? '-1',
-            10
+            (entry.target as HTMLElement).dataset.phase ?? "-1",
+            10,
           );
           if (idx >= 0 && idx < PHASE_COUNT) {
             entries.set(idx, entry);
@@ -322,18 +350,20 @@ function _createReducedMotionOrchestrator(): PhaseOrchestratorController {
         const center = SNAP_THRESHOLDS[bestPhase];
         _setTarget(center, bestPhase);
       },
-      { threshold: [0.25, 0.5, 0.75] }
+      { threshold: [0.25, 0.5, 0.75] },
     );
 
     // Observe elements with data-phase attribute
-    document.querySelectorAll<HTMLElement>('[data-phase]').forEach((el) => {
+    document.querySelectorAll<HTMLElement>("[data-phase]").forEach((el) => {
       observer!.observe(el);
     });
   }
 
   // Observe after DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _observePhaseElements, { once: true });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", _observePhaseElements, {
+      once: true,
+    });
   } else {
     _observePhaseElements();
   }
@@ -344,7 +374,7 @@ function _createReducedMotionOrchestrator(): PhaseOrchestratorController {
     _setTarget(center, clamped);
     // Scroll natively to corresponding element if it exists
     const el = document.querySelector<HTMLElement>(`[data-phase="${clamped}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   function destroy(): void {

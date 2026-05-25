@@ -19,7 +19,7 @@
  * Max 60 particles. Spawn rate tied to mouseSpeed (frame-skip when slow).
  */
 
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 const TRAIL_MAX = 60;
 const TRAIL_HUE = 200; // brand kit cyan hue
@@ -39,30 +39,40 @@ function lerp(a: number, b: number, t: number): number {
 
 export default function CustomCursor() {
   useEffect(() => {
+    // iter-08 Fix D5: QA tooling gate — suppress cursor in Puppeteer screenshots.
+    // ?qa=1 param is appended by qa/take-shots.mjs. Zero effect in production
+    // (no internal links use it). SSR-safe: window guard required for Astro SSG.
+    if (
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("qa")
+    ) {
+      return;
+    }
+
     const mq = window.matchMedia(
-      '(pointer: fine) and (prefers-reduced-motion: no-preference)',
+      "(pointer: fine) and (prefers-reduced-motion: no-preference)",
     );
 
     let cleanup: (() => void) | null = null;
 
     function activate() {
       // Already activated guard
-      if (document.getElementById('cursor')) return;
+      if (document.getElementById("cursor")) return;
 
       // ── Toggle body attribute (CSS: body[data-cursor="custom"] { cursor: none })
-      document.body.dataset['cursor'] = 'custom';
+      document.body.dataset["cursor"] = "custom";
 
       // ── Create cursor element
-      const cursorEl = document.createElement('div');
-      cursorEl.id = 'cursor';
+      const cursorEl = document.createElement("div");
+      cursorEl.id = "cursor";
       document.body.appendChild(cursorEl);
 
       // ── Create trail canvas
-      const trailCanvas = document.createElement('canvas');
-      trailCanvas.id = 'cursorTrail';
+      const trailCanvas = document.createElement("canvas");
+      trailCanvas.id = "cursorTrail";
       document.body.appendChild(trailCanvas);
 
-      const trailCtx = trailCanvas.getContext('2d')!;
+      const trailCtx = trailCanvas.getContext("2d")!;
 
       // ── State
       let mx = window.innerWidth / 2;
@@ -83,8 +93,8 @@ export default function CustomCursor() {
         const dpr = Math.min(window.devicePixelRatio, 2);
         trailCanvas.width = window.innerWidth * dpr;
         trailCanvas.height = window.innerHeight * dpr;
-        trailCanvas.style.width = window.innerWidth + 'px';
-        trailCanvas.style.height = window.innerHeight + 'px';
+        trailCanvas.style.width = window.innerWidth + "px";
+        trailCanvas.style.height = window.innerHeight + "px";
       }
       resizeTrail();
 
@@ -159,10 +169,10 @@ export default function CustomCursor() {
 
       // ── Click ripple
       function onBodyClick(e: MouseEvent) {
-        const ripple = document.createElement('div');
-        ripple.className = 'click-ripple';
-        ripple.style.left = e.clientX + 'px';
-        ripple.style.top = e.clientY + 'px';
+        const ripple = document.createElement("div");
+        ripple.className = "click-ripple";
+        ripple.style.left = e.clientX + "px";
+        ripple.style.top = e.clientY + "px";
         document.body.appendChild(ripple);
         setTimeout(() => ripple.remove(), 750);
       }
@@ -173,14 +183,14 @@ export default function CustomCursor() {
       function onPointerOver(e: PointerEvent) {
         const t = e.target as Element | null;
         if (t && t.closest(HOVER_SELECTOR)) {
-          document.body.classList.add('cursor-hover-link');
+          document.body.classList.add("cursor-hover-link");
         }
       }
 
       function onPointerOut(e: PointerEvent) {
         const rel = e.relatedTarget as Element | null;
         if (!rel || !rel.closest(HOVER_SELECTOR)) {
-          document.body.classList.remove('cursor-hover-link');
+          document.body.classList.remove("cursor-hover-link");
         }
       }
 
@@ -189,11 +199,11 @@ export default function CustomCursor() {
         resizeTrail();
       }
 
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('click', onBodyClick);
-      window.addEventListener('resize', onResize);
-      document.addEventListener('pointerover', onPointerOver);
-      document.addEventListener('pointerout', onPointerOut);
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("click", onBodyClick);
+      window.addEventListener("resize", onResize);
+      document.addEventListener("pointerover", onPointerOver);
+      document.addEventListener("pointerout", onPointerOut);
 
       // ── Deactivate function
       function deactivate() {
@@ -201,14 +211,14 @@ export default function CustomCursor() {
         cancelAnimationFrame(rafCursor);
         cancelAnimationFrame(rafTrail);
 
-        window.removeEventListener('pointermove', onPointerMove);
-        window.removeEventListener('click', onBodyClick);
-        window.removeEventListener('resize', onResize);
-        document.removeEventListener('pointerover', onPointerOver);
-        document.removeEventListener('pointerout', onPointerOut);
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("click", onBodyClick);
+        window.removeEventListener("resize", onResize);
+        document.removeEventListener("pointerover", onPointerOver);
+        document.removeEventListener("pointerout", onPointerOut);
 
-        delete document.body.dataset['cursor'];
-        document.body.classList.remove('cursor-hover-link');
+        delete document.body.dataset["cursor"];
+        document.body.classList.remove("cursor-hover-link");
 
         cursorEl.remove();
         trailCanvas.remove();
@@ -227,14 +237,14 @@ export default function CustomCursor() {
       }
     }
 
-    mq.addEventListener('change', onMqChange);
+    mq.addEventListener("change", onMqChange);
 
     if (mq.matches) {
       activate();
     }
 
     return () => {
-      mq.removeEventListener('change', onMqChange);
+      mq.removeEventListener("change", onMqChange);
       cleanup?.();
       cleanup = null;
     };

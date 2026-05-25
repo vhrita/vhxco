@@ -57,6 +57,10 @@ const formLabels = {
   ok:                tLocale('diagnose.form.ok'),
   networkFailure:    tLocale('errors.form.networkFailure'),
   configMissing:     tLocale('diagnose.form.configMissing'),
+  // iter-08 Fix D2: fallback CTA when Formspree not configured
+  fallbackTag:       tLocale('diagnose.form.fallbackTag'),
+  fallbackCopy:      tLocale('diagnose.form.fallbackCopy'),
+  fallbackCta:       tLocale('diagnose.form.fallbackCta'),
 };
 
 // Formspree ID: set in .env.local by Vitor (never committed).
@@ -474,5 +478,32 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
     text-transform: uppercase;
     margin: 0;
     padding: 0.5rem 0;
+  }
+
+  /* iter-08 Fix D2: fallback state — terminal awaiting Formspree config */
+
+  /* Suppress pulseDot animation on the tag (semantically wrong for "AWAITING").
+   * Keeps cyan color + typography from .terminal-live. */
+  .diagnose-right :global(.term-fallback-tag) {
+    animation: none;
+    opacity: 0.7;
+  }
+
+  .diagnose-right :global(.term-fallback-copy) {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: rgba(255, 255, 255, 0.6);
+    line-height: var(--leading-relaxed);
+    margin: 0 0 1rem;
+    padding: 0.5rem 0;
+  }
+
+  /* Inherits visual of .term-submit (cyan bg + uppercase mono) + link affordances */
+  .diagnose-right :global(.term-fallback-cta) {
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    margin-top: 0;
   }
 </style>

@@ -4,7 +4,6 @@ import NeuralEngineIsland from '@/components/hero/NeuralEngineIsland';
 import HeroFallback from '@/components/hero/HeroFallback.astro';
 import CustomCursor from '@/components/cursor/CustomCursor';
 import Preloader from '@/components/effects/Preloader.astro';
-import MuteButton from '@/components/hud/MuteButton.astro';
 import HudCorners from '@/components/hud/HudCorners.astro';
 import TopNav from '@/components/hud/TopNav.astro';
 import HudWaveform from '@/components/hud/HudWaveform';
@@ -44,7 +43,7 @@ const t = getT(locale as Locale);
     <Preloader />
     <NeuralEngineIsland client:only="react" />
     <CustomCursor client:idle />
-    <MuteButton />
+    <!-- iter-08 Move B: MuteButton now rendered inside TopNav (right-most element) -->
     <noscript><HeroFallback /></noscript>
 
     <!-- HUD layer (z-index: var(--z-hud)) -->

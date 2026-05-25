@@ -2,8 +2,12 @@
 /**
  * TopNav.astro
  *
- * Fixed top navigation: VHXCO logo + 5 chapter buttons + PT/EN lang toggle.
+ * Fixed top navigation: VHXCO logo + 5 chapter buttons + PT/EN lang toggle + MuteButton.
  * Ported from VHXCO.html lines 1643-1657.
+ *
+ * iter-08 Move B: MuteButton moved from fixed BR corner into this nav row
+ * (right-most element, after lang toggle). Eliminates chrome-vs-chrome conflict
+ * in bottom-right corner across all viewports.
  *
  * Chapter labels: PT default. i18n dict is empty for now — hard-coded with TODO.
  * Lang toggle: PT → "/" | EN → "/en/" (Astro i18n routing).
@@ -13,6 +17,8 @@
  * TODO(i18n): when pt.json / en.json have nav.chapter.0..4 keys, replace
  *             hard-coded labels with t('nav.chapter.N').
  */
+
+import MuteButton from './MuteButton.astro';
 
 interface Props {
   locale?: 'pt' | 'en';
@@ -68,6 +74,9 @@ const chapters = [
       aria-current={locale === 'en' ? 'true' : undefined}
     >EN</a>
   </div>
+
+  <!-- iter-08 Move B: MuteButton right-most in nav row (D4 resolved) -->
+  <MuteButton />
 </nav>
 
 <script>

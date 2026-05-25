@@ -16,13 +16,13 @@
  *   - Next available slot: +2 business days at 14:30 (Intl.DateTimeFormat)
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type Locale = 'pt' | 'en';
+type Locale = "pt" | "en";
 
 interface DiagnoseFormProps {
   /** Page locale — drives all copy via inline dict. */
@@ -51,6 +51,10 @@ interface DiagnoseFormProps {
     ok: string;
     networkFailure: string;
     configMissing: string;
+    /** iter-08 Fix D2: fallback CTA when Formspree not configured */
+    fallbackTag: string;
+    fallbackCopy: string;
+    fallbackCta: string;
   };
 }
 
@@ -69,10 +73,10 @@ function getNextSlot(locale: Locale): string {
   }
   d.setHours(14, 30, 0, 0);
 
-  const intlLocale = locale === 'pt' ? 'pt-BR' : 'en';
+  const intlLocale = locale === "pt" ? "pt-BR" : "en";
   const dateStr = new Intl.DateTimeFormat(intlLocale, {
-    day: '2-digit',
-    month: '2-digit',
+    day: "2-digit",
+    month: "2-digit",
   }).format(d);
 
   return `${dateStr} 14:30`;
@@ -82,7 +86,7 @@ function getNextSlot(locale: Locale): string {
 // Bottleneck options
 // ---------------------------------------------------------------------------
 
-const BOTTLENECK_VALUES = ['ai', 'auto', 'iot', 'full'] as const;
+const BOTTLENECK_VALUES = ["ai", "auto", "iot", "full"] as const;
 type BottleneckValue = (typeof BOTTLENECK_VALUES)[number];
 
 // ---------------------------------------------------------------------------
@@ -90,12 +94,14 @@ type BottleneckValue = (typeof BOTTLENECK_VALUES)[number];
 // ---------------------------------------------------------------------------
 
 export default function DiagnoseForm({
-  locale = 'pt',
+  locale = "pt",
   formspreeId,
   labels,
 }: DiagnoseFormProps) {
   const [bottleneck, setBottleneck] = useState<BottleneckValue | null>(null);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
 
   const bottleneckLabels: Record<BottleneckValue, string> = {
     ai: labels.bn1,
@@ -109,57 +115,66 @@ export default function DiagnoseForm({
       e.preventDefault();
 
       if (!formspreeId) {
-        setStatus('error');
+        setStatus("error");
         return;
       }
 
-      setStatus('loading');
+      setStatus("loading");
 
       const form = e.currentTarget;
       const data = new FormData(form);
 
       // Append bottleneck selection (not a native form field)
       if (bottleneck) {
-        data.set('bottleneck', bottleneck);
+        data.set("bottleneck", bottleneck);
       }
 
       try {
         const res = await fetch(`https://formspree.io/f/${formspreeId}`, {
-          method: 'POST',
+          method: "POST",
           body: data,
-          headers: { Accept: 'application/json' },
+          headers: { Accept: "application/json" },
         });
 
         if (res.ok) {
-          setStatus('success');
+          setStatus("success");
           form.reset();
           setBottleneck(null);
         } else {
-          setStatus('error');
+          setStatus("error");
         }
       } catch {
-        setStatus('error');
+        setStatus("error");
       }
     },
-    [formspreeId, bottleneck]
+    [formspreeId, bottleneck],
   );
 
-  // Config-missing guard
+  // iter-08 Fix D2: fallback CTA when Formspree not configured.
+  // Renders intentional-looking terminal card with mailto CTA — not an error state.
   if (!formspreeId) {
     return (
       <div className="terminal" role="alert">
         <div className="terminal-head">
           <span>{labels.formTitle}</span>
-          <span className="terminal-live">{labels.formLive}</span>
+          <span className="terminal-live term-fallback-tag">
+            {labels.fallbackTag}
+          </span>
         </div>
         <div className="term-body">
-          <p className="term-config-error">{labels.configMissing}</p>
+          <p className="term-fallback-copy">{labels.fallbackCopy}</p>
+          <a
+            href="mailto:vhrita.dev@gmail.com?subject=Diagnose%20VHXCO"
+            className="term-submit term-fallback-cta"
+          >
+            {labels.fallbackCta}
+          </a>
         </div>
       </div>
     );
   }
 
-  if (status === 'success') {
+  if (status === "success") {
     return (
       <div className="terminal" role="status">
         <div className="terminal-head">
@@ -188,7 +203,7 @@ export default function DiagnoseForm({
         name="_gotcha"
         type="text"
         tabIndex={-1}
-        style={{ display: 'none' }}
+        style={{ display: "none" }}
         aria-hidden="true"
       />
 
@@ -207,7 +222,7 @@ export default function DiagnoseForm({
             name="name"
             placeholder={labels.namePlaceholder}
             required
-            disabled={status === 'loading'}
+            disabled={status === "loading"}
           />
         </div>
 
@@ -221,7 +236,7 @@ export default function DiagnoseForm({
             placeholder={labels.emailPlaceholder}
             required
             pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
-            disabled={status === 'loading'}
+            disabled={status === "loading"}
           />
         </div>
 
@@ -233,22 +248,26 @@ export default function DiagnoseForm({
             type="text"
             name="company"
             placeholder={labels.companyPlaceholder}
-            disabled={status === 'loading'}
+            disabled={status === "loading"}
           />
         </div>
 
         {/* Bottleneck */}
         <div className="term-line term-line--stack">
           <span className="term-prompt">{labels.bottleneckPrompt}</span>
-          <div className="term-options" role="group" aria-label={labels.bottleneckPrompt}>
+          <div
+            className="term-options"
+            role="group"
+            aria-label={labels.bottleneckPrompt}
+          >
             {BOTTLENECK_VALUES.map((val) => (
               <button
                 key={val}
                 type="button"
                 data-v={val}
-                className={`term-option-btn${bottleneck === val ? ' active' : ''}`}
+                className={`term-option-btn${bottleneck === val ? " active" : ""}`}
                 onClick={() => setBottleneck(val)}
-                disabled={status === 'loading'}
+                disabled={status === "loading"}
                 aria-pressed={bottleneck === val}
               >
                 {bottleneckLabels[val]}
@@ -265,7 +284,7 @@ export default function DiagnoseForm({
             name="brief"
             rows={2}
             placeholder={labels.briefPlaceholder}
-            disabled={status === 'loading'}
+            disabled={status === "loading"}
           />
         </div>
 
@@ -279,13 +298,13 @@ export default function DiagnoseForm({
         <button
           type="submit"
           className="term-submit"
-          disabled={status === 'loading'}
+          disabled={status === "loading"}
         >
-          {status === 'loading' ? labels.sending : labels.submit}
+          {status === "loading" ? labels.sending : labels.submit}
         </button>
 
         {/* Error state */}
-        {status === 'error' && (
+        {status === "error" && (
           <p className="term-error-msg" role="alert">
             {labels.networkFailure}
           </p>

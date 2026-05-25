@@ -189,6 +189,17 @@ const logCols: [string, string, string, string] = [
     container-type: inline-size;
   }
 
+  /* iter-11: tighten DataRoom vertical fit on short viewports.
+   * At 1024×768 and 1280×800 the KPI grid + log table overflow the phase.
+   * Reduce padding + gap of the wrapper and min-height of cells so all 6
+   * KPI cells + log table header + 3 rows fit in ~500px available height. */
+  @media (max-height: 900px) {
+    .data-room-wrap {
+      padding: 1.25rem;
+      gap: 1rem;
+    }
+  }
+
   /* ── Header ─────────────────────────────────────────────────────────────── */
 
   .data-room-header {
@@ -252,6 +263,15 @@ const logCols: [string, string, string, string] = [
     transition:
       box-shadow var(--dur-medium-fast) var(--ease-emphasized),
       background var(--dur-medium-fast) var(--ease-emphasized);
+  }
+
+  /* iter-11: reduce cell min-height on short viewports so 2-row KPI grid fits */
+  @media (max-height: 900px) {
+    :global(.cell) {
+      min-height: 90px;
+      padding: 0.75rem 1rem;
+      gap: 0.25rem;
+    }
   }
 
   :global(.cell:hover) {
@@ -492,6 +512,20 @@ const logCols: [string, string, string, string] = [
 
   :global(.log-cell--right) {
     text-align: right;
+  }
+
+  /* ── iter-12: hide log table below 1440px ──────────────────────────────── */
+  /* At 1024×768 and 1280×800 the KPI grid + log table together overflow the
+   * phase height. Hiding the log table lets the 6-cell KPI grid breathe and
+   * sit comfortably within the viewport. The log table is a decorative element;
+   * KPIs are the primary proof content. At ≥1440px both are visible as before.
+   *
+   * Breakpoint 89.9375rem = 1439px (max-width uses < semantics so 1440 is
+   * the first viewport that sees the table). */
+  @media (max-width: 89.9375rem) {
+    :global(.log-table) {
+      display: none;
+    }
   }
 
   /* ── Responsive: log table on small screens ─────────────────────────────── */
