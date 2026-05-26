@@ -123,6 +123,65 @@ const subParagraphs = sub.split('\n').filter((p) => p.trim().length > 0);
     margin-inline: auto;
     padding: clamp(1.5rem, 3vw, 2rem);
     text-align: center;
+
+    /* ── F1-specific scrim strengthening (QA-night-iter01b) ─────────────────
+     * Override CSS vars to darken the gradient compared to F2/F3 defaults.
+     * Target: hero text legible at all widths, neural mesh still visible.
+     * Values calibrated to remain clearly translucent (not solid black).
+     * ─────────────────────────────────────────────────────────────────────── */
+    --scrim-top: rgba(0, 0, 0, 0.62);
+    --scrim-bottom: rgba(0, 0, 0, 0.40);
+
+    /* Dissolve the hard rectangular border for F1 — the ::before vignette
+     * handles the "aura" effect; a solid border would look like a UI card,
+     * fighting the immersive 3D aesthetic. F2/F3 keep their border via the
+     * .phase-scrim default (not overridden here). */
+    border: none;
+
+    /* Stacking context for ::before pseudo-element */
+    position: relative;
+
+    /* background: transparent overrides the .phase-scrim gradient so only
+     * the ::before vignette (with mask) renders — edges fade, center opaque. */
+    background: transparent;
+  }
+
+  /* ── Soft-edge vignette via ::before ────────────────────────────────────────
+   * Renders the dark gradient on a pseudo-element so mask-image never clips
+   * the text or its text-shadow halos. The gradient itself uses --scrim-top/
+   * --scrim-bottom (inherits from .core-scrim override above). The radial mask
+   * fades the rectangle into the 3D space: full opacity at center, transparent
+   * at edges → the neural mesh "breathes" around the text block.
+   * ─────────────────────────────────────────────────────────────────────────── */
+  .core-scrim::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      to bottom,
+      var(--scrim-top),
+      var(--scrim-bottom)
+    );
+    /* Radial vignette: full opacity at center (text lives here), fading to
+     * transparent at outer 30–40% of the element width/height. */
+    -webkit-mask-image: radial-gradient(ellipse 110% 100% at 50% 50%, black 55%, transparent 100%);
+            mask-image: radial-gradient(ellipse 110% 100% at 50% 50%, black 55%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Text-shadow — local contrast reinforcement ─────────────────────────────
+   * Dark halo behind each text element adds legibility without requiring an
+   * even heavier scrim. Scoped to F1 only — F2/F3 headings don't need it.
+   * This is the "text-shadow inteligente" from the project vision doc.
+   * ─────────────────────────────────────────────────────────────────────────── */
+  .core-scrim :global(.eyebrow),
+  .core-scrim :global(h1.headline),
+  .core-scrim :global(.core-sub p) {
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+    position: relative;
+    z-index: 1;
   }
 
   /* Widen to match .core-sub 2-col max-width at ≥1024px */

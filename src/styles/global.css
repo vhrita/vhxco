@@ -1218,13 +1218,17 @@ body.cursor-hover-link #cursor::before {
  * ─────────────────────────────────────────────────────────────────────────── */
 
 .phase-scrim {
+  /* ── Scrim CSS vars — overrideable per-phase ─────────────────────────────
+   * Default values match the original F2/F3 glass cards (legível + bonito).
+   * .core-scrim (Phase 01) overrides these to push stronger opacity so the
+   * hero headline stays legible over the dense neural mesh. F2/F3 keep the
+   * defaults untouched.
+   * ─────────────────────────────────────────────────────────────────────── */
+  --scrim-top: rgba(0, 0, 0, 0.45);
+  --scrim-bottom: rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.45),
-    rgba(0, 0, 0, 0.15)
-  );
+  background: linear-gradient(to bottom, var(--scrim-top), var(--scrim-bottom));
   border: 1px solid var(--color-line);
   border-radius: 12px;
 }
