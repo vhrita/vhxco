@@ -1203,6 +1203,32 @@ body.cursor-hover-link #cursor::before {
  * container queries) em vez de empurrar todo o content. Vide regras
  * `@container` na seção .hud. */
 
+/* ── Phase scrim — shared glass/HUD backdrop (Fix-set QA-night-iter01) ──────
+ *
+ * Reusable translucent card for text legibility over the 3D canvas.
+ * Preserves the visual language of Phases 02-05 (blur + dark gradient +
+ * hairline border) but as a composable utility so Phase 01 and future
+ * immersive phases can opt-in without duplicating the four scrim properties.
+ *
+ * Usage: add `phase-scrim` alongside the element's own class.
+ * Layout (max-width, padding, gap) stays in the component's own CSS.
+ *
+ * NOTE: does NOT cover the full .phase container — must only wrap the
+ * text block so the 3D canvas breathes around it.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+.phase-scrim {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.45),
+    rgba(0, 0, 0, 0.15)
+  );
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+}
+
 /* ── Phase 01 Core content wrapper ───────────────────────────────────────── */
 
 .core-content {
@@ -1572,15 +1598,7 @@ h1.headline .strike::after {
   flex-direction: column;
   align-items: center;
   gap: clamp(2rem, 4vw, 3.5rem);
-  /* Glass card effect (Fix-set E — Phases 02-05 only, not Phase 01) */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.45),
-    rgba(0, 0, 0, 0.15)
-  );
-  border: 1px solid var(--color-line);
+  /* Glass card effect — provided by .phase-scrim utility (QA-night-iter01 DRY) */
   border-radius: 12px;
   /* Container context — enables @container queries on child grids */
   container-type: inline-size;
@@ -1794,15 +1812,7 @@ h1.headline .strike::after {
   flex-direction: column;
   align-items: center;
   gap: clamp(2rem, 4vw, 3.5rem);
-  /* Glass card effect (Fix-set E — Phases 02-05 only, not Phase 01) */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.45),
-    rgba(0, 0, 0, 0.15)
-  );
-  border: 1px solid var(--color-line);
+  /* Glass card effect — provided by .phase-scrim utility (QA-night-iter01 DRY) */
   border-radius: 12px;
   /* Container context — enables @container queries on child grids */
   container-type: inline-size;

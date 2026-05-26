@@ -57,17 +57,25 @@ const subParagraphs = sub.split('\n').filter((p) => p.trim().length > 0);
   aria-labelledby="core-heading"
 >
   <div class="core-content">
-    <p class="eyebrow">{eyebrow}</p>
+    <!--
+      QA-night-iter01: .core-scrim wraps headline block only (eyebrow + h1 +
+      sub-paragraphs). The .scroll-cue intentionally lives OUTSIDE the scrim
+      so it stays in the natural flow at the foot of .core-content and the
+      3D canvas breathes below/around the text area.
+    -->
+    <div class="core-scrim phase-scrim">
+      <p class="eyebrow">{eyebrow}</p>
 
-    <h1
-      id="core-heading"
-      class="headline"
-      data-scramble
-      set:html={headline}
-    />
+      <h1
+        id="core-heading"
+        class="headline"
+        data-scramble
+        set:html={headline}
+      />
 
-    <div class="core-sub">
-      {subParagraphs.map((para) => <p>{para}</p>)}
+      <div class="core-sub">
+        {subParagraphs.map((para) => <p>{para}</p>)}
+      </div>
     </div>
 
     <!--
@@ -89,6 +97,41 @@ const subParagraphs = sub.split('\n').filter((p) => p.trim().length > 0);
     </a>
   </div>
 </section>
+
+<style>
+  /*
+   * .core-scrim — layout wrapper for the Phase 01 text block.
+   *
+   * The scrim glass/blur/border properties come from the shared .phase-scrim
+   * utility in global.css. This block only provides layout: width constraints,
+   * centering, and padding so the scrim sits snugly around the copy.
+   *
+   * max-width: 540px default (single-column, matches old .core-sub max-width).
+   * At ≥1024px 2-col kicks in on .core-sub (max-width 1100px) — bump scrim to
+   * match so columns have full room. padding matches the other phase glass cards.
+   *
+   * Note: .core-sub margin-top / font styles remain in global.css and are
+   * unaffected by this wrapper — cascade is additive, not replaced.
+   */
+  .core-scrim {
+    width: 100%;
+    /* Default: wide enough for the H1 at mid-range viewports (768px).
+     * The H1 is centered + text-wrap:balance so it needs generous room.
+     * 720px sits between the old .core-sub single-col cap (540px) and
+     * the 2-col threshold to avoid a "large black slab" at 375px. */
+    max-width: min(100%, 720px);
+    margin-inline: auto;
+    padding: clamp(1.5rem, 3vw, 2rem);
+    text-align: center;
+  }
+
+  /* Widen to match .core-sub 2-col max-width at ≥1024px */
+  @media (min-width: 64rem) {
+    .core-scrim {
+      max-width: min(100%, 1140px);
+    }
+  }
+</style>
 
 <script>
   /**
