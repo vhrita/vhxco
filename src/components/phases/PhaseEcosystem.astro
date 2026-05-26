@@ -89,6 +89,75 @@ const darkflowDesc      = tLocale('ecosystem.cards.darkflow.desc');
   </div>
 </section>
 
+<style>
+  /*
+   * .eco-content — F3-specific scrim strengthening (QA-night-iter02)
+   *
+   * The Phase 03 canvas has a bright red synapse directly behind the text
+   * block. Default .phase-scrim vars (0.45 → 0.15) are insufficient — text
+   * competes with the red glow. Override to values slightly stronger than
+   * F1 (.core-scrim uses 0.62 → 0.40) to compensate for the red channel.
+   *
+   * Technique mirrors .core-scrim exactly:
+   *   - Override --scrim-top/--scrim-bottom vars
+   *   - background: transparent + position: relative so only ::before renders
+   *   - ::before pseudo with radial vignette mask (edges fade → mesh breathes)
+   *   - text-shadow on eyebrow + headline + sub paragraphs for local contrast
+   *
+   * IMPORTANT: does NOT touch global.css defaults — F2 (cards) is unaffected.
+   */
+  .eco-content {
+    /* ── F3-specific scrim vars ──────────────────────────────────────────────
+     * Slightly stronger than F1 (0.62/0.40) to fight the red synapse.
+     * Still clearly translucent — neural mesh remains visible behind text.
+     * ─────────────────────────────────────────────────────────────────────── */
+    --scrim-top: rgba(0, 0, 0, 0.68);
+    --scrim-bottom: rgba(0, 0, 0, 0.45);
+
+    /* Stacking context for ::before vignette pseudo-element */
+    position: relative;
+
+    /* Suppress the .phase-scrim flat gradient — the ::before vignette with
+     * the radial mask renders the gradient instead, so edges fade naturally
+     * into the 3D space rather than a hard rectangular slab. */
+    background: transparent;
+  }
+
+  /* ── Soft-edge vignette via ::before ────────────────────────────────────────
+   * Same pattern as .core-scrim::before: renders the dark gradient on a
+   * pseudo-element so mask-image never clips text or text-shadow halos.
+   * Radial mask → full opacity at center (text), transparent at outer edges
+   * → neural mesh and red synapse "breathe" around the content area.
+   * ─────────────────────────────────────────────────────────────────────────── */
+  .eco-content::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      to bottom,
+      var(--scrim-top),
+      var(--scrim-bottom)
+    );
+    -webkit-mask-image: radial-gradient(ellipse 110% 100% at 50% 50%, black 55%, transparent 100%);
+            mask-image: radial-gradient(ellipse 110% 100% at 50% 50%, black 55%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Text-shadow — local contrast against the red synapse ───────────────────
+   * Dark halo adds legibility per-element without requiring an even heavier
+   * scrim opacity. Scoped to F3 only — does not affect F1/F2/F4/F5.
+   * ─────────────────────────────────────────────────────────────────────────── */
+  .eco-content :global(.eyebrow),
+  .eco-content :global(h2.eco-headline),
+  .eco-content :global(.eco-sub p) {
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+    position: relative;
+    z-index: 1;
+  }
+</style>
+
 <script>
   /**
    * Phase 03 client-side behaviour:
