@@ -511,16 +511,26 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
    *
    * qa-night-iter05: `.phase { overflow: hidden }` means ALL content must fit
    * within the viewport height. Two breakpoints:
-   *   max-height: 800px — targets 1024×768 (h=768≤800); skips 768×1024 (h=1024)
-   *   max-height: 700px — targets 375×667 (h=667≤700); extra-agressive compression
+   *   max-height: 916px — covers iPhones 812-896 + 1024×768; skips 768×1024
+   *   max-height: 700px — targets 375×667 (h=667≤700); extra-aggressive compression
+   *
+   * qa-night-iter08: threshold raised 800→916 to cover iPhone 13/14/15/XR/11
+   * (812–896px tall). 932 Pro Max fits naturally without tier1. At wide
+   * viewports (≥ 1024px) the headline is kept softer (2.5rem) so the 2-col
+   * layout at 1440×900 doesn't look undersized; the hard 2rem cap is reserved
+   * for narrow mobile (< 768px) where the column is ~390px wide.
    *
    * Approach: compress gaps/paddings/headline on the left column + tighten
    * terminal body so the fallback CTA (last child) stays in the visible zone.
    * Never touch: h2 visibility, scroll on .phase, other phases.
    */
 
-  /* ── Tier 1: max-height 800px — covers 1024×768 ──────────────────────────── */
-  @media (max-height: 800px) {
+  /* ── Tier 1: max-height 916px — covers iPhones 812–896 + 1024×768 ─────────
+   * Bifurcated headline cap: narrow (< 768px) → 2rem, wider → 2.5rem.
+   * This prevents the headline from shrinking too aggressively in 1440×900
+   * 2-col layout where the left column is wide enough to hold larger text.
+   */
+  @media (max-height: 916px) {
     /* Phase padding: tighten vertical so the phase container gives back height */
     .phase-diagnose {
       padding-block: 0.75rem;
@@ -537,9 +547,10 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
       gap: 0.75rem;
     }
 
-    /* Headline: cap at 2rem so the clamp doesn't resolve to 40-52px at 1024px */
+    /* Headline: softer cap for wider viewports (1440×900 2-col); harder cap
+     * for narrow mobile (<768px) where clamp resolves smaller anyway */
     .diagnose-headline {
-      font-size: 2rem;
+      font-size: 2.5rem;
     }
 
     /* Meta table: tighter rows */
@@ -561,6 +572,14 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
     .diagnose-right :global(.term-fallback-copy) {
       margin-bottom: 0.375rem;
       padding: 0.25rem 0;
+    }
+  }
+
+  /* Narrow mobile (<768px wide) within tier1: tighter headline cap since
+   * column is only ~350-430px wide — 2.5rem is fine, 2rem is also fine. */
+  @media (max-height: 916px) and (max-width: 767px) {
+    .diagnose-headline {
+      font-size: 2rem;
     }
   }
 
