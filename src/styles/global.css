@@ -1243,6 +1243,23 @@ body[data-active-stop="4"] .journey-stop[data-stop="4"] {
   pointer-events: auto;
 }
 
+/* ── PersistentCta visibility (Fase 4a Sub-passo 3) ─────────────────────────
+ * Hide the persistent CTA when already at stop 4 (action stop).
+ * Must live in global.css — crosses body→#persistent-cta scope boundary.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+#persistent-cta {
+  /* Visible by default (stops 0–3) */
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 300ms ease;
+}
+
+body[data-active-stop="4"] #persistent-cta {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* iter-09 Bug B/D: mask-image "more below" fade was added to .phase[data-phase="0"]
  * as a scroll affordance when .phase had overflow-y: auto (iter-08 Move A).
  * iter-11: overflow changed to hidden — no internal scroll, so a fade implying

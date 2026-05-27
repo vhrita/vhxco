@@ -7,6 +7,7 @@ import Preloader from '@/components/effects/Preloader.astro';
 import HudCorners from '@/components/hud/HudCorners.astro';
 import TopNav from '@/components/hud/TopNav.astro';
 import HudWaveform from '@/components/hud/HudWaveform';
+import PersistentCta from '@/components/journey/PersistentCta.astro';
 import { getT } from '@/lib/i18n/t';
 import type { Locale } from '@/lib/i18n/config';
 
@@ -51,6 +52,8 @@ const t = getT(locale as Locale);
     <!-- HUD layer (z-index: var(--z-hud)) -->
     <TopNav locale={locale} />
     <HudCorners />
+    <!-- Fase 4a S3: persistent "Diagnosticar" CTA (V1 signature) -->
+    <PersistentCta locale={locale} />
     <!-- HudWaveform React island: appends its own canvas after idle hydration -->
     <HudWaveform client:idle />
 
