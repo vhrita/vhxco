@@ -6,15 +6,19 @@
 // (ADR-0020 / blueprint §3.2 D2): anchors are deterministic by construction, so
 // f(t) is reproducible across reloads without depending on RNG order.
 //
-// Brain ellipsoid reference (neurons.ts):
-//   r1 = cerebrum     (x/5.5 centered, y≈1)
-//   r2 = occipital    (x+2, y+0.5)
-//   r3 = cerebellum   (x+3.5, y+2.5)
-//   r4 = brainstem    (x+1, y+4)
+// Brain ellipsoid reference (neurons.ts brain-cloud.ts):
+//   r1 = cerebrum     (x/6.5, y-1/4.5, z/5)  — large front lobe
+//   r2 = occipital    (x+2/5, y+0.5/3.5, z/4) — right back lobe
+//   r3 = cerebellum   (x+3.5/2.5, y+2.5/2, z/2.5) — lower back
+//   r4 = brainstem    (x+1/1.2, y+4/2.5, z/1.2)  — narrow stem
 //
-// All 5 points below are verified inside at least one ellipsoid (r≤1).
-// N=5 is a placeholder — marketer + Vitor choose the final count.
-// To change N: edit this array. Everything derives from it.
+// All 5 points are verified inside at least one ellipsoid (r≤1).
+// Fase 4a Sub-passo 5: positions confirmed geometrically sound per ellipsoid
+// equations. Visual void-check is done via QA Sub-passo 6 screenshots.
+// If QA finds a stop framing void/black, adjust the Vector3 here — all
+// downstream (arc-length, topnav, journey-state) derives from this array.
+//
+// V1 pain-first order: PRESENTE(0)→PROBLEMA(1)→MÉTODO(2)→PROVA(3)→DIAGNOSE(4)
 
 import { Vector3 } from "three";
 
