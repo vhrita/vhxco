@@ -8,11 +8,11 @@ import {
   ShaderMaterial,
   Points,
   AdditiveBlending,
-} from 'three';
-import type { Scene } from 'three';
-import brainCloudVert from './shaders/brain-cloud.vert.glsl';
-import brainCloudFrag from './shaders/brain-cloud.frag.glsl';
-import type { BrainCloudHandle } from './types.js';
+} from "three";
+import type { Scene } from "three";
+import brainCloudVert from "./shaders/brain-cloud.vert.glsl";
+import brainCloudFrag from "./shaders/brain-cloud.frag.glsl";
+import type { BrainCloudHandle } from "./types.js";
 
 // Particle count — preserved from v0
 const COUNT = 35000;
@@ -45,17 +45,31 @@ export function generateBrainCloud(scene: Scene): BrainCloudHandle {
       y = Math.random() * 13.0 - 6.5;
       z = Math.random() * 10.0 - 5.0;
 
-      const r1 = Math.pow(x / 6.5, 2) + Math.pow((y - 1.0) / 4.5, 2) + Math.pow(z / 5.0, 2); // Cerebrum
-      const r2 = Math.pow((x + 2.0) / 5.0, 2) + Math.pow((y + 0.5) / 3.5, 2) + Math.pow(z / 4.0, 2); // Occipital
-      const r3 = Math.pow((x + 3.5) / 2.5, 2) + Math.pow((y + 2.5) / 2.0, 2) + Math.pow(z / 2.5, 2); // Cerebellum
-      const r4 = Math.pow((x + 1.0) / 1.2, 2) + Math.pow((y + 4.0) / 2.5, 2) + Math.pow(z / 1.2, 2); // Brain Stem
+      const r1 =
+        Math.pow(x / 6.5, 2) +
+        Math.pow((y - 1.0) / 4.5, 2) +
+        Math.pow(z / 5.0, 2); // Cerebrum
+      const r2 =
+        Math.pow((x + 2.0) / 5.0, 2) +
+        Math.pow((y + 0.5) / 3.5, 2) +
+        Math.pow(z / 4.0, 2); // Occipital
+      const r3 =
+        Math.pow((x + 3.5) / 2.5, 2) +
+        Math.pow((y + 2.5) / 2.0, 2) +
+        Math.pow(z / 2.5, 2); // Cerebellum
+      const r4 =
+        Math.pow((x + 1.0) / 1.2, 2) +
+        Math.pow((y + 4.0) / 2.5, 2) +
+        Math.pow(z / 1.2, 2); // Brain Stem
 
       if (r1 <= 1.0 || r2 <= 1.0 || r3 <= 1.0 || r4 <= 1.0) break;
     }
 
     // Noise displacement (v0 lines 180-181)
     const n = noise3D(x * 1.5, y * 1.5, z * 1.5) * 0.4;
-    x += n; y += n; z += n;
+    x += n;
+    y += n;
+    z += n;
 
     pos[i * 3] = x;
     pos[i * 3 + 1] = y;
@@ -64,9 +78,9 @@ export function generateBrainCloud(scene: Scene): BrainCloudHandle {
     seeds[i] = Math.random() * 100;
   }
 
-  geo.setAttribute('position', new BufferAttribute(pos, 3));
-  geo.setAttribute('aAlpha', new BufferAttribute(alphas, 1));
-  geo.setAttribute('aSeed', new BufferAttribute(seeds, 1));
+  geo.setAttribute("position", new BufferAttribute(pos, 3));
+  geo.setAttribute("aAlpha", new BufferAttribute(alphas, 1));
+  geo.setAttribute("aSeed", new BufferAttribute(seeds, 1));
 
   const mat = new ShaderMaterial({
     transparent: true,
@@ -75,7 +89,7 @@ export function generateBrainCloud(scene: Scene): BrainCloudHandle {
     uniforms: {
       uTime: { value: 0 },
       uHue: { value: DEFAULT_HUE },
-      uOpacity: { value: 0.9 },
+      uOpacity: { value: 0.45 }, // D7: was 0.9 — dimmed for atmosphere look
       uBootProgress: { value: 0.0 },
     },
     vertexShader: brainCloudVert,

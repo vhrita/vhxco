@@ -227,6 +227,39 @@ body.cursor-hover-link #cursor::before {
   width: 100%;
   height: 100%;
   display: block;
+
+  /* ── Fase 4a D7 atmosphere filter ───────────────────────────────────────
+   * 3D brain = atmosphere, not protagonist (blueprint D7 / mockup V1).
+   * Values calibrated to read as "alive but receded":
+   *   brightness(0.45) — cuts luminance without killing depth cues
+   *   saturate(0.50)   — desaturates cyan so it stops competing with text
+   *   blur(1.5px)      — soft defocus = clear perceptual depth separation
+   * NOTE: blur(1.5px) on a canvas disables GPU compositing on some mobile
+   * browsers. If perf issues arise, drop blur and compensate with lower
+   * brightness (0.35). Uniforms (uOpacity/bloom/fog) are tuned in parallel
+   * to handle the same effect at the GPU level.
+   * ─────────────────────────────────────────────────────────────────────── */
+  filter: brightness(0.45) saturate(0.5) blur(1.5px);
+}
+
+/* ── Backdrop vignette (Fase 4a D7) ─────────────────────────────────────────
+ * Radial dark gradient between canvas and content layers.
+ * Darkens edges so text floats on a comfortable dark field.
+ * Pattern: Igloo Inc / Vercel dark hero.
+ * z-index 2 = above canvas (1), below content (var(--z-content)=10).
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+.backdrop-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 90% 80% at 50% 50%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.55) 80%,
+    rgba(0, 0, 0, 0.75) 100%
+  );
 }
 
 /* ── WebGL fallback (noscript / reduced-motion) ──────────────────────────── */

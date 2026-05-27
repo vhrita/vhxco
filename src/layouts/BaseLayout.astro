@@ -42,6 +42,8 @@ const t = getT(locale as Locale);
 
     <Preloader />
     <NeuralEngineIsland client:only="react" />
+    <!-- Fase 4a D7: backdrop vignette between canvas (z=1) and content (z=10) -->
+    <div class="backdrop-vignette" aria-hidden="true"></div>
     <CustomCursor client:idle />
     <!-- iter-08 Move B: MuteButton now rendered inside TopNav (right-most element) -->
     <noscript><HeroFallback /></noscript>
