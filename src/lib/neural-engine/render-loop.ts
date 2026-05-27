@@ -32,33 +32,16 @@ import {
   nearestStopIndex,
 } from "./hero-anchors.js";
 import type { NeuronData } from "./types.js";
+// Builder#2: store extracted to journey-state.ts — import from there (single source of truth)
+import {
+  setJourneyT,
+  getJourneyT,
+  getActiveStop,
+  subscribeJourney,
+} from "../journey/journey-state.js";
 
-// ─── Minimal journey-state store (Builder#2 extracts to journey-state.ts) ─────
-// Single authoritative t for the camera. setJourneyProgress(t) is INSTANT —
-// the next RAF frame renders exactly f(t). No lerp inside this store or f(t).
-
-let _t = 0;
-let _activeStop = 0;
-const _journeyListeners = new Set<() => void>();
-
-export function setJourneyT(t: number): void {
-  _t = Math.max(0, Math.min(1, t));
-  _activeStop = nearestStopIndex(_t);
-  _journeyListeners.forEach((fn) => fn());
-}
-
-export function getJourneyT(): number {
-  return _t;
-}
-
-export function getActiveStop(): number {
-  return _activeStop;
-}
-
-export function subscribeJourney(fn: () => void): () => void {
-  _journeyListeners.add(fn);
-  return () => _journeyListeners.delete(fn);
-}
+// Re-export so index.ts can still wire JourneyHandle without reaching into journey-state directly
+export { setJourneyT, getJourneyT, getActiveStop, subscribeJourney };
 
 // ─── Lerp utility ─────────────────────────────────────────────────────────────
 function lerp(a: number, b: number, t: number): number {
@@ -230,15 +213,5 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     }
   }
 
-  /**
-   * @deprecated TODO(Builder#2): remove when BaseLayout is repainted to use
-   * setJourneyProgress via journey-input.ts. Maps phase index to journey t.
-   */
-  function setPhase(phase: number, _progress?: number): void {
-    const N = STOP_COUNT;
-    const t = N > 1 ? phase / (N - 1) : 0;
-    setJourneyT(t);
-  }
-
-  return { start, stop, setPhase };
+  return { start, stop };
 }

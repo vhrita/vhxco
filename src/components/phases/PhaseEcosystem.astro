@@ -162,17 +162,17 @@ const darkflowDesc      = tLocale('ecosystem.cards.darkflow.desc');
   /**
    * Phase 03 client-side behaviour:
    *
-   * data-active: subscribe to phase-orchestrator store. Toggle data-active
-   * on the section when phase === 2. CSS transitions + extractIn animations
+   * data-active: subscribe to journey activeStop. Toggle data-active
+   * on the section when activeStop === 2. CSS transitions + extractIn animations
    * are gated on [data-active] presence.
    */
-  import { subscribePhase } from '@/lib/scroll/phase-orchestrator';
+  import { subscribeActiveStop, getActiveStop } from '@/lib/journey/journey-state';
 
   const section = document.getElementById('phase-ecosystem');
 
   if (section) {
-    subscribePhase(({ phase }) => {
-      if (phase === 2) {
+    subscribeActiveStop(() => {
+      if (getActiveStop() === 2) {
         section.dataset.active = 'true';
       } else {
         delete section.dataset.active;

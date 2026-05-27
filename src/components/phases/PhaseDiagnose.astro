@@ -116,13 +116,13 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 </section>
 
 <script>
-  import { subscribePhase } from '@/lib/scroll/phase-orchestrator';
+  import { subscribeActiveStop, getActiveStop } from '@/lib/journey/journey-state';
 
   const section = document.getElementById('phase-diagnose');
 
   if (section) {
-    subscribePhase(({ phase }) => {
-      if (phase === 4) {
+    subscribeActiveStop(() => {
+      if (getActiveStop() === 4) {
         section.dataset.active = 'true';
       } else {
         delete section.dataset.active;

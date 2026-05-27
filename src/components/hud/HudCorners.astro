@@ -94,9 +94,7 @@ const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
 </div>
 
 <script>
-  import {
-    subscribePhase,
-  } from '@/lib/scroll/phase-orchestrator';
+  import { subscribeActiveStop, getActiveStop, getJourneyT } from '@/lib/journey/journey-state';
   import {
     updateMouseState,
     updatePhaseState,
@@ -130,11 +128,13 @@ const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
     updateMouseState(e.clientX, e.clientY, mouseSpeed);
   });
 
-  // ── Phase subscription ────────────────────────────────────────────────────
-  let prevPhase = -1;
+  // ── ActiveStop subscription (fires only on stop change, not 60fps) ────────
+  let prevStop = -1;
 
-  const unsubscribe = subscribePhase((state) => {
-    updatePhaseState(state.phase, state.progress);
+  const unsubscribe = subscribeActiveStop(() => {
+    const stop = getActiveStop();
+    // updatePhaseState(phase, progress) — pass activeStop + journey t
+    updatePhaseState(stop, getJourneyT());
 
     if (elNode) {
       const labels = [
@@ -144,14 +144,14 @@ const sessionId = Math.random().toString(36).slice(2, 10).toUpperCase();
         'DATA/ROOM',
         'DIAGNOSE/LINK',
       ] as const;
-      elNode.textContent = labels[state.phase] ?? labels[0];
+      elNode.textContent = labels[stop] ?? `STOP/${stop}`;
     }
 
-    // Warn flash on phase change
-    if (prevPhase !== -1 && state.phase !== prevPhase) {
+    // Warn flash on stop change
+    if (prevStop !== -1 && stop !== prevStop) {
       triggerWarnFlash(500);
     }
-    prevPhase = state.phase;
+    prevStop = stop;
   });
 
   // ── Telemetry render loop ─────────────────────────────────────────────────

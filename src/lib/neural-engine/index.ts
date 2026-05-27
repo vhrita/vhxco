@@ -13,12 +13,14 @@ import { createRenderer } from "./renderer.js";
 import { generateBrainCloud } from "./brain-cloud.js";
 import { makeNeuralNetwork } from "./neurons.js";
 import { createSynapses } from "./synapses.js";
+import { createRenderLoop } from "./render-loop.js";
 import {
-  createRenderLoop,
   setJourneyT,
   getJourneyT,
   getActiveStop,
-} from "./render-loop.js";
+  subscribeJourney,
+  subscribeActiveStop,
+} from "../journey/journey-state.js";
 import { STOP_COUNT, stopCenterT } from "./hero-anchors.js";
 import type { RenderLoopHandle, JourneyHandle } from "./types.js";
 
@@ -30,11 +32,6 @@ export interface NeuralEngineOptions {
 
 export interface NeuralEngineHandle {
   dispose: () => void;
-  /**
-   * @deprecated TODO(Builder#2): remove when BaseLayout uses setJourneyProgress
-   * via journey-input.ts. Shim maps phase index to journey t.
-   */
-  setPhase: (phase: number, progress?: number) => void;
   // Exposed for smoke test inspection
   _loop?: RenderLoopHandle;
   // Journey API (§4.1) — primary API
@@ -108,8 +105,6 @@ export function createNeuralEngine(
 
   return {
     dispose,
-    /** @deprecated TODO(Builder#2) */
-    setPhase: loop.setPhase,
     _loop: loop,
     journey,
   };
@@ -117,6 +112,12 @@ export function createNeuralEngine(
 
 // Re-export stores for external consumers (HUD, preloader, etc.)
 export { bootProgress } from "./boot-progress.js";
-export { phaseStore } from "./phase-state.js";
 // hero-anchors: HERO_NEURON_INDICES removed (no longer indices); export new API instead
 export { ANCHOR_POSITIONS, STOP_COUNT, stopCenterT } from "./hero-anchors.js";
+// Journey state — subscriptions for consumers that need activeStop changes
+export {
+  subscribeJourney,
+  subscribeActiveStop,
+  getJourneyT,
+  getActiveStop,
+} from "../journey/journey-state.js";

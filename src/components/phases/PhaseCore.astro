@@ -204,7 +204,7 @@ const subParagraphs = sub.split('\n').filter((p) => p.trim().length > 0);
    */
 
   import { SCRAMBLE_CHARS } from '@/lib/effects/scramble';
-  import { subscribePhase } from '@/lib/scroll/phase-orchestrator';
+  import { subscribeActiveStop, getActiveStop } from '@/lib/journey/journey-state';
 
   // ── HTML-aware scramble for <h1> ──────────────────────────────────────────
   //
@@ -284,15 +284,15 @@ const subParagraphs = sub.split('\n').filter((p) => p.trim().length > 0);
     );
   }
 
-  // ── data-active from phase orchestrator ──────────────────────────────────
+  // ── data-active from journey activeStop ──────────────────────────────────
   const section = document.getElementById('phase-core');
 
   if (section) {
     // Set initial state
     section.dataset.active = 'true';
 
-    subscribePhase(({ phase }) => {
-      if (phase === 0) {
+    subscribeActiveStop(() => {
+      if (getActiveStop() === 0) {
         section.dataset.active = 'true';
       } else {
         delete section.dataset.active;

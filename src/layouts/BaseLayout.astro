@@ -85,61 +85,58 @@ const t = getT(locale as Locale);
       });
     </script>
     <script>
-      // Mount scroll/phase orchestrator after hydration.
-      // On phase change, fire audioSwoosh() + update ambient tuning via __audioReady.
-      import('@/lib/scroll/phase-orchestrator').then(
-        ({
-          createPhaseOrchestrator,
-          getPhaseState,
-          subscribePhase,
-          getTargetProgress,
-        }) => {
-          const orchestrator = createPhaseOrchestrator();
+      // Mount journey input adapter after hydration (replaces phase-orchestrator).
+      // On activeStop change (not every frame), fire audioSwoosh() + update ambient.
+      //
+      // Architecture (blueprint §4.4):
+      //   - createJourneyInput() mounts wheel/touch/keyboard/HUD handlers.
+      //   - Easing lives inside journey-input.ts — NOT in the render loop.
+      //   - subscribeActiveStop fires only when the active stop changes (not 60fps).
+      //   - window.__journey (set by createNeuralEngine) is the programmatic API.
+      //   - hud:goto-phase is handled by journey-input.ts internally.
 
-          // QA iter-04 (Issue #1): write active phase to body dataset so global
-          // chrome (scroll-cue, etc.) can target CSS at the right phase.
-          // Initialize at phase 0 — PhaseCore boots with data-active="true".
-          document.body.dataset.activePhase = '0';
-          subscribePhase((state) => {
-            document.body.dataset.activePhase = String(state.phase);
-          });
+      import('@/lib/journey/journey-input').then(({ createJourneyInput }) => {
+        const input = createJourneyInput();
 
-          // Audio phase hook — fires on every phase transition
-          let _lastAudioPhase = -1;
-          subscribePhase((state) => {
-            if (state.phase === _lastAudioPhase) return;
-            _lastAudioPhase = state.phase;
+        // Write activeStop to body dataset so CSS can target it.
+        // Initialize at stop 0.
+        document.body.dataset.activeStop = '0';
 
-            const audio = (window as unknown as Record<string, unknown>).__audioReady as
-              | {
-                  audioSwoosh: () => void;
-                  setPhase: (n: 0 | 1 | 2 | 3 | 4) => void;
-                  isMuted: () => boolean;
-                }
-              | undefined;
+        // subscribeActiveStop fires only on stop change (not every t tick).
+        import('@/lib/journey/journey-state').then(
+          ({ subscribeActiveStop, getActiveStop }) => {
+            subscribeActiveStop(() => {
+              const stop = getActiveStop();
+              document.body.dataset.activeStop = String(stop);
 
-            if (!audio || audio.isMuted()) return;
-            audio.setPhase(state.phase as 0 | 1 | 2 | 3 | 4);
-            audio.audioSwoosh();
-          });
+              // Audio hook — fires on stop change only (not 60fps)
+              const audio = (window as unknown as Record<string, unknown>).__audioReady as
+                | {
+                    audioSwoosh: () => void;
+                    // generalized: number (not union 0|1|2|3|4)
+                    setPhase: (n: number) => void;
+                    isMuted: () => boolean;
+                  }
+                | undefined;
 
-          // Dev-only global for debugging: window.__phaseStore.getState()
-          if (import.meta.env.DEV) {
-            (window as unknown as Record<string, unknown>).__phaseStore = {
-              getState: getPhaseState,
-              subscribe: subscribePhase,
-              getTargetProgress,
-              goToPhase: orchestrator.goToPhase.bind(orchestrator),
-            };
+              if (!audio || audio.isMuted()) return;
+              // Map activeStop → audio bucket (clamp to 4 for backwards compat
+              // with synapse-sound.ts which has 5 phase buckets 0..4)
+              audio.setPhase(Math.min(4, Math.max(0, stop)));
+              audio.audioSwoosh();
+            });
+
+            // Dev-only global (replaces __phaseStore)
+            if (import.meta.env.DEV) {
+              (window as unknown as Record<string, unknown>).__journeyInput = {
+                getActiveStop,
+                destroy: input.destroy.bind(input),
+                reducedMotion: input.reducedMotion,
+              };
+            }
           }
-
-          // HUD nav buttons dispatch hud:goto-phase — wired to orchestrator here
-          window.addEventListener('hud:goto-phase', (e: Event) => {
-            const phase = (e as CustomEvent<{ phase: number }>).detail.phase;
-            orchestrator.goToPhase(phase);
-          });
-        }
-      );
+        );
+      });
     </script>
   </body>
 </html>

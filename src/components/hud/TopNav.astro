@@ -2,7 +2,7 @@
 /**
  * TopNav.astro
  *
- * Fixed top navigation: VHXCO logo + 5 chapter buttons + PT/EN lang toggle + MuteButton.
+ * Fixed top navigation: VHXCO logo + N chapter buttons + PT/EN lang toggle + MuteButton.
  * Ported from VHXCO.html lines 1643-1657.
  *
  * iter-08 Move B: MuteButton moved from fixed BR corner into this nav row
@@ -11,14 +11,21 @@
  *
  * Chapter labels: PT default. i18n dict is empty for now — hard-coded with TODO.
  * Lang toggle: PT → "/" | EN → "/en/" (Astro i18n routing).
- * Active state driven by phase orchestrator subscription.
- * Keyboard nav: Tab focus + roving tabindex within tablist.
+ * Active state driven by journey-state subscribeActiveStop (fires only on stop change,
+ * not 60fps). Keyboard nav: Tab focus + roving tabindex within tablist.
  *
- * TODO(i18n): when pt.json / en.json have nav.chapter.0..4 keys, replace
+ * Blueprint §3.3: chapters array is zipped against STOP_COUNT so N is parametrizable.
+ * If STOP_COUNT < chapters.length, extra entries are ignored.
+ * If STOP_COUNT > chapters.length, generic labels are used for overflow.
+ *
+ * Fase 4 (marketer): replace chapter labels/slugs from stops.config.ts when copy is ready.
+ *
+ * TODO(i18n): when pt.json / en.json have nav.chapter.0..N keys, replace
  *             hard-coded labels with t('nav.chapter.N').
  */
 
 import MuteButton from './MuteButton.astro';
+import { STOP_COUNT } from '@/lib/neural-engine/hero-anchors';
 
 interface Props {
   locale?: 'pt' | 'en';
@@ -26,13 +33,24 @@ interface Props {
 
 const { locale = 'pt' } = Astro.props;
 
-const chapters = [
+// PT/EN labels — kept as-is from original (i18n Fase 4).
+// Zipped against STOP_COUNT so N is parametrizable.
+const _allChapters = [
   { num: '01', label: 'Núcleo',      en: 'Core',        short: 'NUC' },
   { num: '02', label: 'Engenharia',  en: 'Engineering', short: 'ENG' },
   { num: '03', label: 'Ecossistema', en: 'Ecosystem',   short: 'ECO' },
   { num: '04', label: 'Prova',       en: 'Proof',       short: 'PRV' },
   { num: '05', label: 'Diagnose',    en: 'Diagnose',    short: 'DIA' },
-] as const;
+];
+
+// Slice or pad to STOP_COUNT
+const chapters = Array.from({ length: STOP_COUNT }, (_, i) => {
+  const ch = _allChapters[i];
+  if (ch) return ch;
+  // Overflow: generic label
+  const n = String(i + 1).padStart(2, '0');
+  return { num: n, label: `Stop ${n}`, en: `Stop ${n}`, short: `S${n}` };
+});
 ---
 
 <nav class="topnav" aria-label="Navegação principal">
@@ -80,25 +98,30 @@ const chapters = [
 </nav>
 
 <script>
-  import { subscribePhase } from '@/lib/scroll/phase-orchestrator';
+  // Subscribe to activeStop changes (not every t tick — fires only when stop changes).
+  // journey-input.ts handles the hud:goto-phase event internally via _onHudGotoPhase.
+  import { subscribeActiveStop, getActiveStop } from '@/lib/journey/journey-state';
 
   const buttons = document.querySelectorAll<HTMLButtonElement>('.topnav-chapter');
 
-  function setActiveChapter(phase: number) {
+  function setActiveChapter(stop: number) {
     buttons.forEach((btn, i) => {
-      const isActive = i === phase;
+      const isActive = i === stop;
       btn.classList.toggle('active', isActive);
       btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
       btn.tabIndex = isActive ? 0 : -1;
     });
   }
 
-  // Subscribe to phase changes
-  const unsub = subscribePhase((state) => {
-    setActiveChapter(state.phase);
+  // Initialize from current store state
+  setActiveChapter(getActiveStop());
+
+  // Subscribe to activeStop changes (fires only when stop changes, not 60fps)
+  const unsub = subscribeActiveStop(() => {
+    setActiveChapter(getActiveStop());
   });
 
-  // Click → dispatch goto-phase event (wired in BaseLayout to orchestrator.goToPhase)
+  // Click → dispatch hud:goto-phase (journey-input.ts handles this event internally)
   buttons.forEach((btn) => {
     btn.addEventListener('click', () => {
       const phase = parseInt(btn.dataset.phase ?? '0', 10);

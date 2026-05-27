@@ -65,8 +65,6 @@ export interface NeuralNetworkHandle {
 export interface RenderLoopHandle {
   start: () => void;
   stop: () => void;
-  /** @deprecated TODO(Builder#2): remove when BaseLayout uses setJourneyProgress */
-  setPhase: (phase: number, progress?: number) => void;
 }
 
 /**

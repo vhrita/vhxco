@@ -150,15 +150,15 @@ const logCols: [string, string, string, string] = [
 <script>
   /**
    * Phase 04 client-side behaviour:
-   * data-active toggled by phase-orchestrator store when phase === 3.
+   * data-active toggled by journey activeStop when activeStop === 3.
    */
-  import { subscribePhase } from '@/lib/scroll/phase-orchestrator';
+  import { subscribeActiveStop, getActiveStop } from '@/lib/journey/journey-state';
 
   const section = document.getElementById('phase-proof');
 
   if (section) {
-    subscribePhase(({ phase }) => {
-      if (phase === 3) {
+    subscribeActiveStop(() => {
+      if (getActiveStop() === 3) {
         section.dataset.active = 'true';
       } else {
         delete section.dataset.active;
