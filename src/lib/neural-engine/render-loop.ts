@@ -27,6 +27,7 @@ import type { RenderLoopHandle } from "./types.js";
 import {
   ANCHOR_POSITIONS,
   STOP_COUNT,
+  STOP_ARC_T,
   computeNearestNeuronIndices,
   nearestStopIndex,
 } from "./hero-anchors.js";
@@ -174,7 +175,9 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     if (nearestNeuronIdx !== undefined && network.neurons[nearestNeuronIdx]) {
       const neuron = network.neurons[nearestNeuronIdx] as NeuronData;
       // Keep soma lit while near its stop (within ~half the inter-stop distance)
-      const stopCenter = stopIdx / Math.max(1, STOP_COUNT - 1);
+      // Use arc-length t of this stop — not the naive stopIdx/(N-1) (blueprint §3.3)
+      const stopCenter =
+        STOP_ARC_T[stopIdx] ?? stopIdx / Math.max(1, STOP_COUNT - 1);
       const dist = Math.abs(t - stopCenter);
       if (dist < 0.15) {
         neuron.lastFire = t_anim + 0.1;
