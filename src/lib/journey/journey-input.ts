@@ -43,7 +43,7 @@
 //     ArrowUp/Down, PageUp/Down → step ±STEP
 //     Home/End → stop[0]/stop[N-1]
 
-import { setJourneyT, getJourneyT } from "./journey-state.js";
+import { setJourneyT, getJourneyT, subscribeJourney } from "./journey-state.js";
 import { STOP_COUNT, stopCenterT } from "../neural-engine/hero-anchors.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -66,6 +66,9 @@ let _target = 0; // desired t (set by input handlers)
 let _easedT = 0; // smoothed t (written to store each RAF)
 let _rafId = 0;
 let _reducedMotion = false;
+/** Guard: true while _applyEasing is writing to the store, so the store
+ *  subscriber knows to ignore the notification (it's our own write). */
+let _internalWrite = false;
 
 function _clamp(v: number): number {
   return Math.max(0, Math.min(1, v));
@@ -73,6 +76,23 @@ function _clamp(v: number): number {
 
 function _lerp(a: number, b: number, alpha: number): number {
   return a + (b - a) * alpha;
+}
+
+// ─── Store subscriber (external-write reconciliation) ─────────────────────────
+
+/**
+ * Called by subscribeJourney whenever the store changes.
+ * If _internalWrite is true the notification came from our own easing RAF —
+ * ignore it to avoid a feedback loop. Otherwise it's an external write
+ * (e.g. setJourneyProgress called by QA/reduced-motion/deep-link), so we
+ * snap both _target and _easedT to the new value, making the easing converge
+ * immediately with nothing to fight.
+ */
+function _onStoreChange(): void {
+  if (_internalWrite) return;
+  const newT = getJourneyT();
+  _target = newT;
+  _easedT = newT;
 }
 
 // ─── Easing RAF ───────────────────────────────────────────────────────────────
@@ -89,7 +109,13 @@ function _applyEasing(): void {
   if (Math.abs(_easedT - _target) < 0.0001) {
     _easedT = _target;
   }
-  setJourneyT(_easedT);
+  // Self-write guard: tell the store subscriber this notification is ours.
+  _internalWrite = true;
+  try {
+    setJourneyT(_easedT);
+  } finally {
+    _internalWrite = false;
+  }
   _rafId = requestAnimationFrame(_applyEasing);
 }
 
@@ -225,6 +251,10 @@ export function createJourneyInput(
   _target = getJourneyT();
   _easedT = _target;
 
+  // Subscribe to external writes on the store (after initial sync so the sync
+  // itself doesn't trigger _onStoreChange).
+  const _unsubscribeJourney = subscribeJourney(_onStoreChange);
+
   // Attach input listeners
   // wheel: {passive: false} required for preventDefault (Chrome DevTools will warn —
   // intentional, same as phase-orchestrator v0).
@@ -251,6 +281,7 @@ export function createJourneyInput(
   function destroy(): void {
     cancelAnimationFrame(_rafId);
     _rafId = 0;
+    _unsubscribeJourney();
     container.removeEventListener("wheel", _onWheel as EventListener);
     container.removeEventListener("touchstart", _onTouchStart as EventListener);
     container.removeEventListener("touchmove", _onTouchMove as EventListener);
