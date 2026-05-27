@@ -1243,6 +1243,24 @@ body[data-active-stop="4"] .journey-stop[data-stop="4"] {
   pointer-events: auto;
 }
 
+/* ── Intro dolly content-hide (Phase 4b-2) ───────────────────────────────────
+ * While body[data-intro="active"] the cinematic dolly is running — hide journey
+ * stop panels and persistent CTA so the first impression is the pure brain.
+ * data-intro is removed by render-loop.ts when the dolly lands (rawP >= 1) and
+ * journey:intro-done is fired. No transition needed — the stop's own opacity
+ * transition (400ms cubic) handles the reveal once data-intro is gone.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+body[data-intro="active"] .journey-stop {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body[data-intro="active"] #persistent-cta {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* ── PersistentCta visibility (Fase 4a Sub-passo 3) ─────────────────────────
  * Hide the persistent CTA when already at stop 4 (action stop).
  * Must live in global.css — crosses body→#persistent-cta scope boundary.

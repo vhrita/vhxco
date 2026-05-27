@@ -14,6 +14,14 @@
 // Three.js 0.184 note: Clock is deprecated since r183 — using performance.now().
 //
 // Retained: brain cloud rotation, soma energy, uniforms uTime/uHue/uBootProgress.
+//
+// Phase 4b-2: Cinematic intro dolly.
+//   - On boot-complete (bootProgress.value >= 1), camera dollies from INTRO_START_POS
+//     (z=14, sees full brain) to curve.getPointAt(0) over INTRO_MS ms with cubic-out
+//     easing. During intro, render() drives camera directly; f(t) resumes after.
+//   - prefers-reduced-motion: intro skipped entirely, camera starts at f(0).
+//   - Fires window.dispatchEvent(new CustomEvent('journey:intro-done')) on land.
+//   - a11y-safe: body.dataset.intro tracks state for CSS content-hiding.
 
 import { Vector3, CatmullRomCurve3 } from "three";
 import type {
@@ -66,6 +74,19 @@ function updateSomaEnergy(network: NeuralNetworkHandle, t: number): void {
     somaEnergy[i] = timeSinceFire < 1.5 ? 1.0 - timeSinceFire / 1.5 : 0;
   }
   network.somaEnergyAttr.needsUpdate = true;
+}
+
+// ─── Intro dolly constants (Phase 4b-2) ─────────────────────────────────────
+// INTRO_START_POS: camera start for the dolly — z=14 matches renderer.ts initial
+// pos and FOV 50, frames the full brain from afar. Was the v0 orbital default.
+const INTRO_START_POS = Object.freeze(new Vector3(0, 0, 14));
+
+/** Duration of the dolly-in animation in milliseconds. */
+const INTRO_MS = 1200;
+
+/** Cubic-out easing: fast start, decelerates into landing. */
+function _cubicOut(p: number): number {
+  return 1 - Math.pow(1 - p, 3);
 }
 
 // ─── Params ───────────────────────────────────────────────────────────────────
@@ -169,44 +190,93 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
   let startTime = 0;
   let prevTime = 0;
 
+  // ── Intro dolly state (Phase 4b-2) ────────────────────────────────────────
+  // introPending: camera is parked at INTRO_START_POS, waiting for boot complete.
+  // introActive: dolly is running — render() drives camera, ignores getJourneyT().
+  // introStart: performance.now() / 1000 snapshot when dolly fired.
+  let introPending = false;
+  let introActive = false;
+  let introStart = 0;
+
+  // Reusable Vector3 for lerp during intro (avoids GC per frame)
+  const _introPos = new Vector3();
+
   function render(): void {
     const now = performance.now() / 1000;
     const dt = Math.min(now - prevTime, 0.1);
     prevTime = now;
     const t_anim = (now - startTime) * animSpeed;
 
-    // Read authoritative journey t — INSTANT, no lerp here (blueprint §4.2)
-    const t = getJourneyT();
+    // ── Camera: intro dolly state machine (Phase 4b-2) ───────────────────────
+    if (introPending && bootProgress.value >= 1) {
+      // Boot just completed — fire the dolly
+      introPending = false;
+      introActive = true;
+      introStart = now;
+    }
 
-    // ── Camera f(t) ──────────────────────────────────────────────────────────
-    applyCameraF(ctx, t, curve);
+    if (introActive) {
+      // Drive camera through dolly tween — ignore journey t
+      const rawP = (now - introStart) / (INTRO_MS / 1000);
+      const p = _cubicOut(Math.min(rawP, 1));
 
-    // ── Nearest stop → light up closest neuron ───────────────────────────────
-    const stopIdx = nearestStopIndex(t);
-    const nearestNeuronIdx = nearestNeuronIndices[stopIdx];
-    if (nearestNeuronIdx !== undefined && network.neurons[nearestNeuronIdx]) {
-      const neuron = network.neurons[nearestNeuronIdx] as NeuronData;
-      // Keep soma lit while near its stop (within ~half the inter-stop distance)
-      // Use arc-length t of this stop — not the naive stopIdx/(N-1) (blueprint §3.3)
-      const stopCenter =
-        STOP_ARC_T[stopIdx] ?? stopIdx / Math.max(1, STOP_COUNT - 1);
-      const dist = Math.abs(t - stopCenter);
-      if (dist < 0.15) {
-        neuron.lastFire = t_anim + 0.1;
+      // Landing position: curve start point (same target as applyCameraF at t=0)
+      const landPos = curve.getPointAt(0);
+      lerpV3(_introPos, INTRO_START_POS, landPos, p);
+      ctx.camera.position.copy(_introPos);
+
+      // Keep up before lookAt (always required for Three.js lookAt to orient correctly)
+      ctx.camera.up.set(0, 1, 0);
+      ctx.camera.lookAt(BRAIN_CENTER);
+
+      if (rawP >= 1) {
+        // Dolly landed — hand off to f(t) on next frame
+        introActive = false;
+        // Remove intro marker so CSS content rules deactivate
+        if (typeof document !== "undefined") {
+          delete document.body.dataset.intro;
+        }
+        // Signal DOM that intro is done (content fade-in hooks, etc.)
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("journey:intro-done"));
+        }
+      }
+    } else if (!introPending) {
+      // Normal journey mode — fully deterministic f(t)
+      // Read authoritative journey t — INSTANT, no lerp here (blueprint §4.2)
+      const t = getJourneyT();
+
+      // ── Camera f(t) ────────────────────────────────────────────────────────
+      applyCameraF(ctx, t, curve);
+
+      // ── Nearest stop → light up closest neuron ──────────────────────────────
+      const stopIdx = nearestStopIndex(t);
+      const nearestNeuronIdx = nearestNeuronIndices[stopIdx];
+      if (nearestNeuronIdx !== undefined && network.neurons[nearestNeuronIdx]) {
+        const neuron = network.neurons[nearestNeuronIdx] as NeuronData;
+        // Keep soma lit while near its stop (within ~half the inter-stop distance)
+        // Use arc-length t of this stop — not the naive stopIdx/(N-1) (blueprint §3.3)
+        const stopCenter =
+          STOP_ARC_T[stopIdx] ?? stopIdx / Math.max(1, STOP_COUNT - 1);
+        const dist = Math.abs(t - stopCenter);
+        if (dist < 0.15) {
+          neuron.lastFire = t_anim + 0.1;
+        }
       }
     }
 
-    // ── Brain cloud uniforms ─────────────────────────────────────────────────
+    // ── Brain cloud uniforms (runs every frame, including during intro) ────────
+    const tJourney = getJourneyT(); // t for cloud rotation; 0 during pending/intro
     cloud.mat.uniforms.uTime.value = t_anim;
     cloud.mat.uniforms.uHue.value = 200 / 360;
     cloud.mat.uniforms.uBootProgress.value = bootProgress.value;
 
     // Cloud rotation (preserved from v0)
-    const rotSpeed = lerp(0.05, 0.01, t);
+    const rotSpeed = lerp(0.05, 0.01, tJourney);
     cloud.points.rotation.y = t_anim * rotSpeed;
     cloud.points.rotation.x = Math.sin(t_anim * 0.02) * 0.1;
 
-    // ── Neural network updates ───────────────────────────────────────────────
+    // ── Neural network updates (runs every frame) ─────────────────────────────
     updateSomaEnergy(network, t_anim);
     network.somaMat.uniforms.uTime.value = t_anim;
     network.webMat.uniforms.uTime.value = t_anim;
@@ -215,10 +285,10 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     network.somaMat.uniforms.uHue.value = 200 / 360;
     network.webMat.uniforms.uHue.value = 200 / 360;
 
-    // ── Synapses ─────────────────────────────────────────────────────────────
+    // ── Synapses (runs every frame) ───────────────────────────────────────────
     synapses.update(t_anim, dt, network.neurons, network.staticEdges);
 
-    // ── Compose + render ─────────────────────────────────────────────────────
+    // ── Compose + render ──────────────────────────────────────────────────────
     ctx.composer.render();
 
     if (running) rafId = requestAnimationFrame(render);
@@ -229,8 +299,30 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     running = true;
     startTime = performance.now() / 1000;
     prevTime = startTime;
-    // Position camera at stop[0] before first frame
-    applyCameraF(ctx, 0, curve);
+
+    // Phase 4b-2: intro dolly — check prefers-reduced-motion (§9 / a11y)
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reducedMotion) {
+      // Skip intro entirely — place camera at f(0) immediately
+      introPending = false;
+      introActive = false;
+      applyCameraF(ctx, 0, curve);
+    } else {
+      // Park camera at INTRO_START_POS — dolly fires when bootProgress >= 1
+      introPending = true;
+      introActive = false;
+      ctx.camera.position.copy(INTRO_START_POS);
+      ctx.camera.up.set(0, 1, 0);
+      ctx.camera.lookAt(BRAIN_CENTER);
+      // Mark body so CSS can hide content panels during intro
+      if (typeof document !== "undefined") {
+        document.body.dataset.intro = "active";
+      }
+    }
+
     rafId = requestAnimationFrame(render);
   }
 
