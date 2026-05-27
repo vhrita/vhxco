@@ -1186,6 +1186,30 @@ body.cursor-hover-link #cursor::before {
   opacity: 1;
 }
 
+/* ── Journey stop visibility (Fase 4a) ───────────────────────────────────────
+ *
+ * MUST live in global.css (not in JourneyStop.astro <style>) because Astro
+ * scoped styles cannot target parent selectors like body[data-active-stop].
+ * The selector crosses component boundaries: body attr set by BaseLayout,
+ * .journey-stop inside JourneyStop — Astro scoping breaks this.
+ *
+ * body[data-active-stop] is set by BaseLayout:
+ *   - Init: document.body.dataset.activeStop = '0'
+ *   - Changes: subscribeActiveStop updates it on stop change
+ *
+ * .journey-stop default: opacity:0, pointer-events:none (in component style).
+ * Active stop: opacity:1, pointer-events:auto (here, global).
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+body[data-active-stop="0"] .journey-stop[data-stop="0"],
+body[data-active-stop="1"] .journey-stop[data-stop="1"],
+body[data-active-stop="2"] .journey-stop[data-stop="2"],
+body[data-active-stop="3"] .journey-stop[data-stop="3"],
+body[data-active-stop="4"] .journey-stop[data-stop="4"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* iter-09 Bug B/D: mask-image "more below" fade was added to .phase[data-phase="0"]
  * as a scroll affordance when .phase had overflow-y: auto (iter-08 Move A).
  * iter-11: overflow changed to hidden — no internal scroll, so a fade implying

@@ -1,0 +1,307 @@
+---
+/**
+ * JourneyStop.astro — Live journey stop content panel.
+ *
+ * Ported from feature/refactor-mockups StopPanel.astro.
+ * Key differences from the mockup:
+ *   - stopIndex is 0-based (matches body[data-active-stop] from journey-state).
+ *   - Visibility is driven by body[data-active-stop="N"] CSS in global.css
+ *     (NOT .is-active class toggled by JS) — Astro scoping constraint.
+ *   - Stop 0 renders an <h1> (SEO + bootComplete scramble).
+ *     All other stops render <h2>.
+ *   - Stop 4 (action) has a form slot for DiagnoseForm.
+ *
+ * Layout rules (same as mockup):
+ *   - Fixed overlay over the canvas, not inside a scroll container.
+ *   - All content must fit 100svh at 375×667 — no overflow:auto, no shrink.
+ *   - Typography uses clamp() — responsive scaling, NOT shrink-to-fit.
+ *   - Design tokens only — no literal color values.
+ *
+ * bootComplete scramble: stop 0 only, wired via <script> below.
+ */
+
+import type { StopContent } from "@/lib/journey/stops-content";
+
+interface Props {
+  /** 0-based stop index — matches activeStop from journey-state */
+  stopIndex: number;
+  /** Total number of stops (for progress dots) */
+  totalStops: number;
+  /** Stop content (locale-specific, passed from parent) */
+  content: StopContent;
+}
+
+const { stopIndex, totalStops, content } = Astro.props;
+
+const isHero = stopIndex === 0;     // renders <h1>, wires bootComplete scramble
+const isAction = stopIndex === 4;   // renders form slot instead of hud hint
+
+// Render headline with line breaks at \n
+const headlineLines = content.headline.split("\n");
+
+// Render body lines
+const bodyLines = content.body ? content.body.split("\n") : [];
+---
+
+<div
+  class="journey-stop"
+  data-stop={stopIndex}
+  role="region"
+  aria-labelledby={`stop-heading-${stopIndex}`}
+>
+  <div class="stop-inner">
+    <!-- Progress indicator -->
+    <div class="stop-progress-bar" aria-hidden="true">
+      {Array.from({ length: totalStops }).map((_, i) => (
+        <span class={`progress-dot ${i === stopIndex ? "active" : ""}`} />
+      ))}
+    </div>
+
+    <!-- Eyebrow -->
+    <p class="stop-eyebrow">{content.eyebrow}</p>
+
+    <!-- Headline: h1 for stop 0 (SEO + scramble), h2 for all others -->
+    {isHero ? (
+      <h1
+        id={`stop-heading-${stopIndex}`}
+        class="stop-headline"
+        data-scramble
+      >
+        {headlineLines.map((line, i) => (
+          <>
+            {line}{i < headlineLines.length - 1 && <br />}
+          </>
+        ))}
+      </h1>
+    ) : (
+      <h2
+        id={`stop-heading-${stopIndex}`}
+        class="stop-headline"
+      >
+        {headlineLines.map((line, i) => (
+          <>
+            {line}{i < headlineLines.length - 1 && <br />}
+          </>
+        ))}
+      </h2>
+    )}
+
+    <!-- Body (optional) -->
+    {bodyLines.length > 0 && (
+      <p class="stop-body">
+        {bodyLines.map((line, i) => (
+          <>
+            {line}{i < bodyLines.length - 1 && <br />}
+          </>
+        ))}
+      </p>
+    )}
+
+    <!-- Action slot: form injected by parent for stop 4 -->
+    {isAction && <slot name="form" />}
+
+    <!-- HUD hint (only for non-action stops) -->
+    {!isAction && content.hudHint && (
+      <p class="stop-hud-hint" aria-hidden="true">
+        <span class="hud-hint-arrow">›</span>
+        {content.hudHint}
+      </p>
+    )}
+  </div>
+</div>
+
+{/* bootComplete scramble — stop 0 only */}
+{isHero && (
+  <script>
+    import { SCRAMBLE_CHARS } from "@/lib/effects/scramble";
+
+    function scrambleTextNodes(container: HTMLElement, durationMs: number): void {
+      const reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      if (reducedMotion) {
+        container.style.opacity = "0";
+        requestAnimationFrame(() => {
+          container.style.transition = "opacity 400ms ease";
+          container.style.opacity = "1";
+        });
+        return;
+      }
+
+      const textNodes: Text[] = [];
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+      let node: Node | null;
+      while ((node = walker.nextNode())) {
+        if ((node as Text).textContent?.trim()) {
+          textNodes.push(node as Text);
+        }
+      }
+
+      if (textNodes.length === 0) return;
+
+      const originals = textNodes.map((n) => n.textContent ?? "");
+      const startTime = performance.now();
+
+      function tick(now: number): void {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        let anyActive = false;
+
+        textNodes.forEach((textNode, ni) => {
+          const orig = originals[ni];
+          const chars = orig.split("");
+          const settled = chars.map((_, i) => progress >= (i + 1) / chars.length);
+          const result = chars.map((ch, i) => {
+            if (ch === " " || ch === "\n" || ch === "\t") return ch;
+            if (settled[i]) return ch;
+            anyActive = true;
+            return SCRAMBLE_CHARS[
+              Math.floor(Math.random() * SCRAMBLE_CHARS.length)
+            ];
+          });
+          textNode.textContent = result.join("");
+        });
+
+        if (anyActive) {
+          requestAnimationFrame(tick);
+        } else {
+          textNodes.forEach((n, i) => {
+            n.textContent = originals[i];
+          });
+        }
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    // Wire to bootComplete event (dispatched by Preloader after fade-out)
+    const h1 = document.querySelector<HTMLElement>(
+      '.journey-stop[data-stop="0"] [data-scramble]',
+    );
+
+    if (h1) {
+      window.addEventListener(
+        "bootComplete",
+        () => {
+          scrambleTextNodes(h1, 900);
+        },
+        { once: true },
+      );
+    }
+  </script>
+)}
+
+<style>
+  /* ── Panel shell ─────────────────────────────────────────────────────────── */
+
+  .journey-stop {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-content);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    /* Default hidden — global.css rules show the active stop */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    /* Padding: left-aligned layout, respect safe zones */
+    padding-left: clamp(1.25rem, 5vw, 3rem);
+    padding-right: clamp(1.25rem, 5vw, 3rem);
+    padding-top: clamp(4rem, 8svh, 6rem);
+    padding-bottom: clamp(2.5rem, 5svh, 4rem);
+  }
+
+  /* ── Content block ───────────────────────────────────────────────────────── */
+
+  .stop-inner {
+    max-width: 36rem; /* ~576px — readable on desktop, full-width mobile */
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.625rem, 1.5svh, 1rem);
+  }
+
+  /* ── Progress dots ───────────────────────────────────────────────────────── */
+
+  .stop-progress-bar {
+    display: flex;
+    gap: 0.375rem;
+    margin-bottom: clamp(0.25rem, 1svh, 0.5rem);
+  }
+
+  .progress-dot {
+    display: inline-block;
+    width: 1.25rem;
+    height: 2px;
+    background: var(--color-dim);
+    opacity: 0.4;
+    border-radius: 1px;
+    transition:
+      background 240ms,
+      opacity 240ms;
+  }
+
+  .progress-dot.active {
+    background: var(--color-cyan);
+    opacity: 1;
+  }
+
+  /* ── Eyebrow ─────────────────────────────────────────────────────────────── */
+
+  .stop-eyebrow {
+    font-family: var(--font-mono);
+    font-size: clamp(0.625rem, 1.5vw + 0.5rem, 0.75rem);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-cyan);
+    margin: 0;
+    line-height: 1;
+  }
+
+  /* ── Headline (h1 or h2) ─────────────────────────────────────────────────── */
+
+  .stop-headline {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 4vw + 0.5rem, 3.5rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--color-fg);
+    margin: 0;
+  }
+
+  /* ── Body ────────────────────────────────────────────────────────────────── */
+
+  .stop-body {
+    font-family: var(--font-mono);
+    font-size: clamp(0.8125rem, 1.2vw + 0.6rem, 0.9375rem);
+    line-height: 1.65;
+    color: var(--color-dim);
+    margin: 0;
+  }
+
+  /* ── HUD hint ────────────────────────────────────────────────────────────── */
+
+  .stop-hud-hint {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-dim);
+    opacity: 0.5;
+    margin: 0;
+    margin-top: clamp(0.25rem, 1svh, 0.5rem);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .hud-hint-arrow {
+    color: var(--color-cyan);
+    opacity: 0.7;
+    font-size: 0.875rem;
+  }
+</style>

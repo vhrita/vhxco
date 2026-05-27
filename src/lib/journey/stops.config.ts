@@ -43,11 +43,11 @@ const stop3 = Object.freeze(new Vector3(-3.5, -2.0, 0.5));
 const stop4 = Object.freeze(new Vector3(-1.0, -3.5, 0.0));
 
 export const STOPS: StopConfig[] = [
-  { position: stop0, label: "Intro", slug: "intro" },
-  { position: stop1, label: "Engineering", slug: "engineering" },
-  { position: stop2, label: "Ecosystem", slug: "ecosystem" },
-  { position: stop3, label: "Results", slug: "results" },
-  { position: stop4, label: "Contact", slug: "contact" },
+  { position: stop0, label: "Presente", slug: "presente" },
+  { position: stop1, label: "Problema", slug: "problema" },
+  { position: stop2, label: "Método", slug: "metodo" },
+  { position: stop3, label: "Prova", slug: "prova" },
+  { position: stop4, label: "Diagnose", slug: "diagnose" },
 ];
 
 /** Number of stops — derive from STOPS array; never hardcode 5 elsewhere */

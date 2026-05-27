@@ -1,19 +1,66 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import PhaseCore from '@/components/phases/PhaseCore.astro';
-import PhaseEngineering from '@/components/phases/PhaseEngineering.astro';
-import PhaseEcosystem from '@/components/phases/PhaseEcosystem.astro';
-import PhaseDataRoom from '@/components/phases/PhaseDataRoom.astro';
-import PhaseDiagnose from '@/components/phases/PhaseDiagnose.astro';
+import JourneyStop from '@/components/journey/JourneyStop.astro';
+import DiagnoseForm from '@/components/forms/DiagnoseForm';
+import { getStopsContent } from '@/lib/journey/stops-content';
+import { getLangFromUrl } from '@/i18n/utils';
+import { getT } from '@/lib/i18n/t';
+import type { Locale } from '@/lib/i18n/config';
+
+const lang = getLangFromUrl(Astro.url);
+const tLocale = getT(lang as Locale);
+const stops = getStopsContent('en');
+const totalStops = stops.length;
+
+// Form labels for DiagnoseForm (stop 4) — keep existing i18n keys intact.
+const formLabels = {
+  formTitle:          tLocale('diagnose.form.title'),
+  formLive:           tLocale('diagnose.form.live'),
+  namePrompt:         tLocale('diagnose.form.namePrompt'),
+  namePlaceholder:    tLocale('diagnose.form.namePlaceholder'),
+  emailPrompt:        tLocale('diagnose.form.emailPrompt'),
+  emailPlaceholder:   tLocale('diagnose.form.emailPlaceholder'),
+  companyPrompt:      tLocale('diagnose.form.companyPrompt'),
+  companyPlaceholder: tLocale('diagnose.form.companyPlaceholder'),
+  bottleneckPrompt:   tLocale('diagnose.form.bottleneckPrompt'),
+  briefPrompt:        tLocale('diagnose.form.briefPrompt'),
+  briefPlaceholder:   tLocale('diagnose.form.briefPlaceholder'),
+  bn1:                tLocale('diagnose.form.bn1'),
+  bn2:                tLocale('diagnose.form.bn2'),
+  bn3:                tLocale('diagnose.form.bn3'),
+  bn4:                tLocale('diagnose.form.bn4'),
+  submit:             tLocale('diagnose.form.submit'),
+  sending:            tLocale('diagnose.form.sending'),
+  ok:                 tLocale('diagnose.form.ok'),
+  networkFailure:     tLocale('errors.form.networkFailure'),
+  configMissing:      tLocale('diagnose.form.configMissing'),
+  fallbackTag:        tLocale('diagnose.form.fallbackTag'),
+  fallbackCopy:       tLocale('diagnose.form.fallbackCopy'),
+  fallbackCta:        tLocale('diagnose.form.fallbackCta'),
+};
+
+const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 ---
 
 <BaseLayout
-  title="VHXCO — Operational Efficiency Engineering"
+  title="VHXCO — AI-Powered Software"
   locale="en"
 >
-  <PhaseCore />
-  <PhaseEngineering />
-  <PhaseEcosystem />
-  <PhaseDataRoom />
-  <PhaseDiagnose />
+  {stops.map((content, i) => (
+    <JourneyStop
+      stopIndex={i}
+      totalStops={totalStops}
+      content={content}
+    >
+      {i === 4 && (
+        <DiagnoseForm
+          slot="form"
+          client:visible
+          locale="en"
+          formspreeId={formspreeId}
+          labels={formLabels}
+        />
+      )}
+    </JourneyStop>
+  ))}
 </BaseLayout>

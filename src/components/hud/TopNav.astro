@@ -26,6 +26,7 @@
 
 import MuteButton from './MuteButton.astro';
 import { STOP_COUNT } from '@/lib/neural-engine/hero-anchors';
+import { STOP_NAV_LABELS } from '@/lib/journey/stops-content';
 
 interface Props {
   locale?: 'pt' | 'en';
@@ -33,23 +34,16 @@ interface Props {
 
 const { locale = 'pt' } = Astro.props;
 
-// PT/EN labels — kept as-is from original (i18n Fase 4).
-// Zipped against STOP_COUNT so N is parametrizable.
-const _allChapters = [
-  { num: '01', label: 'Núcleo',      en: 'Core',        short: 'NUC' },
-  { num: '02', label: 'Engenharia',  en: 'Engineering', short: 'ENG' },
-  { num: '03', label: 'Ecossistema', en: 'Ecosystem',   short: 'ECO' },
-  { num: '04', label: 'Prova',       en: 'Proof',       short: 'PRV' },
-  { num: '05', label: 'Diagnose',    en: 'Diagnose',    short: 'DIA' },
-];
+// V1 chapter labels from stops-content.ts (single source of truth for copy).
+// Zipped against STOP_COUNT so N remains parametrizable.
+const navLabels = STOP_NAV_LABELS[locale as 'pt' | 'en'] ?? STOP_NAV_LABELS.pt;
 
-// Slice or pad to STOP_COUNT
 const chapters = Array.from({ length: STOP_COUNT }, (_, i) => {
-  const ch = _allChapters[i];
-  if (ch) return ch;
-  // Overflow: generic label
-  const n = String(i + 1).padStart(2, '0');
-  return { num: n, label: `Stop ${n}`, en: `Stop ${n}`, short: `S${n}` };
+  const entry = navLabels[i];
+  const num = String(i + 1).padStart(2, '0');
+  if (entry) return { num, label: entry.label, short: entry.short };
+  // Overflow fallback
+  return { num, label: `Stop ${num}`, short: `S${num}` };
 });
 ---
 
@@ -71,7 +65,7 @@ const chapters = Array.from({ length: STOP_COUNT }, (_, i) => {
       >
         <span class="topnav-chapter-num" aria-hidden="true">{ch.num}</span>
         <span class="topnav-chapter-lbl-short" aria-hidden="true">{ch.short}</span>
-        <span class="topnav-lbl-full">{locale === 'en' ? ch.en : ch.label}</span>
+        <span class="topnav-lbl-full">{ch.label}</span>
       </button>
     ))}
   </div>
