@@ -4,15 +4,25 @@
 // Usage:
 //   import { createNeuralEngine } from '@/lib/neural-engine';
 //   const engine = createNeuralEngine(canvas);
-//   engine.setPhase(1, 0.375);
+//   engine.setJourneyProgress(0.5);  // instant camera jump
 //   // on cleanup: engine.dispose();
+//
+// DEV: window.__journey exposes JourneyHandle for harness/QA.
 
-import { createRenderer } from './renderer.js';
-import { generateBrainCloud } from './brain-cloud.js';
-import { makeNeuralNetwork } from './neurons.js';
-import { createSynapses } from './synapses.js';
-import { createRenderLoop } from './render-loop.js';
-import type { RenderLoopHandle } from './types.js';
+import { createRenderer } from "./renderer.js";
+import { generateBrainCloud } from "./brain-cloud.js";
+import { makeNeuralNetwork } from "./neurons.js";
+import { createSynapses } from "./synapses.js";
+import {
+  createRenderLoop,
+  setJourneyT,
+  getJourneyT,
+  getActiveStop,
+} from "./render-loop.js";
+import { STOP_COUNT, stopCenterT } from "./hero-anchors.js";
+import type { RenderLoopHandle, JourneyHandle } from "./types.js";
+
+export type { JourneyHandle } from "./types.js";
 
 export interface NeuralEngineOptions {
   animSpeed?: number;
@@ -20,14 +30,20 @@ export interface NeuralEngineOptions {
 
 export interface NeuralEngineHandle {
   dispose: () => void;
-  setPhase: (phase: number, progress: number) => void;
+  /**
+   * @deprecated TODO(Builder#2): remove when BaseLayout uses setJourneyProgress
+   * via journey-input.ts. Shim maps phase index to journey t.
+   */
+  setPhase: (phase: number, progress?: number) => void;
   // Exposed for smoke test inspection
   _loop?: RenderLoopHandle;
+  // Journey API (§4.1) — primary API
+  journey: JourneyHandle;
 }
 
 export function createNeuralEngine(
   canvas: HTMLCanvasElement,
-  opts?: NeuralEngineOptions
+  opts?: NeuralEngineOptions,
 ): NeuralEngineHandle {
   const ctx = createRenderer(canvas);
   const cloud = generateBrainCloud(ctx.scene);
@@ -35,8 +51,8 @@ export function createNeuralEngine(
   const synapsesHandle = createSynapses(ctx.scene);
 
   // Wire pulses into network handle so render-loop can access it
-  // (synapses.ts manages pulses independently, network just stores ref)
-  (network as unknown as Record<string, unknown>).pulses = synapsesHandle.pulses;
+  (network as unknown as Record<string, unknown>).pulses =
+    synapsesHandle.pulses;
 
   const loop = createRenderLoop({
     ctx,
@@ -48,6 +64,40 @@ export function createNeuralEngine(
 
   loop.start();
 
+  // ── JourneyHandle (§4.1) ────────────────────────────────────────────────────
+  const journey: JourneyHandle = {
+    setJourneyProgress(t: number): void {
+      setJourneyT(t);
+    },
+    getJourneyProgress(): number {
+      return getJourneyT();
+    },
+    getActiveStop(): number {
+      return getActiveStop();
+    },
+    get stopCount(): number {
+      return STOP_COUNT;
+    },
+    stopProgress(stopIndex: number): number {
+      return stopCenterT(stopIndex);
+    },
+    getCameraSnapshot() {
+      const cam = ctx.camera;
+      const pos = cam.position;
+      const q = cam.quaternion;
+      return {
+        position: [pos.x, pos.y, pos.z] as [number, number, number],
+        quaternion: [q.x, q.y, q.z, q.w] as [number, number, number, number],
+        fov: cam.fov,
+      };
+    },
+  };
+
+  // Expose window.__journey in DEV for QA harness (blueprint §4.1)
+  if (import.meta.env.DEV) {
+    (window as unknown as Record<string, unknown>).__journey = journey;
+  }
+
   function dispose(): void {
     loop.stop();
     cloud.dispose();
@@ -58,12 +108,15 @@ export function createNeuralEngine(
 
   return {
     dispose,
+    /** @deprecated TODO(Builder#2) */
     setPhase: loop.setPhase,
     _loop: loop,
+    journey,
   };
 }
 
 // Re-export stores for external consumers (HUD, preloader, etc.)
-export { bootProgress } from './boot-progress.js';
-export { phaseStore } from './phase-state.js';
-export { HERO_NEURON_INDICES } from './hero-anchors.js';
+export { bootProgress } from "./boot-progress.js";
+export { phaseStore } from "./phase-state.js";
+// hero-anchors: HERO_NEURON_INDICES removed (no longer indices); export new API instead
+export { ANCHOR_POSITIONS, STOP_COUNT, stopCenterT } from "./hero-anchors.js";

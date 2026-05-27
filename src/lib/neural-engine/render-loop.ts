@@ -1,41 +1,81 @@
 // render-loop.ts
-// 60fps RAF render loop with camera orchestration and panel extraction math.
-// Ported 1:1 from vhxco-app.js lines 1277-1428 (Seção 11 — Render Loop).
+// 60fps RAF render loop with camera-journey f(t) (ADR-0020).
 //
-// Key behaviors preserved:
-// - lerp progress → targetProgress (smoothing factor 0.07)
-// - Phase 0: orbital camera outside brain (z=11→6.5, orbital XY)
-// - Phases 1-4: anchor to hero neuron + panel extraction trigger
-// - Brain roll: sin(progress * PI * 3) * 0.2
-// - brainCloud rotation: y = t * rotSpeed, x = sin(t * 0.02) * 0.1
+// Architecture changes from v0 (blueprint §2.3 / §4):
+//   - Removed: dual-mode camera (orbital / anchored), lerp(progress, target, 0.07),
+//     progressToPhase, phase-orchestrator dependency.
+//   - Installed: Catmull-Rom curve over N anchor positions (stops.config.ts),
+//     f(t) = camera_state = pure function of t_journey (INSTANT, no lerp inside f).
+//     lookAt with anticipation; lead→0 at extremes + tangent fallback.
+//   - Journey t authority: minimal inline store (journey-state, Builder#2 extracts
+//     to src/lib/journey/journey-state.ts and Builder#2 connects input adapter).
+//   - Nearest-stop lighting replaces old hero-neuron panel-extraction trigger.
 //
-// Three.js 0.184 note: Clock is deprecated since r183 in favor of Timer.
-// We use performance.now() directly to avoid the deprecation warning — same
-// semantics, no behavior change.
+// Three.js 0.184 note: Clock is deprecated since r183 — using performance.now().
 //
-// Audio hooks (TASK-0510):
-// - Phase change → setPhase() fired via BaseLayout subscribePhase hook (not here).
-// - Synapse fire (spawn) → audioPing() with prob 0.08 per spawn, rate-limited to
-//   avoid audio spam on burst spawns.
+// Retained: brain cloud rotation, soma energy, uniforms uTime/uHue/uBootProgress.
 
-import { Vector3 } from 'three';
-import type { RendererContext, BrainCloudHandle, NeuralNetworkHandle } from './types.js';
-import type { NeuralNetworkWithHeroes } from './neurons.js';
-import type { SynapsesHandle } from './synapses.js';
-import { bootProgress } from './boot-progress.js';
-import { phaseStore } from './phase-state.js';
-import type { RenderLoopHandle } from './types.js';
-import { getTargetProgress, setLerpedProgress, setTargetProgress } from '../scroll/phase-orchestrator.js';
+import { Vector3, CatmullRomCurve3 } from "three";
+import type {
+  RendererContext,
+  BrainCloudHandle,
+  NeuralNetworkHandle,
+} from "./types.js";
+import type { SynapsesHandle } from "./synapses.js";
+import { bootProgress } from "./boot-progress.js";
+import type { RenderLoopHandle } from "./types.js";
+import {
+  ANCHOR_POSITIONS,
+  STOP_COUNT,
+  computeNearestNeuronIndices,
+  nearestStopIndex,
+} from "./hero-anchors.js";
+import type { NeuronData } from "./types.js";
 
-// Lerp utility — inline to keep this module self-contained
+// ─── Minimal journey-state store (Builder#2 extracts to journey-state.ts) ─────
+// Single authoritative t for the camera. setJourneyProgress(t) is INSTANT —
+// the next RAF frame renders exactly f(t). No lerp inside this store or f(t).
+
+let _t = 0;
+let _activeStop = 0;
+const _journeyListeners = new Set<() => void>();
+
+export function setJourneyT(t: number): void {
+  _t = Math.max(0, Math.min(1, t));
+  _activeStop = nearestStopIndex(_t);
+  _journeyListeners.forEach((fn) => fn());
+}
+
+export function getJourneyT(): number {
+  return _t;
+}
+
+export function getActiveStop(): number {
+  return _activeStop;
+}
+
+export function subscribeJourney(fn: () => void): () => void {
+  _journeyListeners.add(fn);
+  return () => _journeyListeners.delete(fn);
+}
+
+// ─── Lerp utility ─────────────────────────────────────────────────────────────
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-// Convert raw progress (0-1) to phase index (0-4)
-function progressToPhase(p: number): number {
-  return Math.min(4, Math.floor(p * 5 * 0.999));
+// ─── Soma energy update ───────────────────────────────────────────────────────
+function updateSomaEnergy(network: NeuralNetworkHandle, t: number): void {
+  const somaEnergy = network.somaEnergyAttr.array as Float32Array;
+  for (let i = 0; i < network.neurons.length; i++) {
+    const n = network.neurons[i];
+    const timeSinceFire = t - n.lastFire;
+    somaEnergy[i] = timeSinceFire < 1.5 ? 1.0 - timeSinceFire / 1.5 : 0;
+  }
+  network.somaEnergyAttr.needsUpdate = true;
 }
+
+// ─── Params ───────────────────────────────────────────────────────────────────
 
 export interface RenderLoopParams {
   ctx: RendererContext;
@@ -45,143 +85,125 @@ export interface RenderLoopParams {
   animSpeed?: number;
 }
 
+// ─── Camera-journey f(t) setup ────────────────────────────────────────────────
+// Catmull-Rom curve built once at init from ANCHOR_POSITIONS.
+// getPointAt(t) uses arc-length parameterization → uniform visual speed.
+// lookAt anticipation: camera "looks where it's going" (lead ≈ 0.03),
+// ramps to 0 near extremes and uses tangent fallback at t=0 and t=1.
+
+const LEAD = 0.03; // anticipation amount (tunable)
+const LEAD_RAMP_WINDOW = 0.05; // t window near 0/1 where lead ramps to 0
+
+function buildCurve(): CatmullRomCurve3 {
+  // CatmullRomCurve3 needs mutable Vector3 — clone from frozen positions
+  const pts = ANCHOR_POSITIONS.map((p) => p.clone());
+  return new CatmullRomCurve3(pts, false, "catmullrom", 0.5);
+}
+
+const _camPos = new Vector3();
+const _lookTarget = new Vector3();
+const _tangent = new Vector3();
+
+function applyCameraF(
+  ctx: RendererContext,
+  t: number,
+  curve: CatmullRomCurve3,
+): void {
+  const { camera } = ctx;
+
+  // Position — arc-length uniform
+  curve.getPointAt(t, _camPos);
+  camera.position.copy(_camPos);
+
+  // lookAt with anticipation — lead ramps near extremes (blueprint §3.2 edge cases)
+  const nearEdge = Math.min(
+    t / LEAD_RAMP_WINDOW,
+    (1 - t) / LEAD_RAMP_WINDOW,
+    1,
+  );
+  const effectiveLead = LEAD * nearEdge;
+
+  if (effectiveLead < 0.001) {
+    // At extremes: use curve tangent as look direction
+    curve.getTangentAt(t, _tangent);
+    _lookTarget.copy(_camPos).addScaledVector(_tangent, 0.5);
+  } else {
+    curve.getPointAt(Math.min(t + effectiveLead, 1), _lookTarget);
+  }
+
+  camera.lookAt(_lookTarget);
+
+  // Roll: sin wave along journey for organic feel (preserved from v0)
+  const roll = Math.sin(t * Math.PI * 3) * 0.2;
+  camera.up.set(roll, 1, 0);
+}
+
+// ─── createRenderLoop ─────────────────────────────────────────────────────────
+
 export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
   const { ctx, cloud, network, synapses } = params;
   const animSpeed = params.animSpeed ?? 0.4;
 
-  // Cast to access heroNeurons (set in neurons.ts)
-  const netWithHeroes = network as unknown as NeuralNetworkWithHeroes;
+  // Build Catmull-Rom curve once from deterministic anchor positions
+  const curve = buildCurve();
+
+  // Precompute nearest neuron for each stop (for soma lighting)
+  const nearestNeuronIndices = computeNearestNeuronIndices(network.neurons);
 
   let rafId = 0;
   let running = false;
 
-  // Manual timing using performance.now() — replaces deprecated THREE.Clock
   let startTime = 0;
   let prevTime = 0;
 
-  // Scroll progress state — targetProgress is now owned by phase-orchestrator.
-  // render-loop reads it via getTargetProgress() and lerps toward it each frame.
-  let progress = 0;
-
-  // Soma energy update (v0 lines 527-537) — runs in render loop where we have attrSomaEnergy
-  function updateSomaEnergy(t: number): void {
-    const somaEnergy = network.somaEnergyAttr.array as Float32Array;
-    for (let i = 0; i < network.neurons.length; i++) {
-      const n = network.neurons[i];
-      const timeSinceFire = t - n.lastFire;
-      // Glow lasts 1.5s (v0 line 532)
-      somaEnergy[i] = timeSinceFire < 1.5 ? 1.0 - timeSinceFire / 1.5 : 0;
-    }
-    network.somaEnergyAttr.needsUpdate = true;
-  }
-
   function render(): void {
-    const now = performance.now() / 1000; // seconds
-    const dt = Math.min(now - prevTime, 0.1); // cap dt at 100ms
+    const now = performance.now() / 1000;
+    const dt = Math.min(now - prevTime, 0.1);
     prevTime = now;
-    const t = (now - startTime) * animSpeed;
+    const t_anim = (now - startTime) * animSpeed;
 
-    // Read target from the orchestrator (user scroll/keyboard input)
-    const targetProgress = getTargetProgress();
-    progress = lerp(progress, targetProgress, 0.07);
+    // Read authoritative journey t — INSTANT, no lerp here (blueprint §4.2)
+    const t = getJourneyT();
 
-    // Publish lerped progress back to orchestrator store (drives React hooks + HUD)
-    setLerpedProgress(progress);
+    // ── Camera f(t) ──────────────────────────────────────────────────────────
+    applyCameraF(ctx, t, curve);
 
-    // Update internal phase store so engine camera can react
-    const phaseIdx = progressToPhase(progress);
-    if (phaseStore.phase !== phaseIdx) phaseStore.setPhase(phaseIdx);
-    phaseStore.setProgress(progress);
-
-    // Camera targets
-    let zT: number, xT: number, yT: number, fovT: number;
-    let targetLookX = 0, targetLookY = 0, targetLookZ = 0;
-
-    if (progress < 0.25) {
-      // Phase 0: orbital outside brain (v0 lines 1288-1296)
-      const k = progress / 0.25;
-      zT = lerp(11, 6.5, k);
-      xT = Math.sin(t * 0.15 + k * Math.PI) * 2.0;
-      yT = Math.cos(t * 0.1) * 1.5;
-      fovT = 65;
-      targetLookX = -xT * 0.15;
-      targetLookY = -yT * 0.15;
-      targetLookZ = 0;
-    } else {
-      // Phases 1-4: anchored to hero neurons (v0 lines 1299-1316)
-      const phaseData = progressToPhase(progress);
-      const heroIdx = Math.max(0, phaseData - 1);
-      const hero = netWithHeroes.heroNeurons?.[heroIdx];
-
-      if (!hero) {
-        xT = 0; yT = 0; zT = 0;
-      } else {
-        xT = hero.x + 0.5; // Offset for text panel
-        yT = hero.y;
-        zT = hero.z + 1.8;
-        targetLookX = hero.x;
-        targetLookY = hero.y;
-        targetLookZ = hero.z;
+    // ── Nearest stop → light up closest neuron ───────────────────────────────
+    const stopIdx = nearestStopIndex(t);
+    const nearestNeuronIdx = nearestNeuronIndices[stopIdx];
+    if (nearestNeuronIdx !== undefined && network.neurons[nearestNeuronIdx]) {
+      const neuron = network.neurons[nearestNeuronIdx] as NeuronData;
+      // Keep soma lit while near its stop (within ~half the inter-stop distance)
+      const stopCenter = stopIdx / Math.max(1, STOP_COUNT - 1);
+      const dist = Math.abs(t - stopCenter);
+      if (dist < 0.15) {
+        neuron.lastFire = t_anim + 0.1;
       }
-
-      fovT = 95;
     }
 
-    const { camera } = ctx;
-    camera.position.x = lerp(camera.position.x, xT, 0.05);
-    camera.position.y = lerp(camera.position.y, yT, 0.05);
-    camera.position.z = lerp(camera.position.z, zT, 0.05);
-
-    if (Math.abs(camera.fov - fovT) > 0.05) {
-      camera.fov = lerp(camera.fov, fovT, 0.05);
-      camera.updateProjectionMatrix();
-    }
-
-    camera.lookAt(new Vector3(targetLookX, targetLookY, targetLookZ));
-
-    // Camera roll (v0 line 1403)
-    const roll = Math.sin(progress * Math.PI * 3) * 0.2;
-    camera.up.set(roll, 1, 0);
-
-    // Brain cloud uniforms
-    cloud.mat.uniforms.uTime.value = t;
-    cloud.mat.uniforms.uHue.value = 200 / 360; // VHXCO cyan — matches v0 TWEAKS.primaryHue
+    // ── Brain cloud uniforms ─────────────────────────────────────────────────
+    cloud.mat.uniforms.uTime.value = t_anim;
+    cloud.mat.uniforms.uHue.value = 200 / 360;
     cloud.mat.uniforms.uBootProgress.value = bootProgress.value;
 
-    // Brain cloud rotation (v0 lines 1417-1418)
-    const rotSpeed = lerp(0.05, 0.01, progress);
-    cloud.points.rotation.y = t * rotSpeed;
-    cloud.points.rotation.x = Math.sin(t * 0.02) * 0.1;
+    // Cloud rotation (preserved from v0)
+    const rotSpeed = lerp(0.05, 0.01, t);
+    cloud.points.rotation.y = t_anim * rotSpeed;
+    cloud.points.rotation.x = Math.sin(t_anim * 0.02) * 0.1;
 
-    // Neural network updates
-    updateSomaEnergy(t);
-    network.somaMat.uniforms.uTime.value = t;
-    network.webMat.uniforms.uTime.value = t;
+    // ── Neural network updates ───────────────────────────────────────────────
+    updateSomaEnergy(network, t_anim);
+    network.somaMat.uniforms.uTime.value = t_anim;
+    network.webMat.uniforms.uTime.value = t_anim;
     network.somaMat.uniforms.uBootProgress.value = bootProgress.value;
     network.webMat.uniforms.uBootProgress.value = bootProgress.value;
     network.somaMat.uniforms.uHue.value = 200 / 360;
     network.webMat.uniforms.uHue.value = 200 / 360;
 
-    // Synapses (pulse traveling update)
-    synapses.update(t, dt, network.neurons, network.staticEdges);
+    // ── Synapses ─────────────────────────────────────────────────────────────
+    synapses.update(t_anim, dt, network.neurons, network.staticEdges);
 
-    // Hero neuron stays active when camera is close (panel extraction trigger)
-    // Keeps soma glowing red + inflated (v0 line 1386)
-    if (progress >= 0.25 && netWithHeroes.heroNeurons) {
-      const currentPhaseIdx = progressToPhase(progress);
-      if (currentPhaseIdx > 0) {
-        const heroIdx = Math.max(0, currentPhaseIdx - 1);
-        const hero = netWithHeroes.heroNeurons[heroIdx];
-        if (hero) {
-          const dist = Math.abs(camera.position.z - zT);
-          if (dist < 0.6) {
-            hero.lastFire = t + 0.1;
-          }
-        }
-      }
-    }
-
-    // Compose + render
+    // ── Compose + render ─────────────────────────────────────────────────────
     ctx.composer.render();
 
     if (running) rafId = requestAnimationFrame(render);
@@ -192,6 +214,8 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     running = true;
     startTime = performance.now() / 1000;
     prevTime = startTime;
+    // Position camera at stop[0] before first frame
+    applyCameraF(ctx, 0, curve);
     rafId = requestAnimationFrame(render);
   }
 
@@ -203,12 +227,14 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     }
   }
 
-  function setPhase(phase: number, progress_: number): void {
-    // Update orchestrator target so the render-loop lerps to it next frame.
-    // Kept for backward-compat with engine.setPhase() API.
-    const tp = progress_ !== undefined ? progress_ : (phase + 0.5) / 5;
-    setTargetProgress(tp, phase);
-    phaseStore.set(phase, tp);
+  /**
+   * @deprecated TODO(Builder#2): remove when BaseLayout is repainted to use
+   * setJourneyProgress via journey-input.ts. Maps phase index to journey t.
+   */
+  function setPhase(phase: number, _progress?: number): void {
+    const N = STOP_COUNT;
+    const t = N > 1 ? phase / (N - 1) : 0;
+    setJourneyT(t);
   }
 
   return { start, stop, setPhase };
