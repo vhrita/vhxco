@@ -7,14 +7,16 @@
 // f(t) is reproducible across reloads without depending on RNG order.
 //
 // Brain ellipsoid reference (neurons.ts brain-cloud.ts):
-//   r1 = cerebrum     (x/6.5, y-1/4.5, z/5)  — large front lobe
-//   r2 = occipital    (x+2/5, y+0.5/3.5, z/4) — right back lobe
-//   r3 = cerebellum   (x+3.5/2.5, y+2.5/2, z/2.5) — lower back
-//   r4 = brainstem    (x+1/1.2, y+4/2.5, z/1.2)  — narrow stem
+//   r1 = cerebrum     (x/6.5,   (y-1)/4.5, z/5)    — large front lobe
+//   r2 = occipital    ((x+2)/5, (y+0.5)/3.5, z/4)  — right back lobe
+//   r3 = cerebellum   ((x+3.5)/2.5, (y+2.5)/2, z/2.5) — lower back
+//   r4 = brainstem    ((x+1)/1.2, (y+4)/2.5, z/1.2) — narrow stem
 //
 // All 5 points are verified inside at least one ellipsoid (r≤1).
-// Fase 4a Sub-passo 5: positions confirmed geometrically sound per ellipsoid
-// equations. Visual void-check is done via QA Sub-passo 6 screenshots.
+// Phase 4b-1: stop3 moved from cerebellum periphery → deep left cerebrum;
+//             stop4 moved from brainstem tip → right cerebrum (dense, ≥2 units
+//             from BRAIN_CENTER to avoid degenerate lookAt). Both fixes eliminate
+//             the void frames that appeared at t≈0.8 and t=1.0.
 // If QA finds a stop framing void/black, adjust the Vector3 here — all
 // downstream (arc-length, topnav, journey-state) derives from this array.
 //
@@ -31,20 +33,23 @@ export interface StopConfig {
   slug: string;
 }
 
-// Cerebrum — front/top of brain: r1=(0/5.5)²+(2/3.5)²+(0/4)²≈0.33 ✓
+// Cerebrum front/top — r1=(0/6.5)²+((2-1)/4.5)²+(0.5/5)²=0+0.049+0.01=0.059 ✓
 const stop0 = Object.freeze(new Vector3(0.0, 2.0, 0.5));
 
-// Right occipital — r1=(3/5.5)²+(0/3.5)²+(1/4)²≈0.36 ✓
+// Right cerebrum — r1=(3/6.5)²+((0.5-1)/4.5)²+(1/5)²=0.213+0.012+0.04=0.265 ✓
 const stop1 = Object.freeze(new Vector3(3.0, 0.5, 1.0));
 
-// Left mid — r1=(-2/5.5)²+(-1/3.5)²+(0/4)²≈0.21 ✓
+// Left mid cerebrum — r1=(-2/6.5)²+((-0.5-1)/4.5)²+(0/5)²=0.095+0.111+0=0.206 ✓
 const stop2 = Object.freeze(new Vector3(-2.0, -0.5, 0.0));
 
-// Cerebellum — r3=(-3.5+3.5/2)²+(-2+2.5/1.5)²+(0/2)²=0+0.11+0=0.11 ✓
-const stop3 = Object.freeze(new Vector3(-3.5, -2.0, 0.5));
+// Deep left cerebrum (was: cerebellum periphery — caused void at t≈0.8).
+// r1=(-2.5/6.5)²+((1-1)/4.5)²+((-1)/5)²=0.148+0+0.04=0.188 ✓
+const stop3 = Object.freeze(new Vector3(-2.5, 1.0, -1.0));
 
-// Brainstem — r4=(-1+1/1)²+(-3.5+4/2)²+(0/1)²=0+0.06+0=0.06 ✓
-const stop4 = Object.freeze(new Vector3(-1.0, -3.5, 0.0));
+// Right cerebrum deep (was: brainstem tip — caused void at t=1.0).
+// Placed ≥2 units from BRAIN_CENTER(-0.5,0.3,0): dist≈√(6.25+0.09+2.25)=√8.59≈2.93 ✓
+// r1=(2/6.5)²+((0.5-1)/4.5)²+((-1.5)/5)²=0.095+0.012+0.09=0.197 ✓
+const stop4 = Object.freeze(new Vector3(2.0, 0.5, -1.5));
 
 export const STOPS: StopConfig[] = [
   { position: stop0, label: "Presente", slug: "presente" },

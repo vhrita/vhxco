@@ -43,9 +43,18 @@ import {
 // Re-export so index.ts can still wire JourneyHandle without reaching into journey-state directly
 export { setJourneyT, getJourneyT, getActiveStop, subscribeJourney };
 
-// ─── Lerp utility ─────────────────────────────────────────────────────────────
+// ─── Lerp utilities ───────────────────────────────────────────────────────────
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
+}
+
+function lerpV3(
+  out: Vector3,
+  a: Readonly<Vector3>,
+  b: Readonly<Vector3>,
+  t: number,
+): void {
+  out.set(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
 }
 
 // ─── Soma energy update ───────────────────────────────────────────────────────
@@ -72,11 +81,20 @@ export interface RenderLoopParams {
 // ─── Camera-journey f(t) setup ────────────────────────────────────────────────
 // Catmull-Rom curve built once at init from ANCHOR_POSITIONS.
 // getPointAt(t) uses arc-length parameterization → uniform visual speed.
-// lookAt anticipation: camera "looks where it's going" (lead ≈ 0.03),
-// ramps to 0 near extremes and uses tangent fallback at t=0 and t=1.
+// lookAt: anticipation (camera "looks where it's going", lead ≈ 0.03) blended
+// with INWARD_BIAS toward BRAIN_CENTER — prevents void frames at extremes and
+// sparse mid-curve segments. At t≈0/t≈1 extremes: pure BRAIN_CENTER (no tangent).
+// Phase 4b-1: tangent fallback replaced + camera.up ordered before lookAt.
 
 const LEAD = 0.03; // anticipation amount (tunable)
 const LEAD_RAMP_WINDOW = 0.05; // t window near 0/1 where lead ramps to 0
+
+// Inward bias — pulls lookAt gently toward the dense cerebrum mass.
+// Anticipation remains dominant (INWARD_BIAS < 0.5); prevents tangent/anticipation
+// escaping to void at extremes and sparse mid-curve segments.
+// BRAIN_CENTER ≈ weighted centroid of cerebrum (0,1,0) + occipital (-2,-0.5,0).
+const BRAIN_CENTER = Object.freeze(new Vector3(-0.5, 0.3, 0));
+const INWARD_BIAS = 0.25; // fraction toward BRAIN_CENTER (tunable, 0=pure anticipation)
 
 function buildCurve(): CatmullRomCurve3 {
   // CatmullRomCurve3 needs mutable Vector3 — clone from frozen positions
@@ -86,7 +104,7 @@ function buildCurve(): CatmullRomCurve3 {
 
 const _camPos = new Vector3();
 const _lookTarget = new Vector3();
-const _tangent = new Vector3();
+const _anticipation = new Vector3();
 
 function applyCameraF(
   ctx: RendererContext,
@@ -99,7 +117,14 @@ function applyCameraF(
   curve.getPointAt(t, _camPos);
   camera.position.copy(_camPos);
 
-  // lookAt with anticipation — lead ramps near extremes (blueprint §3.2 edge cases)
+  // lookAt with anticipation + inward bias (blueprint §3.2 edge cases + 4b-1 void fix)
+  //
+  // Base target:
+  //   - mid-curve: anticipation point at t+effectiveLead (camera "looks where it's going")
+  //   - extremes (effectiveLead < 0.001): BRAIN_CENTER directly (tangent fallback caused void)
+  //
+  // Inward bias: lerp the base target 25% toward BRAIN_CENTER so the lookAt never
+  // wanders far from the dense cerebrum mass. Anticipation still dominates (75%).
   const nearEdge = Math.min(
     t / LEAD_RAMP_WINDOW,
     (1 - t) / LEAD_RAMP_WINDOW,
@@ -108,18 +133,22 @@ function applyCameraF(
   const effectiveLead = LEAD * nearEdge;
 
   if (effectiveLead < 0.001) {
-    // At extremes: use curve tangent as look direction
-    curve.getTangentAt(t, _tangent);
-    _lookTarget.copy(_camPos).addScaledVector(_tangent, 0.5);
+    // At extremes: look toward BRAIN_CENTER (was: tangent → pointed out of brain at t=1)
+    _anticipation.copy(BRAIN_CENTER);
   } else {
-    curve.getPointAt(Math.min(t + effectiveLead, 1), _lookTarget);
+    curve.getPointAt(Math.min(t + effectiveLead, 1), _anticipation);
   }
 
-  camera.lookAt(_lookTarget);
+  // Blend anticipation with BRAIN_CENTER — keeps traversal feeling intact,
+  // prevents lookAt drifting into void on sparse/peripheral curve segments.
+  lerpV3(_lookTarget, _anticipation, BRAIN_CENTER, INWARD_BIAS);
 
-  // Roll: sin wave along journey for organic feel (preserved from v0)
+  // Roll: sin wave along journey for organic feel (preserved from v0).
+  // MUST set camera.up BEFORE lookAt — lookAt consumes up to orient the camera.
   const roll = Math.sin(t * Math.PI * 3) * 0.2;
   camera.up.set(roll, 1, 0);
+
+  camera.lookAt(_lookTarget);
 }
 
 // ─── createRenderLoop ─────────────────────────────────────────────────────────

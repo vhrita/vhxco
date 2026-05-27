@@ -58,10 +58,11 @@ const PT_STOPS: StopContent[] = [
     hudHint: "começar",
   },
   // Stop 4 — AÇÃO (Action)
+  // Body trimmed to 1 line (phase 4b-1): form 4-campos must fit in 375×667 viewport.
   {
     eyebrow: "DIAGNÓSTICO AGENTIC",
     headline: "Onde sua operação\npode chegar.",
-    body: "Conte seu maior gargalo. Em 7 dias devolvemos\num plano de elevação. Gratuito, sem compromisso.",
+    body: "Em 7 dias, um plano. Gratuito.",
     hudHint: null, // action stop: no hint, has form
   },
 ];
@@ -101,10 +102,11 @@ const EN_STOPS: StopContent[] = [
     hudHint: "get started",
   },
   // Stop 4 — ACTION (Action)
+  // Body trimmed to 1 line (phase 4b-1): form 4-campos must fit in 375×667 viewport.
   {
     eyebrow: "AGENTIC DIAGNOSTIC",
     headline: "Where your operation\ncan go.",
-    body: "Tell us your biggest bottleneck. In 7 days we return\nan elevation plan. Free, no strings attached.",
+    body: "In 7 days, a plan. Free.",
     hudHint: null, // action stop: no hint, has form
   },
 ];
