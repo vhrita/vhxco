@@ -2140,6 +2140,165 @@ h1.headline .strike::after {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * §10 — Terminal form (DiagnoseForm React island, stop 4)
+ *
+ * Was scoped inside PhaseDiagnose.astro as :global() rules.
+ * Moved here (global.css) in Fase 4a because PhaseDiagnose is deleted and
+ * the terminal form must remain styled.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.terminal {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--color-line);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.terminal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.875rem;
+  background: rgba(94, 234, 255, 0.06);
+  border-bottom: 1px solid var(--color-line);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+
+.terminal-live {
+  color: var(--color-cyan);
+  animation: pulseDot 2s infinite;
+}
+
+.term-body {
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.term-line {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.375rem;
+}
+
+.term-prompt {
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--color-cyan);
+  flex-shrink: 0;
+  min-width: 90px;
+  opacity: 0.8;
+}
+
+.term-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-normal);
+  flex: 1;
+  width: 100%;
+  caret-color: var(--color-cyan);
+  transition: color 150ms ease;
+}
+
+.term-input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.term-input:focus {
+  color: var(--color-cyan);
+}
+
+.term-submit {
+  margin-top: 0.5rem;
+  width: 100%;
+  background: var(--color-cyan);
+  border: none;
+  color: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  padding: 0.625rem 1rem;
+  cursor: pointer;
+  transition: opacity 200ms ease;
+  font-weight: 600;
+}
+
+.term-submit:hover {
+  opacity: 0.88;
+}
+
+.term-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.term-promise {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--color-dim);
+  opacity: 0.6;
+  margin: 0.125rem 0 0;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.term-success-msg {
+  color: var(--color-cyan);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  padding: 1rem 0;
+  margin: 0;
+  text-align: center;
+}
+
+.term-error-msg {
+  color: var(--color-warn);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  margin: 0;
+  padding-top: 0.25rem;
+}
+
+/* Fallback state (no Formspree configured) */
+.term-fallback-tag {
+  animation: none;
+  opacity: 0.7;
+}
+
+.term-fallback-copy {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: rgba(255, 255, 255, 0.6);
+  line-height: var(--leading-relaxed);
+  margin: 0 0 1rem;
+  padding: 0.5rem 0;
+}
+
+.term-fallback-cta {
+  text-decoration: none;
+  display: block;
+  text-align: center;
+  margin-top: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * §9 — prefers-reduced-motion guard
  *
  * Users who set "reduce motion" in their OS get:

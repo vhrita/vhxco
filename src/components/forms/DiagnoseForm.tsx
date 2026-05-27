@@ -1,19 +1,24 @@
 /**
- * DiagnoseForm.tsx — React island for Phase 05 / Diagnose
+ * DiagnoseForm.tsx — React island for stop 4 (Diagnose / Ação)
  *
- * Terminal-styled contact form. Submits to Formspree via fetch (SSG-safe).
+ * Fase 4a sub-passo 4: merged from V1 mockup DiagnoseForm4.astro spec +
+ * existing Formspree logic.
+ *
+ * Changes from previous version:
+ *   - 4 fields only: name, email, company, gargalo (text input)
+ *   - Removed: bottleneck radio (bn1-4), brief textarea, nextSlot display
+ *   - Button text: "Solicitar diagnóstico" (was configurable — now fixed spec)
+ *   - Promise label: "Resposta em até 7 dias." shown below submit
+ *   - Labels interface trimmed to 4-field spec (bottleneck/brief keys removed)
+ *
+ * Preserved from previous version:
+ *   - Formspree fetch + honeypot + loading/success/error states
+ *   - Fallback CTA when formspreeId missing (iter-08 Fix D2)
+ *   - i18n: labels prop from Astro (no JSON import in client bundle)
+ *   - locale prop
+ *
  * Hydration: client:visible — loads only when section scrolls into view.
- *
- * Env requirement: PUBLIC_FORMSPREE_ID must be set in .env.local.
- * If missing, renders a graceful config-missing error message.
- *
- * Features:
- *   - 4 text inputs: name, email, company, brief
- *   - Bottleneck selector: 4 radio-style buttons (ai / auto / iot / full)
- *   - Honeypot anti-spam field (_gotcha)
- *   - Loading / success / error states
- *   - i18n: locale prop → all copy from JSON dict
- *   - Next available slot: +2 business days at 14:30 (Intl.DateTimeFormat)
+ * Env: PUBLIC_FORMSPREE_ID must be set in .env.local.
  */
 
 import { useState, useCallback } from "react";
@@ -25,11 +30,11 @@ import { useState, useCallback } from "react";
 type Locale = "pt" | "en";
 
 interface DiagnoseFormProps {
-  /** Page locale — drives all copy via inline dict. */
+  /** Page locale */
   locale?: Locale;
-  /** Formspree form ID (e.g. "xqakeyzv"). Injected server-side via Astro. */
+  /** Formspree form ID. Injected server-side via Astro. */
   formspreeId?: string;
-  /** i18n strings passed from Astro (server-rendered, no JSON import needed). */
+  /** i18n strings passed from Astro (server-rendered). */
   labels: {
     formTitle: string;
     formLive: string;
@@ -39,55 +44,20 @@ interface DiagnoseFormProps {
     emailPlaceholder: string;
     companyPrompt: string;
     companyPlaceholder: string;
-    bottleneckPrompt: string;
-    briefPrompt: string;
-    briefPlaceholder: string;
-    bn1: string;
-    bn2: string;
-    bn3: string;
-    bn4: string;
+    gargaloPrompt: string;
+    gargaloPlaceholder: string;
     submit: string;
     sending: string;
     ok: string;
+    promise: string;
     networkFailure: string;
     configMissing: string;
-    /** iter-08 Fix D2: fallback CTA when Formspree not configured */
+    /** fallback CTA when Formspree not configured */
     fallbackTag: string;
     fallbackCopy: string;
     fallbackCta: string;
   };
 }
-
-// ---------------------------------------------------------------------------
-// Next business-day slot helper
-// ---------------------------------------------------------------------------
-
-function getNextSlot(locale: Locale): string {
-  const d = new Date();
-  // advance +2 business days
-  let added = 0;
-  while (added < 2) {
-    d.setDate(d.getDate() + 1);
-    const day = d.getDay();
-    if (day !== 0 && day !== 6) added++;
-  }
-  d.setHours(14, 30, 0, 0);
-
-  const intlLocale = locale === "pt" ? "pt-BR" : "en";
-  const dateStr = new Intl.DateTimeFormat(intlLocale, {
-    day: "2-digit",
-    month: "2-digit",
-  }).format(d);
-
-  return `${dateStr} 14:30`;
-}
-
-// ---------------------------------------------------------------------------
-// Bottleneck options
-// ---------------------------------------------------------------------------
-
-const BOTTLENECK_VALUES = ["ai", "auto", "iot", "full"] as const;
-type BottleneckValue = (typeof BOTTLENECK_VALUES)[number];
 
 // ---------------------------------------------------------------------------
 // Component
@@ -98,17 +68,9 @@ export default function DiagnoseForm({
   formspreeId,
   labels,
 }: DiagnoseFormProps) {
-  const [bottleneck, setBottleneck] = useState<BottleneckValue | null>(null);
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
-
-  const bottleneckLabels: Record<BottleneckValue, string> = {
-    ai: labels.bn1,
-    auto: labels.bn2,
-    iot: labels.bn3,
-    full: labels.bn4,
-  };
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -124,11 +86,6 @@ export default function DiagnoseForm({
       const form = e.currentTarget;
       const data = new FormData(form);
 
-      // Append bottleneck selection (not a native form field)
-      if (bottleneck) {
-        data.set("bottleneck", bottleneck);
-      }
-
       try {
         const res = await fetch(`https://formspree.io/f/${formspreeId}`, {
           method: "POST",
@@ -139,7 +96,6 @@ export default function DiagnoseForm({
         if (res.ok) {
           setStatus("success");
           form.reset();
-          setBottleneck(null);
         } else {
           setStatus("error");
         }
@@ -147,11 +103,10 @@ export default function DiagnoseForm({
         setStatus("error");
       }
     },
-    [formspreeId, bottleneck],
+    [formspreeId],
   );
 
-  // iter-08 Fix D2: fallback CTA when Formspree not configured.
-  // Renders intentional-looking terminal card with mailto CTA — not an error state.
+  // Fallback: no Formspree configured — mailto CTA (iter-08 Fix D2)
   if (!formspreeId) {
     return (
       <div className="terminal" role="alert">
@@ -187,8 +142,6 @@ export default function DiagnoseForm({
       </div>
     );
   }
-
-  const nextSlot = getNextSlot(locale);
 
   return (
     <form
@@ -252,46 +205,16 @@ export default function DiagnoseForm({
           />
         </div>
 
-        {/* Bottleneck */}
-        <div className="term-line term-line--stack">
-          <span className="term-prompt">{labels.bottleneckPrompt}</span>
-          <div
-            className="term-options"
-            role="group"
-            aria-label={labels.bottleneckPrompt}
-          >
-            {BOTTLENECK_VALUES.map((val) => (
-              <button
-                key={val}
-                type="button"
-                data-v={val}
-                className={`term-option-btn${bottleneck === val ? " active" : ""}`}
-                onClick={() => setBottleneck(val)}
-                disabled={status === "loading"}
-                aria-pressed={bottleneck === val}
-              >
-                {bottleneckLabels[val]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Brief */}
-        <div className="term-line term-line--stack">
-          <span className="term-prompt">{labels.briefPrompt}</span>
-          <textarea
-            className="term-area"
-            name="brief"
-            rows={2}
-            placeholder={labels.briefPlaceholder}
+        {/* Gargalo — text input (replaces bottleneck radio + brief textarea) */}
+        <div className="term-line">
+          <span className="term-prompt">{labels.gargaloPrompt}</span>
+          <input
+            className="term-input"
+            type="text"
+            name="gargalo"
+            placeholder={labels.gargaloPlaceholder}
             disabled={status === "loading"}
           />
-        </div>
-
-        {/* Next slot display */}
-        <div className="term-next-slot" aria-live="polite">
-          <span className="term-prompt term-prompt--dim">next slot</span>
-          <span className="term-slot-value">{nextSlot}</span>
         </div>
 
         {/* Submit */}
@@ -302,6 +225,9 @@ export default function DiagnoseForm({
         >
           {status === "loading" ? labels.sending : labels.submit}
         </button>
+
+        {/* Promise — "Resposta em até 7 dias" */}
+        <p className="term-promise">{labels.promise}</p>
 
         {/* Error state */}
         {status === "error" && (

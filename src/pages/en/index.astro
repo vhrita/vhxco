@@ -12,31 +12,27 @@ const tLocale = getT(lang as Locale);
 const stops = getStopsContent('en');
 const totalStops = stops.length;
 
-// Form labels for DiagnoseForm (stop 4) — keep existing i18n keys intact.
+// Form labels for DiagnoseForm (stop 4) — V1 4-field spec.
 const formLabels = {
-  formTitle:          tLocale('diagnose.form.title'),
-  formLive:           tLocale('diagnose.form.live'),
-  namePrompt:         tLocale('diagnose.form.namePrompt'),
-  namePlaceholder:    tLocale('diagnose.form.namePlaceholder'),
-  emailPrompt:        tLocale('diagnose.form.emailPrompt'),
-  emailPlaceholder:   tLocale('diagnose.form.emailPlaceholder'),
-  companyPrompt:      tLocale('diagnose.form.companyPrompt'),
-  companyPlaceholder: tLocale('diagnose.form.companyPlaceholder'),
-  bottleneckPrompt:   tLocale('diagnose.form.bottleneckPrompt'),
-  briefPrompt:        tLocale('diagnose.form.briefPrompt'),
-  briefPlaceholder:   tLocale('diagnose.form.briefPlaceholder'),
-  bn1:                tLocale('diagnose.form.bn1'),
-  bn2:                tLocale('diagnose.form.bn2'),
-  bn3:                tLocale('diagnose.form.bn3'),
-  bn4:                tLocale('diagnose.form.bn4'),
-  submit:             tLocale('diagnose.form.submit'),
-  sending:            tLocale('diagnose.form.sending'),
-  ok:                 tLocale('diagnose.form.ok'),
-  networkFailure:     tLocale('errors.form.networkFailure'),
-  configMissing:      tLocale('diagnose.form.configMissing'),
-  fallbackTag:        tLocale('diagnose.form.fallbackTag'),
-  fallbackCopy:       tLocale('diagnose.form.fallbackCopy'),
-  fallbackCta:        tLocale('diagnose.form.fallbackCta'),
+  formTitle:           tLocale('diagnose.form.title'),
+  formLive:            tLocale('diagnose.form.live'),
+  namePrompt:          tLocale('diagnose.form.namePrompt'),
+  namePlaceholder:     tLocale('diagnose.form.namePlaceholder'),
+  emailPrompt:         tLocale('diagnose.form.emailPrompt'),
+  emailPlaceholder:    tLocale('diagnose.form.emailPlaceholder'),
+  companyPrompt:       tLocale('diagnose.form.companyPrompt'),
+  companyPlaceholder:  tLocale('diagnose.form.companyPlaceholder'),
+  gargaloPrompt:       tLocale('diagnose.form.gargaloPrompt'),
+  gargaloPlaceholder:  tLocale('diagnose.form.gargaloPlaceholder'),
+  submit:              tLocale('diagnose.form.submit'),
+  sending:             tLocale('diagnose.form.sending'),
+  ok:                  tLocale('diagnose.form.ok'),
+  promise:             tLocale('diagnose.form.promise'),
+  networkFailure:      tLocale('errors.form.networkFailure'),
+  configMissing:       tLocale('diagnose.form.configMissing'),
+  fallbackTag:         tLocale('diagnose.form.fallbackTag'),
+  fallbackCopy:        tLocale('diagnose.form.fallbackCopy'),
+  fallbackCta:         tLocale('diagnose.form.fallbackCta'),
 };
 
 const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
