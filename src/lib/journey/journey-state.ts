@@ -36,7 +36,11 @@ const _stopListeners = new Set<() => void>();
  * all listeners. No lerp inside this function (blueprint §4.2).
  */
 export function setJourneyT(t: number): void {
-  _t = Math.max(0, Math.min(1, t));
+  const clamped = Math.max(0, Math.min(1, t));
+  // Early-return when t is already at this exact value — avoids firing tier-1
+  // listeners at 60fps when the easing RAF calls setJourneyT(_easedT === _target).
+  if (clamped === _t) return;
+  _t = clamped;
   const newStop = nearestStopIndex(_t);
   const stopChanged = newStop !== _activeStop;
   _activeStop = newStop;

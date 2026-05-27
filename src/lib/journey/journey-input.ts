@@ -110,11 +110,12 @@ function _advance(delta: number): void {
         currentStopIdx = i;
       }
     }
-    const nextIdx =
-      _clamp(currentStopIdx + dir) === currentStopIdx + dir
-        ? currentStopIdx + dir
-        : currentStopIdx;
-    const clampedIdx = Math.max(0, Math.min(STOP_COUNT - 1, nextIdx));
+    // _clamp() clamps to [0,1] (t-space), not [0, STOP_COUNT-1] (index-space).
+    // Use Math.max/min directly to clamp the stop index correctly.
+    const clampedIdx = Math.max(
+      0,
+      Math.min(STOP_COUNT - 1, currentStopIdx + dir),
+    );
     const t = stopCenterT(clampedIdx);
     _target = t;
     _easedT = t;
