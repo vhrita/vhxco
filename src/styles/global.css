@@ -407,13 +407,18 @@ body.cursor-hover-link #cursor::before {
   animation: preFlashAnim 500ms ease-out forwards;
 }
 
+/* 4b-2 rework: softened from a 0.95 white-out to a gentle ignition pulse.
+ * The old full-white flash fired at boot-complete — exactly when the whole
+ * brain is framed and the dolly begins — hiding the "cérebro inteiro" reveal.
+ * A low-opacity cyan-tinted pulse keeps the "synaptic handoff" beat without
+ * blanking the brain. */
 @keyframes preFlashAnim {
   0% {
-    opacity: 0.95;
+    opacity: 0.28;
   }
 
   15% {
-    opacity: 0.7;
+    opacity: 0.18;
   }
 
   100% {
@@ -576,7 +581,18 @@ body.cursor-hover-link #cursor::before {
   position: fixed;
   inset: 0;
   z-index: var(--z-preloader);
-  background: var(--color-bg);
+  /* 4b-2 rework: TRANSPARENT preloader — the loading IS the reveal.
+   * The WebGL canvas (z=1) shows through, so the "brain being born"
+   * (uBootProgress driving soma/cloud birth) is visible forming from afar
+   * while the boot HUD (rings/meta/bar) floats on top. A subtle radial
+   * darkening keeps the boot text legible against the bright brain birth
+   * without hiding the canvas. */
+  background: radial-gradient(
+    ellipse 70% 60% at 50% 50%,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.15) 55%,
+    transparent 100%
+  );
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -584,6 +600,14 @@ body.cursor-hover-link #cursor::before {
   transition:
     opacity 800ms ease,
     visibility 800ms;
+}
+
+/* 4b-2 rework: while the intro dolly is armed/running, the brain-birth is the
+ * protagonist — lift the D7 atmosphere filter (which dims to 45% + blurs) so
+ * the forming brain reads clearly from afar. Once journey:intro-done fires,
+ * data-intro is removed and the canvas settles back to the receded look. */
+body[data-intro="active"] #webgl {
+  filter: brightness(0.85) saturate(0.7);
 }
 
 #preloader.done {
