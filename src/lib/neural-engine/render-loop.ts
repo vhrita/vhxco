@@ -15,10 +15,15 @@
 //
 // Retained: brain cloud rotation, soma energy, uniforms uTime/uHue/uBootProgress.
 //
-// Phase 4b-2: Cinematic intro dolly.
-//   - On boot-complete (bootProgress.value >= 1), camera dollies from INTRO_START_POS
-//     (z=14, sees full brain) to curve.getPointAt(0) over INTRO_MS ms with cubic-out
-//     easing. During intro, render() drives camera directly; f(t) resumes after.
+// Phase 4b-2 (+ rework): Cinematic intro dolly.
+//   - Camera is parked FAR (INTRO_START_POS, derived from brain bounding radius +
+//     FOV/aspect so the whole brain fits) during boot. With the preloader now
+//     transparent, the "brain being born" (uBootProgress) is seen forming from
+//     a distance — the reveal is the loading moment.
+//   - On boot-complete (bootProgress.value >= 1), camera dollies from that far
+//     start to curve.getPointAt(0) over INTRO_MS ms with cubic-out easing,
+//     looking at BRAIN_CENTER the whole way. During intro render() drives the
+//     camera directly; f(t) resumes after.
 //   - prefers-reduced-motion: intro skipped entirely, camera starts at f(0).
 //   - Fires window.dispatchEvent(new CustomEvent('journey:intro-done')) on land.
 //   - a11y-safe: body.dataset.intro tracks state for CSS content-hiding.
@@ -76,13 +81,62 @@ function updateSomaEnergy(network: NeuralNetworkHandle, t: number): void {
   network.somaEnergyAttr.needsUpdate = true;
 }
 
-// ─── Intro dolly constants (Phase 4b-2) ─────────────────────────────────────
-// INTRO_START_POS: camera start for the dolly — z=14 matches renderer.ts initial
-// pos and FOV 50, frames the full brain from afar. Was the v0 orbital default.
-const INTRO_START_POS = Object.freeze(new Vector3(0, 0, 14));
+// ─── Intro dolly constants (Phase 4b-2 rework) ──────────────────────────────
+// The old start (0,0,14) sat *inside* the brain cloud: the cerebrum ellipsoid
+// alone spans x∈[-6.5,6.5], y∈[-3.5,5.5], z∈[-5,5] (brain-cloud.ts), so at z=14
+// the camera is only ~9 units past the front surface — huge zoom, no silhouette.
+//
+// Rework: start REALLY far so the whole brain reads as a "brain drawing", then
+// dolly in to f(0). Distance is derived from the cloud bounding radius + the
+// real camera FOV/aspect (NOT a magic number), computed at start() when the
+// aspect is known.
+//
+// BRAIN_BOUND_R: farthest distance from BRAIN_CENTER to any brain-cloud AABB
+// corner. Cloud = union of 4 ellipsoids (brain-cloud.ts) + 0.4 noise:
+//   AABB = [-7.4,-6.9,-5.4] .. [6.9,5.9,5.4]  →  farthest corner from
+//   BRAIN_CENTER(-0.5,0.3,0) is (6.9,5.9,5.4) at ‖·‖ ≈ 11.65.
+const BRAIN_BOUND_R = 11.65;
 
-/** Duration of the dolly-in animation in milliseconds. */
-const INTRO_MS = 1200;
+// INTRO_MARGIN: extra breathing room so the brain doesn't kiss the frame edge.
+const INTRO_MARGIN = 1.3;
+
+// INTRO_DIR: unit direction from BRAIN_CENTER to the dolly start. Front-dominant
+// (+z ≈ 0.83) with elevation (+y ≈ 0.48) and slight +x — an elevated front-3/4
+// reveal that reads as a recognizable brain profile, then dives down-forward to
+// the top-front landing f(0)=(0,2,0.5). Looking at BRAIN_CENTER the whole way
+// keeps the brain framed (no outward lookAt → no void).
+const INTRO_DIR = Object.freeze(new Vector3(0.289, 0.48, 0.828));
+
+// INTRO_START_POS: filled in at start() from computeIntroStartPos(camera).
+// Mutable (not frozen) — depends on runtime aspect ratio.
+const INTRO_START_POS = new Vector3();
+
+/**
+ * Distance the camera must sit from BRAIN_CENTER so a sphere of radius
+ * BRAIN_BOUND_R fits inside the frustum, using whichever of the vertical or
+ * horizontal FOV is the *limiting* (narrower) one. On desktop the vertical FOV
+ * limits; in portrait (mobile) the horizontal FOV is much narrower and limits,
+ * so the brain is pushed further back to still fit whole.
+ */
+function computeIntroStartPos(
+  camera: RendererContext["camera"],
+  out: Vector3,
+): void {
+  const halfV = ((camera.fov * Math.PI) / 180) / 2;
+  // Horizontal half-FOV from vertical + aspect.
+  const halfH = Math.atan(Math.tan(halfV) * camera.aspect);
+  // Limiting (smaller) half-angle drives the distance.
+  const halfLimit = Math.min(halfV, halfH);
+  const dist = (BRAIN_BOUND_R * INTRO_MARGIN) / Math.tan(halfLimit);
+  out.copy(BRAIN_CENTER).addScaledVector(INTRO_DIR, dist);
+}
+
+/**
+ * Duration of the dolly-in animation in milliseconds. Bumped from 1200 → 2200:
+ * the travel is now ~20-40 units (vs ~14 before), so a longer tween keeps the
+ * movement cinematic rather than a rushed snap.
+ */
+const INTRO_MS = 2200;
 
 /** Cubic-out easing: fast start, decelerates into landing. */
 function _cubicOut(p: number): number {
@@ -190,8 +244,8 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
   let startTime = 0;
   let prevTime = 0;
 
-  // ── Intro dolly state (Phase 4b-2) ────────────────────────────────────────
-  // introPending: camera is parked at INTRO_START_POS, waiting for boot complete.
+  // ── Intro dolly state (Phase 4b-2 rework) ─────────────────────────────────
+  // introPending: camera is parked FAR at INTRO_START_POS, waiting for boot complete.
   // introActive: dolly is running — render() drives camera, ignores getJourneyT().
   // introStart: performance.now() / 1000 snapshot when dolly fired.
   let introPending = false;
@@ -311,7 +365,11 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
       introActive = false;
       applyCameraF(ctx, 0, curve);
     } else {
-      // Park camera at INTRO_START_POS — dolly fires when bootProgress >= 1
+      // Compute the far start from the real aspect ratio (frames whole brain),
+      // then park the camera there — the dolly fires when bootProgress >= 1.
+      // Parking far during boot is intentional: the transparent preloader lets
+      // the "brain being born" (uBootProgress) be seen forming from a distance.
+      computeIntroStartPos(ctx.camera, INTRO_START_POS);
       introPending = true;
       introActive = false;
       ctx.camera.position.copy(INTRO_START_POS);
