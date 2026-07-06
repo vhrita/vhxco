@@ -255,6 +255,17 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
   // Reusable Vector3 for lerp during intro (avoids GC per frame)
   const _introPos = new Vector3();
 
+  // ── QA-only intro-debug hook (opt-in via ?introDebug) ─────────────────────
+  // Lets QA freeze the dolly at a fixed progress p to capture deterministic
+  // frames (p=0 far start / p=0.5 mid / p=1 landing) instead of racing a ~2.2s
+  // animation on slow SwiftShader. NO effect unless the URL flag is present, so
+  // production is untouched. Not gated on import.meta.env.DEV because QA runs
+  // against the preview (prod) build too.
+  const introDebug =
+    typeof window !== "undefined" &&
+    /[?&]introDebug\b/.test(window.location.search);
+  let introDebugP: number | null = null; // when set, freezes dolly at this p
+
   function render(): void {
     const now = performance.now() / 1000;
     const dt = Math.min(now - prevTime, 0.1);
@@ -270,8 +281,12 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     }
 
     if (introActive) {
-      // Drive camera through dolly tween — ignore journey t
-      const rawP = (now - introStart) / (INTRO_MS / 1000);
+      // Drive camera through dolly tween — ignore journey t.
+      // QA introDebug: when a frozen p is set, use it (raw, no time advance) so
+      // the frame is deterministic; otherwise advance by wall-clock as normal.
+      const timeRawP = (now - introStart) / (INTRO_MS / 1000);
+      const rawP =
+        introDebug && introDebugP !== null ? introDebugP : timeRawP;
       const p = _cubicOut(Math.min(rawP, 1));
 
       // Landing position: curve start point (same target as applyCameraF at t=0)
@@ -283,7 +298,10 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
       ctx.camera.up.set(0, 1, 0);
       ctx.camera.lookAt(BRAIN_CENTER);
 
-      if (rawP >= 1) {
+      // QA introDebug freezes the dolly (never auto-completes); otherwise the
+      // dolly lands and hands off to f(t) once the tween reaches the end.
+      const frozen = introDebug && introDebugP !== null;
+      if (!frozen && rawP >= 1) {
         // Dolly landed — hand off to f(t) on next frame
         introActive = false;
         // Remove intro marker so CSS content rules deactivate
@@ -379,6 +397,29 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
       if (typeof document !== "undefined") {
         document.body.dataset.intro = "active";
       }
+    }
+
+    // QA-only: expose a deterministic driver for the intro dolly (opt-in flag).
+    if (introDebug && typeof window !== "undefined") {
+      // Force boot to complete so the brain is fully formed for framing shots.
+      bootProgress.set(1);
+      (window as unknown as Record<string, unknown>).__introDebug = {
+        /** Freeze the dolly at progress p ∈ [0,1] (0=far start, 1=landing). */
+        setP(p: number): void {
+          introPending = false;
+          introActive = true;
+          introDebugP = Math.max(0, Math.min(1, p));
+        },
+        /** Current camera world position [x,y,z]. */
+        cam(): [number, number, number] {
+          const c = ctx.camera.position;
+          return [c.x, c.y, c.z];
+        },
+        /** The computed far start position (for framing assertions). */
+        startPos(): [number, number, number] {
+          return [INTRO_START_POS.x, INTRO_START_POS.y, INTRO_START_POS.z];
+        },
+      };
     }
 
     rafId = requestAnimationFrame(render);
