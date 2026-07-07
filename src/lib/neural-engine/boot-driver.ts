@@ -16,8 +16,12 @@
 
 import { bootProgress } from '@/lib/neural-engine/boot-progress';
 
-// Formation time of the brain (was the old preloader TOTAL_MS). Kept identical.
-const TOTAL_MS = 3800;
+// Formation time of the brain. Bumped 3800 → 4600 so the reworked progressive
+// genesis (staggered soma births 0→0.70 + per-edge axon growth) breathes rather
+// than rushing. The network is substantially formed by ~0.82 (≈3.8s) and the
+// remaining window holds the finished network briefly before the dolly fires
+// at 1.0 (render-loop.ts intro state machine).
+const TOTAL_MS = 4600;
 
 // Char pool for the [data-scramble] reveal effect.
 const SCRAMBLE_CHARS =
@@ -31,6 +35,26 @@ let _started = false;
 export function startBootDriver(): void {
   if (_started) return;
   _started = true;
+
+  // ── QA-only boot-debug hook (opt-in via ?bootDebug=<0..1>) ─────────────────
+  // Freezes the genesis at a fixed bootProgress so QA can capture deterministic
+  // frames of the brain FORMING (nodes sprouting, axons growing) instead of
+  // racing the ~4.6s RAF. NO effect unless the flag is present → production
+  // untouched. Mirrors the ?introDebug pattern already in render-loop.ts.
+  //   ?bootDebug=0.45  → sets bootProgress=0.45 and stops the driver there.
+  //   ?bootDebug       → (no value) defaults to 0.5.
+  // The camera parks far (render-loop treats bootDebug like introDebug), so the
+  // whole forming network is framed for the shot.
+  const bootDebugMatch =
+    typeof window !== "undefined"
+      ? /[?&]bootDebug(?:=([0-9]*\.?[0-9]+))?\b/.exec(window.location.search)
+      : null;
+  if (bootDebugMatch) {
+    const p = bootDebugMatch[1] !== undefined ? parseFloat(bootDebugMatch[1]) : 0.5;
+    bootProgress.set(Math.max(0, Math.min(1, p)));
+    // Do NOT start the RAF driver — hold this frozen value indefinitely.
+    return;
+  }
 
   const reducedMotion = window.matchMedia(
     '(prefers-reduced-motion: reduce)',

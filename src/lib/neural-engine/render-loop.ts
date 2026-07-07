@@ -266,6 +266,15 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     /[?&]introDebug\b/.test(window.location.search);
   let introDebugP: number | null = null; // when set, freezes dolly at this p
 
+  // ── QA-only boot-debug hook (opt-in via ?bootDebug) ───────────────────────
+  // When capturing genesis frames (?bootDebug=<p> in boot-driver freezes
+  // bootProgress), the camera must stay PARKED FAR so the whole forming network
+  // is framed — never fire the dolly, even at bootProgress=1. NO effect unless
+  // the flag is present → production untouched.
+  const bootDebug =
+    typeof window !== "undefined" &&
+    /[?&]bootDebug\b/.test(window.location.search);
+
   function render(): void {
     const now = performance.now() / 1000;
     const dt = Math.min(now - prevTime, 0.1);
@@ -273,7 +282,9 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     const t_anim = (now - startTime) * animSpeed;
 
     // ── Camera: intro dolly state machine (Phase 4b-2) ───────────────────────
-    if (introPending && bootProgress.value >= 1) {
+    // bootDebug keeps the camera parked far (dolly never fires) so genesis
+    // frames are captured with the whole network framed.
+    if (introPending && bootProgress.value >= 1 && !bootDebug) {
       // Boot just completed — fire the dolly
       introPending = false;
       introActive = true;

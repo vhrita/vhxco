@@ -18,8 +18,11 @@ void main() {
   float d = length(uv);
   if (d > 0.5) discard;
 
-  // Balanced alpha to be visible but not over-saturate
-  float bootAlpha = smoothstep(0.8, 0.9, uBootProgress);
+  // Balanced alpha to be visible but not over-saturate.
+  // Reveal progressively alongside the genesis (was a pop at 0.8-0.9): the
+  // atmosphere fades in across the whole formation window so the cloud
+  // accompanies the network being born rather than appearing at the last moment.
+  float bootAlpha = smoothstep(0.05, 0.7, uBootProgress);
   float alpha = smoothstep(0.5, 0.1, d) * vAlpha * uOpacity * 0.5 * bootAlpha;
 
   float rim = smoothstep(2.0, 6.0, length(vPos.xy));

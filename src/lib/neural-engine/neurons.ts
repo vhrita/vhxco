@@ -33,6 +33,12 @@ import type { NeuronData, EdgeData, NeuralNetworkHandle } from "./types.js";
 
 const NEURONS_SEED = 0xdeadbeef;
 
+// Separate seed for the *genesis birth schedule* (soma + edge birth times).
+// Kept independent from NEURONS_SEED so adding birth-schedule PRNG draws does
+// NOT shift the canonical position/matrix rand() sequence — camera anchors and
+// getCameraSnapshot() determinism (R1, ADR-0020) stay byte-identical.
+const BIRTH_SEED = 0x5eed1;
+
 function mulberry32(seed: number): () => number {
   let s = seed >>> 0;
   return function rand() {
@@ -98,6 +104,32 @@ export function makeNeuralNetwork(scene: Scene): NeuralNetworkHandle {
     });
   }
 
+  // 1b. GENESIS BIRTH SCHEDULE — staggered soma births over the boot window.
+  //     Fixes the old `i < 2 ? 0.0 : 0.85` (2 nodes at t=0, 198 popping together
+  //     at 0.85 → no progressive genesis). Now every soma is assigned a birth
+  //     time spread across [0, BIRTH_END] with light seeded jitter for organic
+  //     clustering (not a perfectly linear sweep). A few "seed" nodes are forced
+  //     very early so the network has anchors to grow from.
+  //
+  //     Uses a *separate* PRNG (birthRand) so it never perturbs the canonical
+  //     position sequence (rand) → R1 determinism preserved.
+  const birthRand = mulberry32(BIRTH_SEED);
+  const BIRTH_END = 0.7; // last soma born by ~0.70 → network settles before dolly (1.0)
+  const SEED_NODES = 4; // forced-early anchor nodes
+  const somaBirthTimes = new Float32Array(MAX_NEURONS);
+  for (let i = 0; i < MAX_NEURONS; i++) {
+    if (i < SEED_NODES) {
+      // Seed anchors sprout in the first ~5% so growth has something to hang off.
+      somaBirthTimes[i] = birthRand() * 0.05;
+    } else {
+      // Even spread across the window + jitter (±half a slot) for organic feel.
+      const base = ((i - SEED_NODES) / (MAX_NEURONS - SEED_NODES)) * BIRTH_END;
+      const slot = BIRTH_END / (MAX_NEURONS - SEED_NODES);
+      const jitter = (birthRand() - 0.5) * slot * 1.5;
+      somaBirthTimes[i] = Math.max(0, Math.min(BIRTH_END, base + jitter));
+    }
+  }
+
   // 2. GENERATE STATIC AXON WEB — 3 nearest neighbors per neuron (v0 lines 265-279)
   for (let i = 0; i < MAX_NEURONS; i++) {
     const nA = neurons[i];
@@ -138,7 +170,7 @@ export function makeNeuralNetwork(scene: Scene): NeuralNetworkHandle {
 
   for (let i = 0; i < MAX_NEURONS; i++) {
     somaSeed[i] = neurons[i].baseSeed;
-    somaBirth[i] = i < 2 ? 0.0 : 0.85;
+    somaBirth[i] = somaBirthTimes[i];
   }
 
   const attrSomaEnergy = new InstancedBufferAttribute(somaEnergy, 1);
@@ -189,6 +221,23 @@ export function makeNeuralNetwork(scene: Scene): NeuralNetworkHandle {
   const tubeSeed = new Float32Array(numEdges);
   for (let i = 0; i < numEdges; i++) tubeSeed[i] = rand() * 100.0; // R1: seeded
   tubeGeoInst.setAttribute("aSeed", new InstancedBufferAttribute(tubeSeed, 1));
+
+  // Per-edge genesis birth: a connection can only form once BOTH its endpoint
+  // somas exist, so birth = max(birthA, birthB) + small delay. In the frag the
+  // tube then *grows* A→B over a short window after this birth (vЗ reveal), so
+  // the viewer sees synapses reaching out between already-born neurons — the
+  // "connections happening / lines appearing" the smoke test asked for.
+  const EDGE_DELAY = 0.03; // grace after both endpoints exist before the line starts
+  const edgeBirth = new Float32Array(numEdges);
+  for (let i = 0; i < numEdges; i++) {
+    const e = staticEdges[i];
+    const b = Math.max(somaBirthTimes[e.nA.id], somaBirthTimes[e.nB.id]);
+    edgeBirth[i] = Math.min(1.0, b + EDGE_DELAY);
+  }
+  tubeGeoInst.setAttribute(
+    "aBirth",
+    new InstancedBufferAttribute(edgeBirth, 1),
+  );
 
   const webMat = new ShaderMaterial({
     transparent: true,

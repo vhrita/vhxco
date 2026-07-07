@@ -74,7 +74,13 @@ float snoise(vec3 v) {
 }
 
 void main() {
-  vEnergy = aEnergy;
+  // Gate firing energy during genesis: while the network is still forming the
+  // red firing pulse is suppressed (nodes read cyan as they're born), and only
+  // ramps in as the network settles near boot completion. Prevents the "2 red
+  // dots blinking" artifact from the smoke test. Firing stays fully alive once
+  // formed (uBootProgress → 1).
+  float fireGate = smoothstep(0.8, 1.0, uBootProgress);
+  vEnergy = aEnergy * fireGate;
   vec3 pos = position;
 
   // World position of this instance for stable noise
