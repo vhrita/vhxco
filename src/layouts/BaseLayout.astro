@@ -3,7 +3,6 @@ import '../styles/global.css';
 import NeuralEngineIsland from '@/components/hero/NeuralEngineIsland';
 import HeroFallback from '@/components/hero/HeroFallback.astro';
 import CustomCursor from '@/components/cursor/CustomCursor';
-import Preloader from '@/components/effects/Preloader.astro';
 import HudCorners from '@/components/hud/HudCorners.astro';
 import TopNav from '@/components/hud/TopNav.astro';
 import HudWaveform from '@/components/hud/HudWaveform';
@@ -41,7 +40,6 @@ const t = getT(locale as Locale);
     <!-- a11y: skip to main content (always first in DOM) -->
     <a href="#main" class="skip-link">{t('a11y.skipToContent')}</a>
 
-    <Preloader />
     <NeuralEngineIsland client:only="react" />
     <!-- Fase 4a D7: backdrop vignette between canvas (z=1) and content (z=10) -->
     <div class="backdrop-vignette" aria-hidden="true"></div>
@@ -71,6 +69,15 @@ const t = getT(locale as Locale);
     -->
 
     <script>
+      // Boot driver — advances bootProgress 0→1 (forms the brain on the canvas)
+      // and dispatches 'bootComplete' (drives the dolly + content reveal).
+      // The ONLY loading UI is the brain forming on the canvas; the old sci-fi
+      // preloader overlay (rings / SYNAPSE OS / progress bar / boot ticker /
+      // white flash) was removed. This module carries only the behavior.
+      import('@/lib/neural-engine/boot-driver').then(({ startBootDriver }) => {
+        startBootDriver();
+      });
+
       // Audio lazy-init gate — loads audio chunk only after first user click.
       import('@/lib/audio/lazy-init');
 

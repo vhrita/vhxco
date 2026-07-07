@@ -8,9 +8,12 @@
  *   4. Base resets
  *   5. Custom Cursor (ADR D6) — cursor + trail + ripple CSS
  *   6. Cinema CSS — keyframes + overlay classes (NOT Tailwind — kept as pure CSS)
- *   7. Preloader (#preloader, .pre-mark, .pre-bar, .pre-systems)
- *   8. HUD (4 corners + TopNav + Waveform + skip-link)
- *   9. prefers-reduced-motion guard
+ *   7. HUD (4 corners + TopNav + Waveform + skip-link)
+ *   8. prefers-reduced-motion guard
+ *
+ * NOTE: the old cinematic preloader overlay (§7 rings / SYNAPSE OS meta /
+ * progress bar / boot ticker + #preFlash) was removed — the only loading UI is
+ * now the brain forming on the canvas (uBootProgress). See boot-driver.ts.
  */
 
 @import "tailwindcss";
@@ -215,7 +218,6 @@ body.cursor-hover-link #cursor::before {
  *   .vignette      z=var(--z-overlay-vignette)=49  (dark edge vignette)
  *   .grain         z=var(--z-overlay-grain)=50     (SVG fractal noise)
  *   #glitchOverlay z=var(--z-overlay-glitch)=55    (phase transition flash)
- *   #preFlash      z=var(--z-overlay-flash)=101    (white boot completion flash)
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── WebGL canvas (Three.js — always bottom of stack) ───────────────────── */
@@ -391,41 +393,6 @@ body.cursor-hover-link #cursor::before {
   }
 }
 
-/* ── Pre-flash (white flash at boot completion) ──────────────────────────── */
-
-#preFlash {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-overlay-flash);
-  background: white;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 100ms;
-}
-
-#preFlash.flash {
-  animation: preFlashAnim 500ms ease-out forwards;
-}
-
-/* 4b-2 rework: softened from a 0.95 white-out to a gentle ignition pulse.
- * The old full-white flash fired at boot-complete — exactly when the whole
- * brain is framed and the dolly begins — hiding the "cérebro inteiro" reveal.
- * A low-opacity cyan-tinted pulse keeps the "synaptic handoff" beat without
- * blanking the brain. */
-@keyframes preFlashAnim {
-  0% {
-    opacity: 0.28;
-  }
-
-  15% {
-    opacity: 0.18;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
-
 /* ── Scramble character reveal ───────────────────────────────────────────── */
 
 .scramble-char {
@@ -445,7 +412,7 @@ body.cursor-hover-link #cursor::before {
   }
 }
 
-/* ── Pulse animations (HUD live dot + preloader core) ───────────────────── */
+/* ── Pulse animation (HUD live dot) ───────────────────────────────────────── */
 
 @keyframes pulseDot {
   0%,
@@ -457,19 +424,6 @@ body.cursor-hover-link #cursor::before {
   50% {
     opacity: 0.3;
     transform: scale(0.6);
-  }
-}
-
-@keyframes pulseCore {
-  0%,
-  100% {
-    opacity: 0.9;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 0.4;
-    transform: scale(0.85);
   }
 }
 
@@ -570,37 +524,13 @@ body.cursor-hover-link #cursor::before {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * §7 — Preloader
+ * §7 — Intro / boot atmosphere
  *
- * Fullscreen boot sequence overlay — z=100 (below cursor/preFlash).
- * Ported from v0 VHXCO.html:605-713.
- * Uses design tokens: --color-cyan, --color-cyan-deep, --color-dim, --font-mono.
+ * The old cinematic preloader overlay (#preloader + rings/meta/bar/ticker) was
+ * removed — the only loading UI is now the brain forming on the canvas
+ * (uBootProgress), driven by boot-driver.ts. What remains here is the intro
+ * dolly atmosphere tweak on the WebGL canvas (approved in the 4b-2 rework).
  * ═══════════════════════════════════════════════════════════════════════════ */
-
-#preloader {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-preloader);
-  /* 4b-2 rework: TRANSPARENT preloader — the loading IS the reveal.
-   * The WebGL canvas (z=1) shows through, so the "brain being born"
-   * (uBootProgress driving soma/cloud birth) is visible forming from afar
-   * while the boot HUD (rings/meta/bar) floats on top. A subtle radial
-   * darkening keeps the boot text legible against the bright brain birth
-   * without hiding the canvas. */
-  background: radial-gradient(
-    ellipse 70% 60% at 50% 50%,
-    rgba(0, 0, 0, 0.35) 0%,
-    rgba(0, 0, 0, 0.15) 55%,
-    transparent 100%
-  );
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition:
-    opacity 800ms ease,
-    visibility 800ms;
-}
 
 /* 4b-2 rework: while the intro dolly is armed/running, the brain-birth is the
  * protagonist — lift the D7 atmosphere filter (which dims to 45% + blurs) so
@@ -608,100 +538,6 @@ body.cursor-hover-link #cursor::before {
  * data-intro is removed and the canvas settles back to the receded look. */
 body[data-intro="active"] #webgl {
   filter: brightness(0.85) saturate(0.7);
-}
-
-#preloader.done {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-/* ── Pulsing brain mark ─────────────────────────────────────────────────── */
-
-.pre-mark {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pre-mark .ring {
-  position: absolute;
-  inset: 0;
-  border: 1px solid var(--color-cyan);
-  border-radius: 50%;
-  opacity: 0.3;
-}
-
-.pre-mark .ring.r2 {
-  inset: -20px;
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
-.pre-mark .ring.r3 {
-  inset: -40px;
-  border-color: rgba(255, 255, 255, 0.03);
-}
-
-.pre-mark .core {
-  width: 8px;
-  height: 8px;
-  background: var(--color-cyan);
-  border-radius: 50%;
-  box-shadow:
-    0 0 30px var(--color-cyan),
-    0 0 60px var(--color-cyan-deep);
-  animation: pulseCore 1.4s ease-in-out infinite;
-}
-
-/* ── Meta text ──────────────────────────────────────────────────────────── */
-
-.pre-meta {
-  margin-top: 60px;
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-widest);
-  text-transform: uppercase;
-  color: var(--color-dim);
-  text-align: center;
-  line-height: 2;
-}
-
-/* ── Progress fill bar ──────────────────────────────────────────────────── */
-
-.pre-bar {
-  margin-top: 24px;
-  width: 240px;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-}
-
-.pre-bar .fill {
-  height: 100%;
-  width: 0;
-  background: var(--color-cyan);
-  box-shadow: 0 0 8px var(--color-cyan);
-  transition: width var(--dur-ambient) var(--ease-emphasized);
-}
-
-/* ── Boot step ticker ───────────────────────────────────────────────────── */
-
-.pre-systems {
-  margin-top: 36px;
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
-  color: rgba(255, 255, 255, 0.4);
-  text-transform: uppercase;
-  height: 14px;
-  text-align: center;
-}
-
-.pre-systems .ok {
-  color: var(--color-cyan);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2344,9 +2180,9 @@ h1.headline .strike::after {
  * §9 — prefers-reduced-motion guard
  *
  * Users who set "reduce motion" in their OS get:
- *   - Infinite ambient animations disabled (pulseDot, pulseCore, spin, scrollPulse)
+ *   - Infinite ambient animations disabled (pulseDot, spin, scrollPulse)
  *   - All CSS transitions collapsed to near-zero (0.01ms)
- *   - One-shot entrance animations (glitchFlash, scrambleIn, extractIn, preFlashAnim)
+ *   - One-shot entrance animations (glitchFlash, scrambleIn, extractIn)
  *     also collapsed — JS should respect this and skip triggering them
  *
  * Note: 0.01ms instead of 0ms avoids a Chrome bug where transition events
@@ -2367,14 +2203,6 @@ h1.headline .strike::after {
     from,
     to {
       opacity: 1;
-      transform: none;
-    }
-  }
-
-  @keyframes pulseCore {
-    from,
-    to {
-      opacity: 0.9;
       transform: none;
     }
   }
@@ -2414,13 +2242,6 @@ h1.headline .strike::after {
     to {
       color: var(--color-dim);
       text-shadow: none;
-    }
-  }
-
-  @keyframes preFlashAnim {
-    from,
-    to {
-      opacity: 0;
     }
   }
 
