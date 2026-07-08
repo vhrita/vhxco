@@ -278,7 +278,6 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
   // Reduced-motion static mode: after the single settle frame we stop the loop
   // entirely (no rAF churn). Set true in start() when prefers-reduced-motion.
   let staticMode = false;
-  let staticFrameDrawn = false;
 
   function isPaused(): boolean {
     return documentHidden || canvasOffscreen;
@@ -478,7 +477,6 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     // Reduced-motion static mode: one settle frame paints the fully-formed brain
     // at f(0), then we stop the loop entirely — no rAF churn, cheapest render.
     if (staticMode) {
-      staticFrameDrawn = true;
       running = false;
       rafId = 0;
       return;
