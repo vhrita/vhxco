@@ -254,6 +254,96 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
 
   // Reusable Vector3 for lerp during intro (avoids GC per frame)
   const _introPos = new Vector3();
+  // Scratch for the curve landing point — computed once (curve is static), reused
+  // every intro frame instead of allocating a fresh Vector3 via getPointAt(0).
+  const _landPos = new Vector3();
+  curve.getPointAt(0, _landPos);
+
+  // ── fps cap (Phase 4b-2 perf) ─────────────────────────────────────────────
+  // The rAF fires at display refresh (up to 120fps on ProMotion / high-Hz
+  // panels). Capping at ~60fps halves GPU work on those screens with no visible
+  // difference — the animation is wall-clock driven (t_anim = now - startTime),
+  // so dropping frames preserves temporal correctness (no slow-mo).
+  const FRAME_MIN_MS = 1000 / 61; // 61 as headroom so we don't clip legit 60fps frames
+  let lastDrawn = 0;
+
+  // ── Visibility / offscreen pause (Phase 4b-2 perf) ────────────────────────
+  // Two independent gates suspend the rAF when rendering is pointless:
+  //   - documentHidden: tab is backgrounded (visibilitychange)
+  //   - canvasOffscreen: the hero canvas has scrolled out of the viewport
+  // When either is true the loop stops requesting frames; a resume re-arms it.
+  let documentHidden =
+    typeof document !== "undefined" && document.visibilityState === "hidden";
+  let canvasOffscreen = false;
+  // Reduced-motion static mode: after the single settle frame we stop the loop
+  // entirely (no rAF churn). Set true in start() when prefers-reduced-motion.
+  let staticMode = false;
+  let staticFrameDrawn = false;
+
+  function isPaused(): boolean {
+    return documentHidden || canvasOffscreen;
+  }
+
+  // Re-arm the rAF after a pause (tab refocus / canvas scrolled back in). Resets
+  // prevTime so the first post-resume dt isn't a huge wall-clock gap (already
+  // clamped to 0.1 in render, but this keeps t_anim continuous & avoids a jolt).
+  function resume(): void {
+    if (!running || staticMode || isPaused() || rafId) return;
+    prevTime = performance.now() / 1000;
+    lastDrawn = 0;
+    rafId = requestAnimationFrame(render);
+  }
+
+  // Teardown callbacks for the visibility/intersection listeners (filled in start()).
+  let teardownListeners: (() => void) | null = null;
+
+  function setupPauseListeners(): void {
+    if (typeof document === "undefined" || teardownListeners) return;
+
+    const onVisibility = (): void => {
+      documentHidden = document.visibilityState === "hidden";
+      if (documentHidden) {
+        // Cancel the pending frame so the loop truly idles while backgrounded.
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = 0;
+        }
+      } else {
+        resume();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // IntersectionObserver: pause when the hero canvas scrolls out of view.
+    let io: IntersectionObserver | null = null;
+    const canvas = ctx.renderer.domElement;
+    if (typeof IntersectionObserver !== "undefined" && canvas) {
+      io = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          if (!entry) return;
+          canvasOffscreen = !entry.isIntersecting;
+          if (canvasOffscreen) {
+            if (rafId) {
+              cancelAnimationFrame(rafId);
+              rafId = 0;
+            }
+          } else {
+            resume();
+          }
+        },
+        // A tiny margin so we don't thrash right at the edge.
+        { rootMargin: "64px", threshold: 0 },
+      );
+      io.observe(canvas);
+    }
+
+    teardownListeners = (): void => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      io?.disconnect();
+      teardownListeners = null;
+    };
+  }
 
   // ── QA-only intro-debug hook (opt-in via ?introDebug) ─────────────────────
   // Lets QA freeze the dolly at a fixed progress p to capture deterministic
@@ -276,7 +366,18 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     /[?&]bootDebug\b/.test(window.location.search);
 
   function render(): void {
-    const now = performance.now() / 1000;
+    // ── fps cap ───────────────────────────────────────────────────────────────
+    // Skip the heavy body if we're inside the per-frame budget, but keep the rAF
+    // alive so we sample again shortly. Uses raw ms clock (perf.now) for the gate.
+    // staticMode draws exactly one settle frame then stops, so it bypasses the cap.
+    const nowMs = performance.now();
+    if (!staticMode && nowMs - lastDrawn < FRAME_MIN_MS) {
+      if (running && !isPaused()) rafId = requestAnimationFrame(render);
+      return;
+    }
+    lastDrawn = nowMs;
+
+    const now = nowMs / 1000;
     const dt = Math.min(now - prevTime, 0.1);
     prevTime = now;
     const t_anim = (now - startTime) * animSpeed;
@@ -300,9 +401,9 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
         introDebug && introDebugP !== null ? introDebugP : timeRawP;
       const p = _cubicOut(Math.min(rawP, 1));
 
-      // Landing position: curve start point (same target as applyCameraF at t=0)
-      const landPos = curve.getPointAt(0);
-      lerpV3(_introPos, INTRO_START_POS, landPos, p);
+      // Landing position: curve start point (same target as applyCameraF at t=0).
+      // _landPos is precomputed once (curve is static) — no per-frame allocation.
+      lerpV3(_introPos, INTRO_START_POS, _landPos, p);
       ctx.camera.position.copy(_introPos);
 
       // Keep up before lookAt (always required for Three.js lookAt to orient correctly)
@@ -374,7 +475,17 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     // ── Compose + render ──────────────────────────────────────────────────────
     ctx.composer.render();
 
-    if (running) rafId = requestAnimationFrame(render);
+    // Reduced-motion static mode: one settle frame paints the fully-formed brain
+    // at f(0), then we stop the loop entirely — no rAF churn, cheapest render.
+    if (staticMode) {
+      staticFrameDrawn = true;
+      running = false;
+      rafId = 0;
+      return;
+    }
+
+    // Reschedule unless paused (tab hidden / canvas scrolled offscreen).
+    if (running && !isPaused()) rafId = requestAnimationFrame(render);
   }
 
   function start(): void {
@@ -389,10 +500,23 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (reducedMotion) {
-      // Skip intro entirely — place camera at f(0) immediately
+      // Skip intro entirely — place camera at f(0) immediately.
       introPending = false;
       introActive = false;
       applyCameraF(ctx, 0, curve);
+      // Force the network fully-formed (no genesis animation) and mark static so
+      // render() paints exactly ONE settle frame then stops the rAF. This is the
+      // cheapest possible render path: brain formed, content revealed, no loop.
+      bootProgress.set(1);
+      staticMode = true;
+      // Content is revealed immediately (no dolly to wait for): drop the intro
+      // marker and fire intro-done so the reveal hooks run.
+      if (typeof document !== "undefined") {
+        delete document.body.dataset.intro;
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("journey:intro-done"));
+      }
     } else {
       // Compute the far start from the real aspect ratio (frames whole brain),
       // then park the camera there — the dolly fires when bootProgress >= 1.
@@ -433,6 +557,10 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
       };
     }
 
+    // Animated path only: arm the visibility/offscreen pause listeners. Static
+    // (reduced-motion) mode stops after one frame, so it never needs them.
+    if (!staticMode) setupPauseListeners();
+
     rafId = requestAnimationFrame(render);
   }
 
@@ -442,6 +570,7 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
       cancelAnimationFrame(rafId);
       rafId = 0;
     }
+    teardownListeners?.();
   }
 
   return { start, stop };
