@@ -61,15 +61,6 @@ const t = getT(locale as Locale);
       <slot />
     </main>
 
-    <!--
-      QA iter-07: scroll-cue moved back inline into PhaseCore.astro (last child
-      of .core-content). Iter-04..06 used position:fixed at body level which
-      caused the chip to occlude paragraphs. Inline placement lets the cue flow
-      naturally at the foot of the core content and scrolls with it.
-      The subscribePhase script below still writes `data-active-phase` on the
-      body — kept because other future chrome may depend on it.
-    -->
-
     <script>
       // Boot driver — advances bootProgress 0→1 (forms the brain on the canvas)
       // and dispatches 'bootComplete' (drives the dolly + content reveal).

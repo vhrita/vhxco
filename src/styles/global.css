@@ -8,12 +8,8 @@
  *   4. Base resets
  *   5. Custom Cursor (ADR D6) — cursor + trail + ripple CSS
  *   6. Cinema CSS — keyframes + overlay classes (NOT Tailwind — kept as pure CSS)
- *   7. HUD (4 corners + TopNav + Waveform + skip-link)
+ *   7. HUD (TopNav + skip-link)
  *   8. prefers-reduced-motion guard
- *
- * NOTE: the old cinematic preloader overlay (§7 rings / SYNAPSE OS meta /
- * progress bar / boot ticker + #preFlash) was removed — the only loading UI is
- * now the brain forming on the canvas (uBootProgress). See boot-driver.ts.
  */
 
 @import "tailwindcss";
@@ -924,12 +920,7 @@ body[data-intro="active"] #webgl {
    * Fallback: `center` for browsers without safe (rare; all modern support it). */
   justify-content: safe center;
   padding: 1.5rem var(--safe-x);
-  /* iter-11: overflow changed to hidden — no internal scroll on .phase ever.
-   * Scroll driver for the 3D animation is body / the phase-orchestrator wheel
-   * handler. overflow-y: auto (added iter-08 Move A) allowed phases to absorb
-   * wheel events before the orchestrator could consume them, breaking phase
-   * transitions when Hero text was long enough to overflow. overscroll-behavior
-   * and scroll-padding-block are now dead props — removed to avoid confusion. */
+  /* iter-11: overflow changed to hidden — no internal scroll on .phase ever. */
   overflow: hidden;
   pointer-events: none;
   opacity: 0;
@@ -1858,9 +1849,9 @@ h1.headline .strike::after {
  * §14 — Extractable cascade safety fallback (Fix-set E)
  *
  * .extractable elements start hidden (opacity: 0 + transform) and are
- * animated in by extractIn when .phase[data-active] is set by the
- * phase-orchestrator. If data-active never arrives (boot race or JS error),
- * this rule kicks in after 1.5s and makes content visible anyway.
+ * animated in by extractIn when .phase[data-active] is set. If data-active
+ * never arrives (boot race or JS error), this rule kicks in after 1.5s and
+ * makes content visible anyway.
  *
  * Delay is generous enough that the normal animation path wins when JS
  * loads correctly — this is a defensive guard only.
