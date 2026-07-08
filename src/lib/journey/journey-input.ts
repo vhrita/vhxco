@@ -99,8 +99,11 @@ function _onStoreChange(): void {
 
 function _applyEasing(): void {
   if (_reducedMotion) {
-    // No smoothing in reduced-motion — jump is already done by handlers
-    _rafId = requestAnimationFrame(_applyEasing);
+    // No smoothing in reduced-motion — input handlers write setJourneyT directly
+    // (instant snap). There is nothing to converge, so DON'T reschedule the RAF:
+    // spinning an empty rAF forever would keep the page from ever idling. If the
+    // media query flips to non-reduced later, _onMqChange re-arms the loop.
+    _rafId = 0;
     return;
   }
   // Converge _easedT toward _target
@@ -243,7 +246,15 @@ export function createJourneyInput(
   _reducedMotion = mq?.matches ?? false;
 
   function _onMqChange(ev: MediaQueryListEvent): void {
+    const wasReduced = _reducedMotion;
     _reducedMotion = ev.matches;
+    // Transitioned reduced → normal: the easing RAF self-parked (see _applyEasing),
+    // so re-arm it. Sync _target/_easedT first so it doesn't lerp from a stale value.
+    if (wasReduced && !_reducedMotion && _rafId === 0) {
+      _target = getJourneyT();
+      _easedT = _target;
+      _rafId = requestAnimationFrame(_applyEasing);
+    }
   }
   mq?.addEventListener("change", _onMqChange);
 
