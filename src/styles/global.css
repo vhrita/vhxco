@@ -589,17 +589,13 @@ body[data-intro="active"] #webgl {
   z-index: var(--z-chrome);
   display: flex;
   align-items: center;
-  /* iter-08 Move B R3: gap reduced from 1.5rem — MuteButton added as sibling.
-   * At 375w: logo(~16px) + chapters(flex:1, shrinks) + lang(~70px) + mute(44px)
-   * + gutters already tight. Shrink gap to 0.75rem to recover ~18px. */
+  /* Row gap between logo / chapters / lang toggle. */
   gap: 0.75rem;
-  /* QA iter-01 Batch A: opaque chrome to stop phase content bleeding through.
-   * Previous translucent gradient (rgba 0.6 → 0) let h1/paragraphs read through
-   * the nav at every viewport < 1920px. */
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(12px) saturate(120%);
-  -webkit-backdrop-filter: blur(12px) saturate(120%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  /* No chrome background — nav floats naturally over the page (Vitor).
+   * Legibility over the 3D is kept via a very subtle top scrim (::before,
+   * a soft black→transparent gradient) + text-shadow on the nav items,
+   * not an opaque block/backdrop-blur. */
+  background: transparent;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   letter-spacing: var(--tracking-normal);
@@ -611,27 +607,40 @@ body[data-intro="active"] #webgl {
   container-type: inline-size;
 }
 
+/* Subtle top scrim — soft black→transparent gradient behind the floating nav
+ * so logo/chapters/lang stay legible over bright regions of the 3D without an
+ * opaque bar. Non-interactive; sits under the nav content. */
+.topnav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(0, 0, 0, 0.18) 55%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+}
+
 /* Isolation — creates stacking context for interactive chrome elements.
  * Ensures cursor mix-blend-mode: difference works consistently on TopNav
- * buttons, lang toggle, logo, and MuteButton regardless of paint layers. */
+ * buttons, lang toggle, and logo regardless of paint layers. */
 .topnav-chapter,
 .topnav-lang-btn,
-.topnav-logo,
-#muteBtn {
+.topnav-logo {
   isolation: isolate;
 }
 
 .topnav-logo {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  color: var(--color-fg);
   text-decoration: none;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: var(--tracking-wider);
-  white-space: nowrap;
   outline-offset: 4px;
+  flex-shrink: 0;
 }
 
 .topnav-logo:focus-visible {
@@ -639,13 +648,14 @@ body[data-intro="active"] #webgl {
   border-radius: 2px;
 }
 
-.topnav-logo-mark {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: var(--color-cyan);
-  border-radius: 50%;
-  flex-shrink: 0;
+.topnav-logo-img {
+  height: 26px;
+  width: auto;
+  display: block;
+  /* Full logo already trimmed to a 4:1 lockup; keep intrinsic ratio. */
+  aspect-ratio: 699 / 174;
+  /* Soft lift so the light wordmark reads over bright 3D regions. */
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
 }
 
 .topnav-chapters {
@@ -675,6 +685,8 @@ body[data-intro="active"] #webgl {
     color var(--dur-medium-fast) var(--ease-emphasized),
     border-color var(--dur-medium-fast) var(--ease-emphasized);
   outline-offset: 4px;
+  /* Legibility over bright 3D — nav has no opaque background anymore. */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
 .topnav-chapter:hover {
@@ -823,15 +835,6 @@ body[data-intro="active"] #webgl {
   }
 }
 
-/* QA iter-01 Batch C (P0-7): logo text "VHXCO" hidden in < 30rem (< 480px)
- * — only the cyan dot mark stays. Prevents logo from squishing chapter
- * buttons when num-only variant is already at minimum width. */
-@container (max-width: 30rem) {
-  .topnav-logo-text {
-    display: none;
-  }
-}
-
 .topnav-lang {
   display: flex;
   align-items: center;
@@ -853,6 +856,8 @@ body[data-intro="active"] #webgl {
     color var(--dur-fast) var(--ease-emphasized),
     border-color var(--dur-fast) var(--ease-emphasized);
   outline-offset: 4px;
+  /* Legibility over bright 3D — nav has no opaque background anymore. */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
 .topnav-lang-btn:hover {
@@ -869,8 +874,8 @@ body[data-intro="active"] #webgl {
   border-color: var(--color-cyan);
 }
 
-/* iter-08 Move B: small-viewport padding relief.
- * At ≤ 30rem (480px) the nav row is tight with logo+chapters+lang+mute.
+/* Small-viewport padding relief.
+ * At ≤ 30rem (480px) the nav row is tight with logo + chapters + lang.
  * Reduce horizontal padding from --safe-x to 0.75rem to recover ~24px. */
 @container (max-width: 30rem) {
   .topnav {
@@ -1325,7 +1330,7 @@ h1.headline .strike::after {
   align-items: center;
   gap: 0.75rem;
   margin-top: 2rem;
-  /* Respiro inferior pra não colar no HUD-BR/BL/mute em viewports curtas */
+  /* Respiro inferior pra não colar no HUD-BR/BL em viewports curtas */
   padding-bottom: 1rem;
   align-self: center;
   font-family: var(--font-mono);

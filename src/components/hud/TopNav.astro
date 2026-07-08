@@ -2,12 +2,12 @@
 /**
  * TopNav.astro
  *
- * Fixed top navigation: VHXCO logo + N chapter buttons + PT/EN lang toggle + MuteButton.
+ * Fixed top navigation: VHXCO logo (image) + N chapter buttons + PT/EN lang toggle.
  * Ported from VHXCO.html lines 1643-1657.
  *
- * iter-08 Move B: MuteButton moved from fixed BR corner into this nav row
- * (right-most element, after lang toggle). Eliminates chrome-vs-chrome conflict
- * in bottom-right corner across all viewports.
+ * Logo: full VHXCO lockup (cyan X + light wordmark) as an <img>, sized to the
+ * nav row. Replaces the previous text wordmark + cyan-dot mark.
+ * Audio/MuteButton fully removed (no sound system).
  *
  * Chapter labels: PT default. i18n dict is empty for now — hard-coded with TODO.
  * Lang toggle: PT → "/" | EN → "/en/" (Astro i18n routing).
@@ -24,7 +24,6 @@
  *             hard-coded labels with t('nav.chapter.N').
  */
 
-import MuteButton from './MuteButton.astro';
 import { STOP_COUNT } from '@/lib/neural-engine/hero-anchors';
 import { STOP_NAV_LABELS } from '@/lib/journey/stops-content';
 
@@ -49,8 +48,15 @@ const chapters = Array.from({ length: STOP_COUNT }, (_, i) => {
 
 <nav class="topnav" aria-label="Navegação principal">
   <a href="/" class="topnav-logo" aria-label="VHXCO — página inicial">
-    <span class="topnav-logo-mark" aria-hidden="true"></span>
-    <span class="topnav-logo-text">VHXCO</span>
+    <img
+      src="/vhxco-logo-nav-light.png"
+      alt="VHXCO"
+      class="topnav-logo-img"
+      width="112"
+      height="28"
+      decoding="async"
+      fetchpriority="high"
+    />
   </a>
 
   <div class="topnav-chapters" id="topnav-chapters" role="tablist" aria-label="Capítulos">
@@ -86,9 +92,6 @@ const chapters = Array.from({ length: STOP_COUNT }, (_, i) => {
       aria-current={locale === 'en' ? 'true' : undefined}
     >EN</a>
   </div>
-
-  <!-- iter-08 Move B: MuteButton right-most in nav row (D4 resolved) -->
-  <MuteButton />
 </nav>
 
 <script>
