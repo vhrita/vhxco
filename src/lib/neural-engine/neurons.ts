@@ -156,7 +156,16 @@ export function makeNeuralNetwork(scene: Scene): NeuralNetworkHandle {
   }
 
   // 3. SOMAS — InstancedMesh icosahedron (v0 lines 282-405)
-  const somaGeo = new IcosahedronGeometry(0.12, 4);
+  // [VISUAL-FLAG: detail 4 → 3] The soma vertex shader runs a full 3D simplex
+  // noise (snoise, ~70 ALU ops) PER VERTEX, every frame, across all 200 somas.
+  //   detail 4 = 10·4⁴+2 = 2562 verts → 200·2562 ≈ 512k snoise/frame
+  //   detail 3 = 10·4³+2 =  642 verts → 200· 642 ≈ 128k snoise/frame  (4× less)
+  // The somas are tiny (r=0.12, instance scale 0.6–1.2) so the extra surface
+  // subdivision of detail 4 is barely resolvable on screen; the noise displaces
+  // by only ±0.04. Dropping to 3 is a large vertex-shader saving for a subtle
+  // change in bumpiness. Vitor: confirm the neuron surface still reads right in
+  // the smoke (if you want the finer bump back, revert this one arg to 4).
+  const somaGeo = new IcosahedronGeometry(0.12, 3);
   // Three.js types: InstancedBufferGeometry.copy() signature is overly strict (InstancedBufferGeometry),
   // but at runtime it accepts any BufferGeometry. Cast to bypass — runtime safe.
   const somaGeoInst = new InstancedBufferGeometry().copy(
