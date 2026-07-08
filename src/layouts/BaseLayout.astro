@@ -49,7 +49,6 @@ const t = getT(locale as Locale);
     <!-- Fase 4a D7: backdrop vignette between canvas (z=1) and content (z=10) -->
     <div class="backdrop-vignette" aria-hidden="true"></div>
     <CustomCursor client:idle />
-    <!-- iter-08 Move B: MuteButton now rendered inside TopNav (right-most element) -->
     <noscript><HeroFallback /></noscript>
 
     <!-- HUD layer (z-index: var(--z-hud)) -->
@@ -70,28 +69,10 @@ const t = getT(locale as Locale);
       import('@/lib/neural-engine/boot-driver').then(({ startBootDriver }) => {
         startBootDriver();
       });
-
-      // Audio lazy-init gate — loads audio chunk only after first user click.
-      import('@/lib/audio/lazy-init');
-
-      // Boot-complete audio hook — fires audioBoot() when bootProgress reaches 1.0,
-      // but only if the audio module has already been loaded (user clicked at least once).
-      // This covers the "user clicked during preloader" path.
-      import('@/lib/neural-engine/boot-progress').then(({ bootProgress }) => {
-        let _bootFired = false;
-        bootProgress.subscribe((v) => {
-          if (_bootFired || v < 1.0) return;
-          _bootFired = true;
-          const audio = (window as unknown as Record<string, unknown>).__audioReady as
-            | { audioBoot: () => void }
-            | undefined;
-          audio?.audioBoot();
-        });
-      });
     </script>
     <script>
       // Mount journey input adapter after hydration (replaces phase-orchestrator).
-      // On activeStop change (not every frame), fire audioSwoosh() + update ambient.
+      // On activeStop change (not every frame), update the body dataset.
       //
       // Architecture (blueprint §4.4):
       //   - createJourneyInput() mounts wheel/touch/keyboard/HUD handlers.
@@ -113,22 +94,6 @@ const t = getT(locale as Locale);
             subscribeActiveStop(() => {
               const stop = getActiveStop();
               document.body.dataset.activeStop = String(stop);
-
-              // Audio hook — fires on stop change only (not 60fps)
-              const audio = (window as unknown as Record<string, unknown>).__audioReady as
-                | {
-                    audioSwoosh: () => void;
-                    // generalized: number (not union 0|1|2|3|4)
-                    setPhase: (n: number) => void;
-                    isMuted: () => boolean;
-                  }
-                | undefined;
-
-              if (!audio || audio.isMuted()) return;
-              // Map activeStop → audio bucket (clamp to 4 for backwards compat
-              // with synapse-sound.ts which has 5 phase buckets 0..4)
-              audio.setPhase(Math.min(4, Math.max(0, stop)));
-              audio.audioSwoosh();
             });
 
             // Dev-only global (replaces __phaseStore)

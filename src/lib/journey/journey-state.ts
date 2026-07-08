@@ -7,9 +7,9 @@
 // Architecture (blueprint §4.2 / §4.4):
 //   - setJourneyT(t) is INSTANT — clamps [0,1], recomputes activeStop,
 //     notifies listeners. No lerp here. Easing lives in journey-input.ts.
-//   - Two subscription tiers to avoid 60fps audio/DOM spam:
+//   - Two subscription tiers to avoid 60fps DOM spam:
 //       subscribeJourney(fn)   — fires every time t changes (React hook, render-loop)
-//       subscribeActiveStop(fn) — fires only when activeStop changes (audio, Phase*.astro,
+//       subscribeActiveStop(fn) — fires only when activeStop changes (Phase*.astro,
 //                                  TopNav active-button toggle)
 //
 // Blueprint §7 RAF ordering:
@@ -26,7 +26,7 @@ let _activeStop = 0;
 
 // Tier 1: every t change (React useSyncExternalStore, render-loop)
 const _journeyListeners = new Set<() => void>();
-// Tier 2: only activeStop changes (audio hooks, Phase*.astro data-active, TopNav)
+// Tier 2: only activeStop changes (Phase*.astro data-active, TopNav)
 const _stopListeners = new Set<() => void>();
 
 // ─── Setters ───────────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ export function setJourneyT(t: number): void {
   // Tier-1: every t change
   _journeyListeners.forEach((fn) => fn());
 
-  // Tier-2: only when activeStop changes (avoids 60fps audio/DOM spam)
+  // Tier-2: only when activeStop changes (avoids 60fps DOM spam)
   if (stopChanged) {
     _stopListeners.forEach((fn) => fn());
   }
@@ -80,7 +80,7 @@ export function subscribeJourney(fn: () => void): () => void {
 
 /**
  * Subscribe to activeStop changes only (fires at most N-1 times total, not 60fps).
- * Used by: audio hook, Phase*.astro data-active toggle, TopNav active button.
+ * Used by: Phase*.astro data-active toggle, TopNav active button.
  * Returns unsubscribe function.
  */
 export function subscribeActiveStop(fn: () => void): () => void {

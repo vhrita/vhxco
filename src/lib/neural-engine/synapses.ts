@@ -74,19 +74,6 @@ export function createSynapses(scene: Scene): SynapsesHandle {
           // Speed reduced: 0.3-0.6 (from 0.8-1.3 in v0)
           synapses.push({ nA, nB, progress: 0, speed: 0.3 + Math.random() * 0.3 });
           nA.lastFire = t;
-
-          // Audio ping on synapse fire — prob 0.08, rate-limited via spawn rate itself.
-          // Reads window.__audioReady so no import needed (lazy-loaded chunk).
-          if (Math.random() < 0.08) {
-            const audio = (
-              typeof window !== 'undefined'
-                ? (window as unknown as Record<string, unknown>).__audioReady
-                : undefined
-            ) as { audioPing?: () => void; isMuted?: () => boolean } | undefined;
-            if (audio && !audio.isMuted?.()) {
-              audio.audioPing?.();
-            }
-          }
         }
       }
     }

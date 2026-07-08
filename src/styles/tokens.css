@@ -59,7 +59,7 @@
   --z-canvas: 1; /* WebGL canvas + fallback */
   --z-content: 10; /* Phase content (rebaixado de 20 → 10) */
   --z-hud: 20; /* HUD corners (subiu de 10 → 20) */
-  --z-chrome: 30; /* TopNav, MuteButton (era hardcoded 9000/var(--z-hud)) */
+  --z-chrome: 30; /* TopNav (era hardcoded 9000/var(--z-hud)) */
   --z-overlay-scanline: 48; /* CRT scanlines */
   --z-overlay-vignette: 49; /* Dark edge vignette */
   --z-overlay-grain: 50; /* SVG fractal noise grain */
@@ -83,7 +83,7 @@
    */
 
   --safe-top: 3.5rem; /* altura reservada pra TopNav (56px) — desktop */
-  --safe-bottom: 3rem; /* altura reservada pra MuteButton + breathing room */
+  --safe-bottom: 3rem; /* breathing room na base + HUD-BR/BL */
   --safe-x: 1.5rem; /* gutter horizontal lateral (24px) */
   --safe-gap: 1rem; /* padding interno de HUD corners (16px) */
 
