@@ -9,7 +9,9 @@
  *     (NOT .is-active class toggled by JS) — Astro scoping constraint.
  *   - Stop 0 renders an <h1> (SEO + bootComplete scramble).
  *     All other stops render <h2>.
- *   - Stop 4 (action) has a form slot for DiagnoseForm.
+ *   - The last stop (action, index totalStops-1) has a form slot for DiagnoseForm.
+ *   - SERVIÇOS stop renders content.cards (3 compact service cards).
+ *   - Gabriel (PROVA body) is linkified to the Play Store (D5).
  *
  * Layout rules (same as mockup):
  *   - Fixed overlay over the canvas, not inside a scroll container.
@@ -21,6 +23,7 @@
  */
 
 import type { StopContent } from "@/lib/journey/stops-content";
+import { GABRIEL_PLAY_STORE_URL } from "@/lib/journey/stops-content";
 
 interface Props {
   /** 0-based stop index — matches activeStop from journey-state */
@@ -33,14 +36,19 @@ interface Props {
 
 const { stopIndex, totalStops, content } = Astro.props;
 
-const isHero = stopIndex === 0;     // renders <h1>, wires bootComplete scramble
-const isAction = stopIndex === 4;   // renders form slot instead of hud hint
+const isHero = stopIndex === 0;                 // renders <h1>, wires bootComplete scramble
+const isAction = stopIndex === totalStops - 1;  // renders form slot instead of hud hint (D1: derived, not hardcoded)
+const hasCards = Array.isArray(content.cards) && content.cards.length > 0;
 
 // Render headline with line breaks at \n
 const headlineLines = content.headline.split("\n");
 
 // Render body lines
 const bodyLines = content.body ? content.body.split("\n") : [];
+
+// D5: on the PROVA stop, the word "Gabriel" becomes a discreet Play Store link.
+// Detect per body-line so we can split around the token without touching other stops.
+const GABRIEL_TOKEN = "Gabriel";
 ---
 
 <div
@@ -86,19 +94,59 @@ const bodyLines = content.body ? content.body.split("\n") : [];
       </h2>
     )}
 
-    <!-- Body (optional) -->
+    <!-- Body (optional). D5: "Gabriel" is linkified to the Play Store. -->
     {bodyLines.length > 0 && (
       <p class="stop-body">
-        {bodyLines.map((line, i) => (
-          <>
-            {line}{i < bodyLines.length - 1 && <br />}
-          </>
-        ))}
+        {bodyLines.map((line, i) => {
+          const idx = line.indexOf(GABRIEL_TOKEN);
+          const withBreak = i < bodyLines.length - 1;
+          if (idx === -1) {
+            return (
+              <>
+                {line}{withBreak && <br />}
+              </>
+            );
+          }
+          const before = line.slice(0, idx);
+          const after = line.slice(idx + GABRIEL_TOKEN.length);
+          return (
+            <>
+              {before}
+              <a
+                class="stop-body-link"
+                href={GABRIEL_PLAY_STORE_URL}
+                target="_blank"
+                rel="noopener"
+              >{GABRIEL_TOKEN}</a>
+              {after}{withBreak && <br />}
+            </>
+          );
+        })}
       </p>
     )}
 
-    <!-- Action slot: form injected by parent for stop 4 -->
+    <!-- Service cards (SERVIÇOS stop only) — compact, stack on mobile -->
+    {hasCards && (
+      <ul class="stop-cards" role="list">
+        {content.cards!.map((card) => (
+          <li class="stop-card">
+            <span class="stop-card-num" aria-hidden="true">{card.num}</span>
+            <span class="stop-card-body">
+              <span class="stop-card-title">{card.title}</span>
+              <span class="stop-card-desc">{card.desc}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    )}
+
+    <!-- Action slot: form injected by parent for the last stop -->
     {isAction && <slot name="form" />}
+
+    <!-- Closing tagline (D2) — action stop only, subtle, below the form -->
+    {isAction && content.taglineClose && (
+      <p class="stop-tagline-close">{content.taglineClose}</p>
+    )}
 
     <!-- HUD hint (only for non-action stops) -->
     {!isAction && content.hudHint && (
@@ -281,6 +329,112 @@ const bodyLines = content.body ? content.body.split("\n") : [];
     line-height: 1.65;
     color: var(--color-dim);
     margin: 0;
+  }
+
+  /* ── Body link (D5: Gabriel → Play Store) ────────────────────────────────── */
+
+  .stop-body-link {
+    color: var(--color-cyan);
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-cyan-soft);
+    transition:
+      color 200ms,
+      border-color 200ms;
+  }
+
+  .stop-body-link:hover,
+  .stop-body-link:focus-visible {
+    color: var(--color-fg);
+    border-bottom-color: var(--color-cyan);
+    outline: none;
+  }
+
+  /* ── Service cards (SERVIÇOS stop) ───────────────────────────────────────── */
+
+  .stop-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 1.4svh, 0.875rem);
+  }
+
+  .stop-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: clamp(0.5rem, 1.4svh, 0.75rem) clamp(0.625rem, 2vw, 0.875rem);
+    border: 1px solid var(--color-cyan-soft);
+    border-radius: 3px;
+    background: rgba(94, 234, 255, 0.03);
+  }
+
+  .stop-card-num {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    color: var(--color-cyan);
+    line-height: 1.4;
+    flex: 0 0 auto;
+    padding-top: 0.05rem;
+  }
+
+  .stop-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1875rem;
+    min-width: 0;
+  }
+
+  .stop-card-title {
+    font-family: var(--font-display);
+    font-size: clamp(0.9375rem, 1.4vw + 0.6rem, 1.0625rem);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--color-fg);
+  }
+
+  .stop-card-desc {
+    font-family: var(--font-mono);
+    font-size: clamp(0.75rem, 1vw + 0.55rem, 0.8125rem);
+    line-height: 1.45;
+    color: var(--color-dim);
+  }
+
+  /* Desktop: cards can flow in a row when there's horizontal room. */
+  @media (min-width: 768px) {
+    .stop-inner {
+      max-width: 44rem;
+    }
+    .stop-cards {
+      flex-direction: row;
+    }
+    .stop-card {
+      flex: 1 1 0;
+    }
+  }
+
+  /* ── Closing tagline (D2) ────────────────────────────────────────────────── */
+
+  .stop-tagline-close {
+    font-family: var(--font-mono);
+    font-size: clamp(0.625rem, 0.9vw + 0.45rem, 0.75rem);
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+    color: var(--color-dim);
+    opacity: 0.6;
+    margin: 0;
+    margin-top: clamp(0.375rem, 1svh, 0.625rem);
+  }
+
+  /* On very short viewports (375×667) hide the tagline so the form never
+   * gets pushed out (D2 hard law: form fit wins). */
+  @media (max-height: 700px) {
+    .stop-tagline-close {
+      display: none;
+    }
   }
 
   /* ── HUD hint ────────────────────────────────────────────────────────────── */
