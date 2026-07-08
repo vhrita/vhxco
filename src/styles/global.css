@@ -264,9 +264,19 @@ body.cursor-hover-link #cursor::before {
   );
 }
 
-/* ── WebGL fallback (noscript / reduced-motion) ──────────────────────────── */
+/* ── WebGL fallback (noscript / no-WebGL) ────────────────────────────────────
+ * Two instances share this styling (see HeroFallback.astro):
+ *   #webgl-fallback       — rendered inside <noscript> (JS disabled).
+ *   #webgl-fallback-live  — always in the live DOM but HIDDEN by default;
+ *                           revealed only when the island detects no WebGL
+ *                           support and sets body[data-webgl="unavailable"].
+ * A subtle radial vignette (not flat black) keeps the void from reading as a
+ * broken/blank screen. The always-on .backdrop-vignette sits above it (z=2) and
+ * the journey content (z=10) reveals normally since the engine never mounts.
+ * ─────────────────────────────────────────────────────────────────────────── */
 
-#webgl-fallback {
+#webgl-fallback,
+#webgl-fallback-live {
   position: fixed;
   inset: 0;
   z-index: var(--z-webgl);
@@ -275,13 +285,32 @@ body.cursor-hover-link #cursor::before {
   justify-content: center;
   margin: 0;
   padding: 0;
-  background: #000;
+  /* Soft radial vignette instead of flat #000 — reads as "atmosphere", not a
+   * dead screen. Matches the receded look of the live canvas. */
+  background: radial-gradient(
+    ellipse 80% 70% at 50% 45%,
+    oklch(0.16 0.03 220) 0%,
+    #000 70%
+  );
 }
 
-#webgl-fallback svg {
+/* Live fallback stays out of the DOM flow until no-WebGL is confirmed. */
+#webgl-fallback-live {
+  display: none;
+}
+
+body[data-webgl="unavailable"] #webgl-fallback-live {
+  display: flex;
+}
+
+#webgl-fallback svg,
+#webgl-fallback-live svg {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  /* Match the receded, low-key look of the live canvas so the static stand-in
+   * doesn't shout louder than the 3D scene would. */
+  filter: brightness(0.7) saturate(0.7);
 }
 
 /* ── Glitch overlay ─────────────────────────────────────────────────────── */

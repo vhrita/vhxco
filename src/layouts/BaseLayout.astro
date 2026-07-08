@@ -39,6 +39,13 @@ const t = getT(locale as Locale);
     <a href="#main" class="skip-link">{t('a11y.skipToContent')}</a>
 
     <NeuralEngineIsland client:only="react" />
+    <!-- Fase 5: static neural fallback in the LIVE DOM, hidden by default.
+         Revealed via body[data-webgl="unavailable"] when the island detects no
+         WebGL support (old/corporate/GPU-blocked browsers) — the engine is not
+         mounted in that case, so this static brain stands in for the canvas and
+         the site stays usable (no black screen). The <noscript> copy below
+         covers the JS-disabled path. -->
+    <HeroFallback id="webgl-fallback-live" />
     <!-- Fase 4a D7: backdrop vignette between canvas (z=1) and content (z=10) -->
     <div class="backdrop-vignette" aria-hidden="true"></div>
     <CustomCursor client:idle />

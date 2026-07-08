@@ -11,11 +11,21 @@
  *
  * SEO: Google crawls <noscript> DOM, so the alt text here contributes to
  * image indexability (strategy §4.6).
+ *
+ * `id` prop: the <noscript> instance uses the default `webgl-fallback`; the
+ * live-DOM instance (revealed on no-WebGL) passes `webgl-fallback-live`. Both
+ * share the `#webgl-fallback, #webgl-fallback-live` CSS in global.css.
  */
+
+interface Props {
+  id?: string;
+}
+
+const { id = 'webgl-fallback' } = Astro.props;
 ---
 
 <figure
-  id="webgl-fallback"
+  id={id}
   aria-label="Visualização estática de uma rede neural digital — silhueta de um cérebro formada por partículas conectadas"
   role="img"
 >
