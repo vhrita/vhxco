@@ -93,12 +93,13 @@
    *   height ≈ 2 detail rows + chip padding = 56px
    *   width  ≈ longest label "NODE CORE/PRIMARY" + chip padding ≈ 176px
    *
-   * iter-09 Bug C: em ≥768px o chip HUD-TL mostra 3 linhas (VHXCO//SYNAPSE OS,
-   * NODE DATA/ROOM, SESSION KS79HEZC) — altura real ≈ 5rem. Em <768 os detalhes
-   * colapsam (container queries §8) para 1-2 linhas, então 3.5rem é suficiente.
+   * NOTE: o HUD decorativo de 4 cantos foi removido (opção A). Estes tokens
+   * sobrevivem como safe-inset do conteúdo — reservam a banda superior/inferior
+   * e o padding lateral do .phase/.core-content pra não colar nas bordas.
+   * Valores preservados pra manter o layout do conteúdo idêntico.
    */
-  --hud-corner-h: 3.5rem; /* 56px — <768px (chips colapsados) */
-  --hud-corner-w: 11rem; /* 176px */
+  --hud-corner-h: 3.5rem; /* 56px — banda vertical reservada <768px */
+  --hud-corner-w: 11rem; /* 176px — safe-inset lateral do core-content */
 
   /* Phase padding — content interno dos phases respeitando safe-zones + extra */
   --phase-padding-top: calc(var(--safe-top) + 1rem);
@@ -169,7 +170,7 @@
    * Bucket mapping:
    *   fast        120ms  → cursor inner, keyboard hover
    *   medium-fast 240ms  → cursor outer, rail step
-   *   medium      400ms  → ripple, HUD warn, hudWarn keyframe
+   *   medium      400ms  → ripple, phase reveals
    *   medium-slow 700ms  → ripple outer, phase panels
    *   slow        1200ms → phase transitions, slow reveals
    *   ambient     1600ms → pre-bar fill, infinite pulses context
@@ -183,13 +184,12 @@
   --dur-ambient: 1600ms;
 }
 
-/* iter-09 Bug C: ≥768px — HUD-TL chip exibe 3 linhas de texto (VHXCO//SYNAPSE OS,
- * NODE CORE/PRIMARY, SESSION KS79HEZC) via container queries §8 (hud-detail-2
- * aparece em ≥480px, hud-detail-1 aparece em ≥768px). Altura real ≈ 5rem (80px).
- * .phase top = safe-top + hud-corner-h — bump aqui afasta o container de
- * conteúdo do chip sem mexer no mobile (onde chips colapsam pra 1-2 linhas). */
+/* ≥768px: banda vertical de safe-inset maior (80px). Valor preservado do
+ * layout original (quando reservava espaço pro antigo chip HUD-TL de 3 linhas);
+ * o HUD saiu, mas o .phase top = safe-top + hud-corner-h continua afastando o
+ * conteúdo das bordas superior/inferior de forma consistente. */
 @media (min-width: 48rem) {
   :root {
-    --hud-corner-h: 5rem; /* 80px — ≥768px (3-row chip) */
+    --hud-corner-h: 5rem; /* 80px — banda vertical reservada ≥768px */
   }
 }

@@ -374,25 +374,6 @@ body.cursor-hover-link #cursor::before {
   }
 }
 
-/* ── HUD warn flash ──────────────────────────────────────────────────────── */
-
-@keyframes hudWarn {
-  0% {
-    color: var(--color-warn);
-    text-shadow: 0 0 8px var(--color-warn);
-  }
-
-  50% {
-    color: var(--color-cyan);
-    text-shadow: 0 0 12px var(--color-cyan);
-  }
-
-  100% {
-    color: var(--color-dim);
-    text-shadow: none;
-  }
-}
-
 /* ── Scramble character reveal ───────────────────────────────────────────── */
 
 .scramble-char {
@@ -541,11 +522,11 @@ body[data-intro="active"] #webgl {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * §8 — HUD (4 corners + TopNav + Waveform + skip-link)
+ * §8 — HUD (TopNav + skip-link)
  *
  * All HUD elements use var(--font-mono) — Helvetica Neue is NOT used here.
  * Z-index: var(--z-hud) = 20 (above content=10, below chrome=30/overlays/cursor).
- * HUD corners always visible (dense-phase hide removed — TASK-0928).
+ * The decorative 4-corner telemetry HUD + waveform was removed (opção A).
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Skip link (a11y) ────────────────────────────────────────────────────── */
@@ -569,145 +550,6 @@ body[data-intro="active"] #webgl {
   top: 1rem;
   outline: 2px solid var(--color-cyan);
   outline-offset: 2px;
-}
-
-/* ── HUD container ───────────────────────────────────────────────────────── */
-
-.hud {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-hud);
-  pointer-events: none;
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  line-height: var(--leading-relaxed);
-  letter-spacing: var(--tracking-wide);
-  color: var(--color-dim);
-  transition: opacity var(--dur-medium-fast) var(--ease-emphasized);
-  /* Container context — enables @container queries on HUD detail rows */
-  container-type: inline-size;
-}
-
-/* HUD detail visibility — controlled by container queries on .hud.
- *
- * QA iter-03: classes têm semântica de "qual viewport mínimo eu apareço":
- *   .hud-detail-2 = aparece em ≥480px (480-768 + 768+; some em <480)
- *   .hud-detail-1 = aparece em ≥768px (some em <768)
- * Elements stay in DOM — só `display` é toggled.
- *
- * QA iter-04 (Issue #4): selectors raised to `.hud-corner > .hud-detail-N`
- * specificity (0,2,0) to override the base `.hud-corner > div { display: flex }`
- * rule (same specificity 0,2,0 — but the base rule loses on cascade order
- * because @container blocks here come AFTER). Iter-03 selectors `.hud-detail-N`
- * (0,1,0) were losing to the base rule, so NODE/SESSION lines stayed visible
- * in 375 viewport even though the @container query matched.
- *
- * Estratégia: viewport pequeno → corner mostra só a linha primária; cada
- * range agrega uma row a mais. Substitui o approach iter-02 de empurrar
- * `.phase` lateralmente pra "evitar" o canto direito (que esmagava o
- * content em telas pequenas — width útil caía pra 119px em 375w). */
-
-@container (max-width: 30rem) {
-  .hud-corner > .hud-detail-1,
-  .hud-corner > .hud-detail-2 {
-    display: none;
-  }
-
-  /* QA iter-02 (P1-A): chips HUD-TL/TR mais opacos em <480px pra esconder
-   * bleed de eyebrow phase 1 (centralizado, cai atrás do chip translúcido). */
-  .hud-tl,
-  .hud-tr {
-    background: rgba(0, 0, 0, 0.85);
-  }
-}
-
-@container (min-width: 30rem) and (max-width: 47.99rem) {
-  .hud-corner > .hud-detail-2 {
-    display: flex;
-  }
-
-  .hud-corner > .hud-detail-1 {
-    display: none;
-  }
-}
-
-@container (min-width: 48rem) {
-  .hud-corner > .hud-detail-1,
-  .hud-corner > .hud-detail-2 {
-    display: flex;
-  }
-}
-
-/* ── HUD corners ─────────────────────────────────────────────────────────── */
-
-.hud-corner {
-  position: absolute;
-  /* QA iter-01 Batch A: chip background so HUD corner text stops bleeding
-   * over phase content (h1, paragraphs, table rows). Padding is tightened
-   * from --safe-gap (1rem) to a snug chip metric to keep the box discreet. */
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 2px;
-  padding: 0.5rem 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2em;
-}
-
-/* Each row inside a corner: label + value on same line */
-.hud-corner > div {
-  display: flex;
-  gap: 0.5em;
-  align-items: baseline;
-  line-height: 1.5;
-}
-
-/* Right-aligned corners: flip the row direction */
-.hud-tr > div,
-.hud-br > div {
-  flex-direction: row-reverse;
-}
-
-.hud-tl {
-  top: var(--safe-top);
-  left: var(--safe-x);
-}
-.hud-tr {
-  top: var(--safe-top);
-  right: var(--safe-x);
-}
-.hud-bl {
-  bottom: var(--safe-bottom);
-  left: var(--safe-x);
-}
-.hud-br {
-  bottom: var(--safe-bottom);
-  right: var(--safe-x);
-}
-
-.hud-label {
-  color: var(--color-dim);
-  opacity: 0.7;
-  user-select: none;
-  flex-shrink: 0;
-}
-
-.hud-v {
-  color: var(--color-fg);
-  opacity: 0.85;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Live indicator — pulsing dot */
-.hud-live {
-  color: var(--color-cyan);
-  animation: pulseDot 2s infinite;
-}
-
-/* Warn flash — applied by triggerWarnFlash() */
-.hud-corner.hud-warn {
-  animation: hudWarn var(--dur-medium) ease-out forwards;
 }
 
 /* ── TopNav ──────────────────────────────────────────────────────────────── */
@@ -1011,14 +853,6 @@ body[data-intro="active"] #webgl {
   }
 }
 
-/* ── HudWaveform canvas ──────────────────────────────────────────────────── */
-
-#hudWaveform {
-  margin-left: 0.5rem;
-  vertical-align: middle;
-  opacity: 0.9;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
  * §10 — Phase layout + Phase 01 Core
  *
@@ -1148,12 +982,9 @@ body[data-active-stop="4"] #persistent-cta {
  * gerencia alinhamento vertical. .phase[data-phase="3"] padding-bottom extra
  * removido — obsoleto com Move A (scroll container já não inclui zona dos chips). */
 
-/* QA iter-03: revertido. Iter-02 P0-B aplicou padding lateral igual a
- * `calc(--safe-x + --hud-corner-w)` em <1280px pra evitar bleed de content
- * sob HUD-BR. Resultado: em 375px largura útil caía pra ~119px e h1 quebrava
- * em 8 linhas. Estratégia trocada: encolher HUD corners (esconder spans via
- * container queries) em vez de empurrar todo o content. Vide regras
- * `@container` na seção .hud. */
+/* Histórico QA iter-03: o padding lateral do content usa --hud-corner-w como
+ * safe-inset. O HUD decorativo que esse inset originalmente evitava foi removido
+ * (opção A), mas o inset é mantido pra preservar o respiro lateral do conteúdo. */
 
 /* ── Phase scrim — shared glass/HUD backdrop (Fix-set QA-night-iter01) ──────
  *
@@ -2234,14 +2065,6 @@ h1.headline .strike::after {
     from,
     to {
       opacity: 0;
-    }
-  }
-
-  @keyframes hudWarn {
-    from,
-    to {
-      color: var(--color-dim);
-      text-shadow: none;
     }
   }
 
