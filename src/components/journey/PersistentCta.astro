@@ -6,8 +6,8 @@
  * Key differences from the mockup:
  *   - href="#stop-acao" replaced with button that dispatches hud:goto-phase.
  *     journey-input.ts handles the event internally (setJourneyProgress to
- *     stopProgress(4)). CustomEvent payload: { detail: { phase: 4 } }.
- *   - Hides when activeStop === 4 (already at the action stop — no CTA needed).
+ *     the action stop). CustomEvent payload: { detail: { phase: STOP_COUNT-1 } }.
+ *   - Hides when at the last (action) stop — no CTA needed.
  *     Visibility driven by body[data-active-stop] in global.css (must be global
  *     to cross component scope boundaries, same constraint as JourneyStop).
  *
@@ -17,11 +17,16 @@
  * Locale: locale prop for aria-label and button text.
  */
 
+import { STOP_COUNT } from '@/lib/journey/stops.config';
+
 interface Props {
   locale?: 'pt' | 'en';
 }
 
 const { locale = 'pt' } = Astro.props;
+
+// Action stop = last stop. Derive, never hardcode.
+const actionIndex = STOP_COUNT - 1;
 
 const label = locale === 'en'
   ? 'Go to diagnostic form'
@@ -35,19 +40,22 @@ const ctaText = locale === 'en' ? 'Diagnose →' : 'Diagnosticar →';
   id="persistent-cta"
   aria-label={label}
   type="button"
+  data-action-index={actionIndex}
 >
   {ctaText}
 </button>
 
 <script>
   // Wire to hud:goto-phase event (journey-input.ts handles internally).
-  // CustomEvent payload: { detail: { phase: 4 } } — same as TopNav click.
+  // Phase = last (action) stop index, read from data-action-index (derived
+  // from STOP_COUNT at build time) — same event as TopNav click.
   const btn = document.getElementById('persistent-cta');
 
   if (btn) {
+    const actionIndex = parseInt(btn.dataset.actionIndex ?? '0', 10);
     btn.addEventListener('click', () => {
       window.dispatchEvent(
-        new CustomEvent('hud:goto-phase', { detail: { phase: 4 } }),
+        new CustomEvent('hud:goto-phase', { detail: { phase: actionIndex } }),
       );
     });
   }

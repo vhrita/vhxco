@@ -957,7 +957,8 @@ body[data-active-stop="0"] .journey-stop[data-stop="0"],
 body[data-active-stop="1"] .journey-stop[data-stop="1"],
 body[data-active-stop="2"] .journey-stop[data-stop="2"],
 body[data-active-stop="3"] .journey-stop[data-stop="3"],
-body[data-active-stop="4"] .journey-stop[data-stop="4"] {
+body[data-active-stop="4"] .journey-stop[data-stop="4"],
+body[data-active-stop="5"] .journey-stop[data-stop="5"] {
   opacity: 1;
   pointer-events: auto;
 }
@@ -980,19 +981,19 @@ body[data-intro="active"] #persistent-cta {
   pointer-events: none !important;
 }
 
-/* ── PersistentCta visibility (Fase 4a Sub-passo 3) ─────────────────────────
- * Hide the persistent CTA when already at stop 4 (action stop).
+/* ── PersistentCta visibility (Fase 4a S3 · N=6 update) ─────────────────────
+ * Hide the persistent CTA when already at the last stop (action stop = 5).
  * Must live in global.css — crosses body→#persistent-cta scope boundary.
  * ─────────────────────────────────────────────────────────────────────────── */
 
 #persistent-cta {
-  /* Visible by default (stops 0–3) */
+  /* Visible by default (stops 0–4) */
   opacity: 1;
   pointer-events: auto;
   transition: opacity 300ms ease;
 }
 
-body[data-active-stop="4"] #persistent-cta {
+body[data-active-stop="5"] #persistent-cta {
   opacity: 0;
   pointer-events: none;
 }

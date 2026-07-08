@@ -36,19 +36,64 @@ const formLabels = {
 };
 
 const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
+
+// Form renders on the last (action) stop — derive, never hardcode.
+const actionIndex = totalStops - 1;
+
+const metaDescription =
+  'Software house agêntica: software sob medida e automação com agentes de IA, revisados por um engenheiro sênior. Escopo e preço fechados. Diagnóstico gratuito em 7 dias.';
+
+// JSON-LD: Organization + 3 Service (the SERVIÇOS cards) — indexable detail
+// that doesn't fit the screen.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      name: 'VHXCO',
+      description:
+        'Software house agêntica: um engenheiro sênior no comando de agentes de IA que planejam, codam, testam e entregam software sob medida.',
+      url: Astro.site?.href ?? 'https://vhxco.io/',
+    },
+    {
+      '@type': 'Service',
+      name: 'Software sob medida',
+      description:
+        'MVP, sistema ou app do zero à produção, com código, testes e deploy. Escopo e preço fechados antes de começar.',
+      provider: { '@type': 'Organization', name: 'VHXCO' },
+    },
+    {
+      '@type': 'Service',
+      name: 'Automação agêntica',
+      description:
+        'Processos manuais da operação passam a rodar sozinhos com agentes de IA, medidos em horas humanas economizadas.',
+      provider: { '@type': 'Organization', name: 'VHXCO' },
+    },
+    {
+      '@type': 'Service',
+      name: 'Diagnóstico Agentic',
+      description:
+        'Plano de ação escrito em 7 dias — o que automatizar, o que construir, o que cortar. Gratuito e sem compromisso.',
+      provider: { '@type': 'Organization', name: 'VHXCO' },
+    },
+  ],
+};
 ---
 
 <BaseLayout
-  title="VHXCO — Software movido por agentes de IA"
+  title="VHXCO — Software sob medida construído por agentes de IA"
+  description={metaDescription}
   locale="pt"
 >
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+
   {stops.map((content, i) => (
     <JourneyStop
       stopIndex={i}
       totalStops={totalStops}
       content={content}
     >
-      {i === 4 && (
+      {i === actionIndex && (
         <DiagnoseForm
           slot="form"
           client:visible
