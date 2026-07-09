@@ -41,10 +41,10 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 const actionIndex = totalStops - 1;
 
 const metaDescription =
-  'Software house agêntica: software sob medida e automação com agentes de IA, revisados por um engenheiro sênior. Escopo e preço fechados. Diagnóstico gratuito em 7 dias.';
+  'A VHXCO encontra o gargalo do seu negócio e resolve com agentes de IA e software sob medida: mais venda, menos custo operacional, mais tempo. Medimos o antes e o depois. Diagnóstico gratuito em 7 dias.';
 
-// JSON-LD: Organization + 3 Service (the SERVIÇOS cards) — indexable detail
-// that doesn't fit the screen.
+// JSON-LD: Organization + 4 Service (the RESULTADOS cards, outcome-first) —
+// indexable detail; descriptions carry the technical deliverables.
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -52,28 +52,35 @@ const jsonLd = {
       '@type': 'Organization',
       name: 'VHXCO',
       description:
-        'Software house agêntica: um engenheiro sênior no comando de agentes de IA que planejam, codam, testam e entregam software sob medida.',
+        'A VHXCO melhora as métricas do seu negócio: encontra o gargalo e resolve com agentes de IA e software sob medida, sob comando de um engenheiro sênior. Mede o antes e o depois.',
       url: Astro.site?.href ?? 'https://vhxco.io/',
     },
     {
       '@type': 'Service',
-      name: 'Software sob medida',
+      name: 'Vender mais',
       description:
-        'MVP, sistema ou app do zero à produção, com código, testes e deploy. Escopo e preço fechados antes de começar.',
+        'Mais receita pelo funil: CRO, checkout, onboarding e features que destravam conversão. Medimos o antes e o depois.',
       provider: { '@type': 'Organization', name: 'VHXCO' },
     },
     {
       '@type': 'Service',
-      name: 'Automação agêntica',
+      name: 'Custar menos, sobrar tempo',
       description:
-        'Processos manuais da operação passam a rodar sozinhos com agentes de IA, medidos em horas humanas economizadas.',
+        'Automação agêntica: agentes de IA assumem o trabalho manual da operação (atendimento, planilha, conciliação, follow-up), medida em horas humanas economizadas.',
       provider: { '@type': 'Organization', name: 'VHXCO' },
     },
     {
       '@type': 'Service',
-      name: 'Diagnóstico Agentic',
+      name: 'Construir o que falta',
       description:
-        'Plano de ação escrito em 7 dias — o que automatizar, o que construir, o que cortar. Gratuito e sem compromisso.',
+        'Software, app ou sistema sob medida — do zero à produção, com código, testes e deploy — quando o resultado exige ferramenta própria.',
+      provider: { '@type': 'Organization', name: 'VHXCO' },
+    },
+    {
+      '@type': 'Service',
+      name: 'Diagnóstico grátis',
+      description:
+        'Seu gargalo mapeado em 7 dias — o que automatizar, o que construir, o que cortar. Gratuito e sem compromisso.',
       provider: { '@type': 'Organization', name: 'VHXCO' },
     },
   ],
@@ -81,7 +88,7 @@ const jsonLd = {
 ---
 
 <BaseLayout
-  title="VHXCO — Software sob medida construído por agentes de IA"
+  title="VHXCO — Agentes de IA que melhoram as métricas do seu negócio"
   description={metaDescription}
   locale="pt"
 >

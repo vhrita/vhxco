@@ -41,8 +41,10 @@ const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 const actionIndex = totalStops - 1;
 
 const metaDescription =
-  'Agentic software house: custom software and automation built by AI agents, reviewed by a senior engineer. Fixed scope and price. Free 7-day diagnostic.';
+  'VHXCO finds your business bottleneck and fixes it with AI agents and custom software: more sales, lower operating costs, more free time. We measure before and after. Free 7-day diagnostic.';
 
+// JSON-LD: Organization + 4 Service (the RESULTS cards, outcome-first) —
+// indexable detail; descriptions carry the technical deliverables.
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -50,28 +52,35 @@ const jsonLd = {
       '@type': 'Organization',
       name: 'VHXCO',
       description:
-        'Agentic software house: a senior engineer in command of AI agents that plan, code, test and ship custom software.',
+        'VHXCO improves your business metrics: it finds the bottleneck and fixes it with AI agents and custom software, under a senior engineer. It measures before and after.',
       url: Astro.site?.href ?? 'https://vhxco.io/',
     },
     {
       '@type': 'Service',
-      name: 'Custom software',
+      name: 'Sell more',
       description:
-        'MVP, system or app from zero to production, with code, tests and deploy. Fixed scope and price upfront.',
+        'More revenue through the funnel: CRO, checkout, onboarding and features that unlock conversion. We measure before and after.',
       provider: { '@type': 'Organization', name: 'VHXCO' },
     },
     {
       '@type': 'Service',
-      name: 'Agentic automation',
+      name: 'Spend less, free your time',
       description:
-        'Manual operations start running themselves with AI agents, measured in human hours saved.',
+        'Agentic automation: AI agents take over the manual work of the operation (support, spreadsheets, reconciliation, follow-up), measured in human hours saved.',
       provider: { '@type': 'Organization', name: 'VHXCO' },
     },
     {
       '@type': 'Service',
-      name: 'Agentic Diagnostic',
+      name: "Build what's missing",
       description:
-        'A written action plan in 7 days — what to automate, what to build, what to cut. Free, no strings attached.',
+        'Custom software, app or system — zero to production, with code, tests and deploy — when the result demands your own tool.',
+      provider: { '@type': 'Organization', name: 'VHXCO' },
+    },
+    {
+      '@type': 'Service',
+      name: 'Free diagnostic',
+      description:
+        'Your bottleneck mapped in 7 days — what to automate, what to build, what to cut. Free, no strings attached.',
       provider: { '@type': 'Organization', name: 'VHXCO' },
     },
   ],
@@ -79,7 +88,7 @@ const jsonLd = {
 ---
 
 <BaseLayout
-  title="VHXCO — Custom software built by AI agents"
+  title="VHXCO — AI agents that improve your business metrics"
   description={metaDescription}
   locale="en"
 >
