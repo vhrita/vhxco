@@ -18,15 +18,16 @@
 //     writes before render reads. Order preserved by design — do not move easing
 //     inside render-loop.ts f(t) or it re-introduces the lerp-in-camera bug.
 //
-//   EASING:
+//   EASING (rework 4 — time-based ease-out):
 //     _target holds the DESTINATION stop's arc-length t (set by the discrete
-//     stepper). Each RAF: _easedT = lerp(_easedT, _target, ALPHA), until it
-//     converges — then the RAF PARKS (perf P2) and re-arms on the next input.
-//     ALPHA = 0.08 (80ms feel-lag at 60fps). Preserved from old render-loop lerp.
-//     Result: humans feel a fluid glide, QA bypasses and gets instant.
+//     stepper). Each RAF advances a TIME-BASED tween: _easedT = _tweenFrom +
+//     (_tweenTo - _tweenFrom) * easeOutQuart(elapsed / CAMERA_TWEEN_MS), until the
+//     duration elapses — then the RAF PARKS (perf P2) and re-arms on the next input.
+//     Frame-rate independent (unlike the old exponential lerp): a satisfying premium
+//     settle. Result: humans feel the glide, QA bypasses and gets instant.
 //
 //   REDUCED-MOTION (§9):
-//     `prefers-reduced-motion: reduce` → easing disabled (ALPHA = 1 = instant).
+//     `prefers-reduced-motion: reduce` → easing disabled (instant snap, no dwell).
 //     Wheel/touch snaps to nearest stop (next/prev on each event), no in-between t.
 //     IntersectionObserver not used — simpler, no DOM dependency.
 //
@@ -45,14 +46,17 @@
 //     ArrowUp/Down, PageUp/Down, Space → step ±1 stop (discrete)
 //     Home/End → stop[0]/stop[N-1]
 //
-//   SCROLL CALIBRATION (rework 3 — see _stepTarget / _onWheel):
-//     wheel is a THRESHOLD ACCUMULATOR now — NO lock, NO wheel-idle-unlock timer.
+//   SCROLL CALIBRATION (rework 4 — Apple-style magnetic snap w/ soft stick):
+//     wheel is a THRESHOLD ACCUMULATOR — NO lock, NO wheel-idle-unlock timer.
 //     Each wheel event adds normalized delta to _wheelAccum; every time |accum|
 //     crosses STEP_THRESHOLD we advance the TARGET stop index by ±1 (clamped to
-//     [0, STOP_COUNT-1]) and SUBTRACT the threshold from accum (carry remainder).
-//     The camera chases stopCenterT(target) via the easing RAF; the target can
-//     move mid-glide, so continuous scrolling advances stop-after-stop fluidly
-//     and NEVER gets stuck waiting for another input (no pointermove/click/key).
+//     [0, STOP_COUNT-1]). On a step we ZERO the accumulator (not carry) and open a
+//     short SETTLE/DWELL window (SETTLE_MS): during settle, incoming delta is
+//     DAMPED (× SETTLE_DAMP, decaying back to 1.0 over the window) so the stop
+//     "sticks" for a beat. The damping only adds resistance — a sustained strong
+//     scroll still accumulates past the threshold and crosses anyway, so it is a
+//     soft stick, NEVER a lock. The camera chases stopCenterT(target) via a
+//     TIME-BASED ease-out tween (quart, ~0.6s) for a premium, satisfying settle.
 //     A short idle DECAY zeroes leftover accum so a partial remainder can't fire
 //     later on its own — decay is cleanup, not a lock.
 
@@ -64,12 +68,55 @@ import {
 } from "../neural-engine/hero-anchors.js";
 import { markJourneyInteraction } from "./interaction-signal.js";
 
+// ─── TUNABLES (the feel dials — change ONE number here) ───────────────────────
+//
+//   Vitor will say "um tico mais lento/rápido" — these four are the knobs.
+//   Everything below is normalized to the same px unit, so they're comparable.
+//
+//   ┌─ WHEEL_STEP_THRESHOLD  how much scroll to advance ONE stop (↑ = slower/more
+//   │                        deliberate; ↓ = faster). ~120 was 1 notch = 1 stop.
+//   ├─ SETTLE_MS             the "stick" duration — how long a stop grabs after you
+//   │                        arrive (↑ = grabbier; ↓ = slippier). 0 disables stick.
+//   ├─ SETTLE_DAMP           how hard the stick resists during settle: incoming
+//   │                        delta × this at the START of the window, decaying to 1
+//   │                        by the end (lower = grabbier; 1 = no stick). ~0.45.
+//   └─ CAMERA_TWEEN_MS       camera glide duration to the target stop (the premium
+//                            ease-out). ↑ = more languid; ↓ = snappier. ~600ms.
+
+/**
+ * Normalized wheel delta (px-equivalent) to advance ONE stop. ↑ = need more
+ * deliberate scroll per stop (slower); ↓ = quicker. Raised from 120 (1 notch/stop,
+ * which felt like a blur / free-scroll) so continuous scroll advances stop-by-stop
+ * with a beat, not a smear. ~2 mouse notches per stop at 220.
+ */
+const WHEEL_STEP_THRESHOLD = 220;
+
+/**
+ * The "stick" — ms after arriving at a stop during which incoming scroll is DAMPED
+ * so the stop grabs for a beat (Apple-style magnetic snap). This is soft resistance,
+ * never a lock: sustained strong scroll still accumulates past threshold and crosses.
+ * Set 0 to disable the stick entirely.
+ */
+const SETTLE_MS = 320;
+
+/**
+ * Damping factor for scroll delta at the START of the settle window (decays linearly
+ * back to 1.0 by SETTLE_MS). Lower = grabbier stick; 1.0 = no stick. At 0.45 the
+ * first ~half of a settle needs roughly double the scroll to break out, but a hard
+ * sustained scroll still overpowers it — resistance, not a wall.
+ */
+const SETTLE_DAMP = 0.45;
+
+/**
+ * Camera glide duration (ms) to stopCenterT(target) — the premium ease-out. Time-
+ * based (quart), restarts from the live eased position on a new target so chained
+ * steps compose smoothly. ↑ = more languid settle; ↓ = snappier.
+ */
+const CAMERA_TWEEN_MS = 600;
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-/** Easing factor per RAF tick. 0.08 ≈ feels smooth at 60fps. */
-const ALPHA = 0.08;
-
-// ── Threshold accumulator stop-stepping (rework 3 — no lock) ──────────────────
+// ── Threshold accumulator stop-stepping (rework 4 — soft stick, no lock) ──────
 //
 // WHY AN ACCUMULATOR, NOT A LOCK (root-cause of the rework-2 "stuck" bug):
 //   Rework 2 fired ONE step per gesture, then LOCKED until a wheel-idle setTimeout
@@ -84,35 +131,25 @@ const ALPHA = 0.08;
 //   Rework 3: pure delta accumulator with a threshold, NO lock, NO idle-unlock
 //   timer. Each wheel event normalizes its deltaY (deltaMode-aware) and ADDS it to
 //   _wheelAccum. Every time |_wheelAccum| >= STEP_THRESHOLD we advance the TARGET
-//   index by sign(accum), clamp to [0, STOP_COUNT-1], and SUBTRACT the threshold
-//   from accum (carry the remainder — do not zero). One burst that overshoots the
-//   threshold several times advances several stops; the camera chases the moving
-//   target via easing. Nothing ever blocks the next event. A short idle DECAY
-//   (_maybeDecay) drops leftover accum after a quiet gap so a partial remainder
-//   never fires on its own later — that is cleanup, not a lock (it removes travel,
-//   it never withholds a step that the delta already earned).
-
-/**
- * Normalized wheel delta (px-equivalent) that must accumulate to advance one stop.
- *
- * All deltas are normalized to a common px unit first (see _normalizeWheelDelta),
- * so this threshold is directly comparable across mouse (deltaMode=1, lines) and
- * trackpad (deltaMode=0, pixels).
- *
- * CALIBRATION:
- *   - One mouse notch normalizes to ~120px (browser standard is ~100–133px/notch;
- *     we clamp a line to WHEEL_LINE_PX below). At 120 threshold ≈ ~1 notch/stop —
- *     previsível, sem 2 notches por parada e sem pular.
- *   - A trackpad flick is a burst of small pixel deltas summing to a few hundred
- *     px. With the per-event cap (WHEEL_MAX_STEPS_PER_EVENT) and idle decay, a
- *     single flick lands ~1–2 stops rather than all 6.
- */
-const WHEEL_STEP_THRESHOLD = 120;
+//   index by sign(accum). The camera chases the moving target via easing. Nothing
+//   ever blocks the next event.
+//
+//   Rework 4: adds the Apple-style SOFT STICK on top of rework 3's no-lock core.
+//   On a step we ZERO the accumulator (was: carry remainder) so the next stop needs
+//   a fresh threshold from ~0 — this is what makes a stop "arrive and settle" rather
+//   than the leftover instantly punting you to the next one. We also open a SETTLE
+//   window (SETTLE_MS): incoming delta during settle is multiplied by a factor that
+//   ramps SETTLE_DAMP → 1.0 across the window, so the stop resists for a beat. The
+//   damping only slows accumulation — a sustained hard scroll still crosses the
+//   (higher) threshold and advances, so it is resistance, never a lock. Sign-based
+//   reversal handling and the idle DECAY (cleanup of a sub-threshold remainder) are
+//   unchanged — no step ever waits on a timer or on any pointer/click/key input.
 
 /**
  * px assigned to one wheel LINE (deltaMode === 1). A mouse notch is typically 3
- * lines; 3 × 40 = 120 ≈ one WHEEL_STEP_THRESHOLD → ~1 stop per notch. Browsers
- * vary (Firefox reports lines), so we normalize here instead of trusting raw px.
+ * lines. Browsers vary (Firefox reports lines), so we normalize here instead of
+ * trusting raw px. 3 × 40 = 120 ≈ one old notch; at WHEEL_STEP_THRESHOLD=220 that
+ * is ~1.8 notches per stop.
  */
 const WHEEL_LINE_PX = 40;
 
@@ -123,11 +160,12 @@ const WHEEL_PAGE_PX = 800;
  * Per-EVENT cap on how much normalized delta counts toward the accumulator. A
  * trackpad flick / momentum tail can report a single huge delta (or many medium
  * ones); without a cap one physical flick could dump 700px+ and jump ~6 stops.
- * Clamping each event's contribution keeps a flick to ~1–2 stops while a genuine
+ * Clamping each event's contribution keeps a flick to ~1 stop while a genuine
  * fast mouse spin (many separate notch events) still advances freely — each notch
- * is its own event, so the cap never throttles honest notches.
+ * is its own event, so the cap never throttles honest notches. Sized just under one
+ * threshold so a single flick lands exactly one stop and then hits the settle.
  */
-const WHEEL_MAX_DELTA_PER_EVENT = WHEEL_STEP_THRESHOLD * 1.6; // ~1.6 stops max/event
+const WHEEL_MAX_DELTA_PER_EVENT = WHEEL_STEP_THRESHOLD * 0.95; // ≤1 stop max/event
 
 /** Touch drag distance (px) in one swipe that must accumulate to step a stop. */
 const TOUCH_STEP_THRESHOLD = 45;
@@ -154,6 +192,18 @@ let _reducedMotion = false;
  *  subscriber knows to ignore the notification (it's our own write). */
 let _internalWrite = false;
 
+// Time-based camera tween (rework 4). Instead of a frame-rate-dependent exponential
+// lerp (which felt mushy and never "settled"), the eased t glides from _tweenFrom to
+// _tweenTo over CAMERA_TWEEN_MS with an ease-out-quart curve — a premium, satisfying
+// snap. A new target restarts the tween FROM the live eased position, so chained
+// steps compose smoothly instead of snapping back.
+let _tweenFrom = 0; // eased t at the moment the current tween started
+let _tweenTo = 0; // destination t (mirrors _target for the tween)
+let _tweenStart = 0; // performance.now() timestamp when the tween started
+
+/** Timestamp we last STEPPED to a new stop — the anchor for the settle window. */
+let _lastStepAt = -Infinity;
+
 // Threshold accumulator for the wheel stepper (rework 3 — no lock).
 let _wheelAccum = 0; // signed NORMALIZED delta accumulated since the last decay
 /** setTimeout handle for the idle DECAY of leftover accum. Re-armed on every wheel
@@ -162,6 +212,30 @@ let _wheelAccum = 0; // signed NORMALIZED delta accumulated since the last decay
  *  blocked (no pointermove / interaction-signal coupling on the journey path). */
 let _wheelDecayTimer: ReturnType<typeof setTimeout> | 0 = 0;
 let _touchAccum = 0; // signed drag distance accumulated in the current swipe
+
+/** Monotonic-ish clock. performance.now in browser; Date.now fallback (tests). */
+function _now(): number {
+  return typeof performance !== "undefined" && performance.now
+    ? performance.now()
+    : Date.now();
+}
+
+/**
+ * Settle damping multiplier for a scroll delta arriving `now`. During the SETTLE_MS
+ * window after a step, incoming delta is scaled down (starting at SETTLE_DAMP,
+ * ramping linearly back to 1.0 by the end of the window) so the just-reached stop
+ * "sticks" for a beat. Outside the window (or with SETTLE_MS/DAMP disabling it) it
+ * returns 1.0 — no damping. This ONLY slows accumulation; it never blocks a step, so
+ * sustained hard scroll always crosses the threshold anyway (soft stick, not a lock).
+ */
+function _settleFactor(now: number): number {
+  if (SETTLE_MS <= 0 || SETTLE_DAMP >= 1) return 1;
+  const elapsed = now - _lastStepAt;
+  if (elapsed >= SETTLE_MS) return 1;
+  // Linear ramp SETTLE_DAMP → 1.0 across the window.
+  const p = elapsed / SETTLE_MS; // 0..1
+  return SETTLE_DAMP + (1 - SETTLE_DAMP) * p;
+}
 
 /**
  * Normalize a wheel event's deltaY to a common px unit, deltaMode-aware, then cap
@@ -185,8 +259,21 @@ function _normalizeWheelDelta(deltaY: number, deltaMode: number): number {
   return Math.sign(px) * capped;
 }
 
-function _lerp(a: number, b: number, alpha: number): number {
-  return a + (b - a) * alpha;
+/** Quart ease-out: fast start, long gentle settle — the premium "arrival" curve. */
+function _easeOutQuart(p: number): number {
+  const inv = 1 - p;
+  return 1 - inv * inv * inv * inv;
+}
+
+/**
+ * (Re)start the camera tween toward `to`, beginning from the current eased position.
+ * Called whenever _target changes. Restarting from _easedT (not _tweenFrom) keeps a
+ * chained step smooth — no snap-back to the previous stop mid-glide.
+ */
+function _startTween(to: number): void {
+  _tweenFrom = _easedT;
+  _tweenTo = to;
+  _tweenStart = _now();
 }
 
 /** Index of the stop `_target` currently points at (target drives navigation). */
@@ -201,14 +288,18 @@ function _targetStopIndex(): number {
  * If _internalWrite is true the notification came from our own easing RAF —
  * ignore it to avoid a feedback loop. Otherwise it's an external write
  * (e.g. setJourneyProgress called by QA/reduced-motion/deep-link), so we
- * snap both _target and _easedT to the new value, making the easing converge
- * immediately with nothing to fight.
+ * snap _target, _easedT AND the tween all to the new value — the tween is
+ * already at its destination, so the next RAF converges with nothing to fight.
+ * This keeps programmatic setJourneyProgress() bit-identical (no glide).
  */
 function _onStoreChange(): void {
   if (_internalWrite) return;
   const newT = getJourneyT();
   _target = newT;
   _easedT = newT;
+  _tweenFrom = newT;
+  _tweenTo = newT;
+  _tweenStart = _now();
 }
 
 // ─── Easing RAF ───────────────────────────────────────────────────────────────
@@ -222,12 +313,16 @@ function _applyEasing(): void {
     _rafId = 0;
     return;
   }
-  // Converge _easedT toward _target
-  _easedT = _lerp(_easedT, _target, ALPHA);
-  // Snap to exact target when close enough to avoid infinite drift
-  const converged = Math.abs(_easedT - _target) < 0.0001;
+  // Time-based ease-out-quart tween toward _tweenTo (rework 4 — premium settle).
+  // Progress is real elapsed time / duration, so the feel is frame-rate independent
+  // (a 30fps idle-throttle frame and a 120fps frame land the same eased t).
+  const elapsed = _now() - _tweenStart;
+  const p = CAMERA_TWEEN_MS <= 0 ? 1 : Math.min(1, elapsed / CAMERA_TWEEN_MS);
+  _easedT = _tweenFrom + (_tweenTo - _tweenFrom) * _easeOutQuart(p);
+  // Converged when the tween has run its full duration AND we're at the target.
+  const converged = p >= 1 || Math.abs(_easedT - _tweenTo) < 0.0001;
   if (converged) {
-    _easedT = _target;
+    _easedT = _tweenTo;
   }
   // Self-write guard: tell the store subscriber this notification is ours.
   _internalWrite = true;
@@ -278,14 +373,21 @@ function _stepStop(dir: number): void {
   // so a fast second gesture composes cleanly (1→2→3) instead of snapping back.
   const fromIdx = _reducedMotion ? nearestStopIndex(getJourneyT()) : _targetStopIndex();
   const nextIdx = Math.max(0, Math.min(STOP_COUNT - 1, fromIdx + Math.sign(dir)));
+  // Clamp guard: if already at the edge, nextIdx === fromIdx — no step, no settle.
+  // (Keeps _lastStepAt from re-arming the stick every wheel event at stop 0 or N-1.)
+  if (nextIdx === fromIdx) return;
   const t = stopCenterT(nextIdx);
   _target = t;
   if (_reducedMotion) {
-    // Instant snap — no easing RAF in reduced-motion.
+    // Instant snap — no easing RAF, no settle (reduced-motion has no dwell/stick).
     _easedT = t;
     setJourneyT(t);
     return;
   }
+  // Open the settle/stick window for the stop we just arrived at, and (re)start the
+  // premium ease-out tween from the live eased position toward the new target.
+  _lastStepAt = _now();
+  _startTween(t);
   _ensureRaf();
 }
 
@@ -299,7 +401,10 @@ function _goToStop(idx: number): void {
     _easedT = t;
     setJourneyT(t);
   } else {
-    // Smooth via easing RAF (re-arm it if it parked while idle)
+    // Smooth via the ease-out tween (re-arm the RAF if it parked while idle).
+    // A direct jump (keyboard Home/End, HUD) doesn't arm the scroll stick — the
+    // settle window is for scroll-arrivals, not deliberate jumps.
+    _startTween(t);
     _ensureRaf();
   }
 }
@@ -307,28 +412,37 @@ function _goToStop(idx: number): void {
 // ─── Event handlers ──────────────────────────────────────────────────────────
 
 /**
- * Threshold-accumulator wheel handler (rework 3). NO lock, NO input dependency.
+ * Threshold-accumulator wheel handler (rework 4 — soft stick, NO lock).
  *
  * Every event:
- *   1. Normalize deltaY (deltaMode-aware, per-event capped) → _wheelAccum.
- *   2. On a direction REVERSAL, drop the opposite-sign remainder first so the very
+ *   1. Normalize deltaY (deltaMode-aware, per-event capped).
+ *   2. DAMP it by the settle factor (× SETTLE_DAMP…1.0 during the SETTLE_MS window
+ *      after a step) so a just-reached stop resists for a beat — the "stick".
+ *   3. On a direction REVERSAL, drop the opposite-sign remainder first so the very
  *      first reverse notch counts toward going back (never has to "unwind" forward
  *      accum before it can move) — then continue accumulating in the new direction.
- *   3. While |_wheelAccum| >= STEP_THRESHOLD: advance the TARGET index by one
- *      (sign of accum), SUBTRACT the threshold (carry remainder). A burst that
- *      overshoots several thresholds advances several stops in one event; a single
- *      event is bounded by the per-event delta cap, so a flick lands ~1–2 stops.
- *   4. Re-arm the idle DECAY timer (cleanup of leftover remainder only).
+ *   4. While |_wheelAccum| >= STEP_THRESHOLD: advance the TARGET index by one
+ *      (sign of accum) and ZERO the accumulator. Zeroing (not carrying) is what
+ *      makes each stop settle — the next stop needs a fresh threshold from ~0, so
+ *      leftover delta can't instantly punt you onward. The per-event cap keeps one
+ *      event to ≤1 step, so a single flick lands exactly one stop then sticks.
+ *   5. Re-arm the idle DECAY timer (cleanup of leftover remainder only).
  *
- * Because the step loop keys off delta magnitude — never a lock or a timer — a
- * continuous scroll advances stop-after-stop with zero dependency on pointermove,
- * click, or keypress. The camera chases the moving target via the easing RAF.
+ * The stick is SOFT: damping only slows accumulation, it never blocks a step. A
+ * sustained hard scroll piles up damped delta across events and still crosses the
+ * threshold, advancing stop-after-stop — resistance, never a lock. Zero dependency
+ * on pointermove / click / keypress. Camera chases the target via the ease-out tween.
  */
 function _onWheel(e: WheelEvent): void {
   e.preventDefault();
 
-  const delta = _normalizeWheelDelta(e.deltaY, e.deltaMode);
+  let delta = _normalizeWheelDelta(e.deltaY, e.deltaMode);
   if (delta === 0) return;
+
+  // Soft stick: damp incoming delta during the settle window. This ONLY slows
+  // accumulation toward the next threshold — sustained scroll still crosses it, so
+  // it is resistance, not a lock (the golden rule: keep scrolling ⇒ always advance).
+  delta *= _settleFactor(_now());
 
   // Reversal: clear an opposite-sign remainder so the first reverse notch counts
   // toward the new direction immediately (no "unwind the old accum" lag). This is
@@ -338,11 +452,12 @@ function _onWheel(e: WheelEvent): void {
   }
   _wheelAccum += delta;
 
-  // Advance one target stop per threshold crossed, carrying the remainder so a
-  // fast burst chains multiple stops (1→2→3) and never gets stuck at one.
+  // Advance one target stop per threshold crossed, ZEROing the accumulator on each
+  // step so the next stop needs a fresh threshold (the settle). The per-event delta
+  // cap (≤1 threshold) means at most one step fires per event — no multi-stop jumps.
   while (Math.abs(_wheelAccum) >= WHEEL_STEP_THRESHOLD) {
     const dir = Math.sign(_wheelAccum);
-    _wheelAccum -= dir * WHEEL_STEP_THRESHOLD;
+    _wheelAccum = 0;
     _stepStop(dir);
   }
 
@@ -367,16 +482,19 @@ function _onTouchMove(e: TouchEvent): void {
   if (_touchY === null) return;
   const clientY = e.touches[0]?.clientY;
   if (clientY === undefined) return;
-  const dy = _touchY - clientY; // >0 = finger moved up = advance (forward)
+  let dy = _touchY - clientY; // >0 = finger moved up = advance (forward)
   _touchY = clientY;
 
-  // Accumulate drag within this swipe; step ONCE per threshold crossed. Reset the
-  // accumulator (keep the remainder) after each step so a long drag can chain
-  // multiple stops, but a short flick advances exactly one.
+  // Soft stick (same as wheel): damp drag during the settle window so a just-reached
+  // stop resists for a beat. Resistance only — a sustained hard drag still crosses.
+  dy *= _settleFactor(_now());
+
+  // Accumulate drag within this swipe; step ONCE per threshold crossed, ZEROing the
+  // accumulator on each step so the next stop needs a fresh threshold (the stick).
   _touchAccum += dy;
   while (Math.abs(_touchAccum) >= TOUCH_STEP_THRESHOLD) {
     const dir = Math.sign(_touchAccum);
-    _touchAccum -= dir * TOUCH_STEP_THRESHOLD;
+    _touchAccum = 0;
     _stepStop(dir);
   }
 }
@@ -447,13 +565,19 @@ export function createJourneyInput(
     if (wasReduced && !_reducedMotion) {
       _target = getJourneyT();
       _easedT = _target;
+      _tweenFrom = _target;
+      _tweenTo = _target;
+      _tweenStart = _now();
     }
   }
   mq?.addEventListener("change", _onMqChange);
 
-  // Sync initial state
+  // Sync initial state (eased + tween both at the live t — nothing to converge).
   _target = getJourneyT();
   _easedT = _target;
+  _tweenFrom = _target;
+  _tweenTo = _target;
+  _tweenStart = _now();
 
   // Subscribe to external writes on the store (after initial sync so the sync
   // itself doesn't trigger _onStoreChange).
