@@ -580,6 +580,43 @@ body[data-intro="active"] #webgl {
   filter: brightness(0.85) saturate(0.7);
 }
 
+/* ── Boot gate — hide ALL chrome/content during the load (Phase 4b-2 rework) ──
+ * data-boot="loading" ships in the SERVER markup on <body> (BaseLayout.astro),
+ * so from the very first paint — before any JS runs — EVERYTHING except the
+ * #webgl canvas (the brain genesis) is hidden: TopNav/logo, headline, subcopy,
+ * cards, mural, persistent CTA, progress dots, HUD hints, the whole <main>.
+ * This is broader (and earlier) than data-intro="active" (which only hid the
+ * journey-stops + CTA, was set late by the render loop, and left the nav
+ * visible — the exact leak Vitor was seeing).
+ *
+ * The gate is cleared by removing the attribute on journey:intro-done (inline
+ * reveal script in <head>), at which point the fade-in transitions below run.
+ * Reduced-motion (§9) and no-JS (<noscript> in BaseLayout) neutralize the gate
+ * so those users are NEVER stuck behind a hidden screen.
+ *
+ * We hide with opacity + visibility (kept renderable so a fade-in is possible)
+ * and kill pointer-events so nothing is interactable while loading. #webgl and
+ * the WebGL fallback are explicitly NOT hidden — they ARE the loading UI. */
+body[data-boot="loading"] .topnav,
+body[data-boot="loading"] #main,
+body[data-boot="loading"] #persistent-cta,
+body[data-boot="loading"] .backdrop-vignette {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Smooth fade-in the moment the gate lifts (attribute removed). The elements
+ * transition their own opacity; visibility snaps back instantly (no delay) so
+ * the fade is visible. Journey-stops keep their existing per-stop opacity rules
+ * (only stop 0 shows at reveal). */
+.topnav,
+#main,
+#persistent-cta,
+.backdrop-vignette {
+  transition: opacity 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * §8 — HUD (TopNav + skip-link)
  *
@@ -2363,6 +2400,21 @@ h1.headline .strike::after {
   *::after {
     transition-duration: 0.01ms !important;
     transition-delay: 0ms !important;
+  }
+
+  /* Boot gate is a NO-OP under reduced-motion: there is no genesis/dolly to wait
+   * for (the engine skips the intro and reveals immediately), so content must be
+   * visible from the first paint — never leave a reduced-motion user staring at a
+   * hidden screen if the intro-done event is delayed. This override wins over the
+   * data-boot="loading" hide rules (media query + same selector shape, later in
+   * cascade), so the gate simply doesn't hide anything for these users. */
+  body[data-boot="loading"] .topnav,
+  body[data-boot="loading"] #main,
+  body[data-boot="loading"] #persistent-cta,
+  body[data-boot="loading"] .backdrop-vignette {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
   }
 
   /* Disable ambient infinite animations */

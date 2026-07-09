@@ -71,9 +71,70 @@ const langRedirectScript = `(function () {
       <script is:inline set:html={langRedirectScript} />
     )}
 
+    {/*
+      Boot reveal gate (inline, in <head>, before <body> paints).
+      The <body> ships with data-boot="loading" in the SERVER markup (see below),
+      so from the very first paint ALL content/chrome (nav, headline, cards, mural,
+      CTA, HUD hints, progress dots) is hidden by CSS — only the #webgl canvas (the
+      brain genesis) is visible. No flash of content before JS runs.
+
+      This inline script only REGISTERS the reveal so it can never miss the event:
+        - journey:intro-done  → remove data-boot (fade-in via CSS). Fired by the
+          render-loop when the dolly lands (WebGL) OR immediately in reduced-motion.
+        - no-JS               → covered by the <noscript> rule that clears the gate.
+        - no-WebGL            → the island sets data-webgl="unavailable" and the
+          engine never starts (never fires intro-done), so a safety listener here
+          reveals when that marker appears (MutationObserver on <body>), and a hard
+          timeout guarantees the user is NEVER stuck behind a hidden screen.
+    */}
+    <script is:inline set:html={`(function () {
+      var b = document.body || document.documentElement;
+      function reveal() {
+        if (document.body) document.body.removeAttribute('data-boot');
+      }
+      // Primary path: the engine fires this when the intro genesis+dolly finish
+      // (reduced-motion fires it instantly).
+      window.addEventListener('journey:intro-done', reveal, { once: true });
+      // Safety for the no-WebGL fallback: the island sets data-webgl="unavailable"
+      // and never starts the render loop, so intro-done never fires. Watch <body>
+      // for that marker and reveal immediately (content is meant to be visible).
+      function watchNoWebgl() {
+        if (!document.body) return;
+        if (document.body.getAttribute('data-webgl') === 'unavailable') { reveal(); return; }
+        try {
+          var mo = new MutationObserver(function () {
+            if (document.body.getAttribute('data-webgl') === 'unavailable') {
+              reveal();
+              mo.disconnect();
+            }
+          });
+          mo.observe(document.body, { attributes: true, attributeFilter: ['data-webgl'] });
+        } catch (e) {}
+      }
+      if (document.body) watchNoWebgl();
+      else document.addEventListener('DOMContentLoaded', watchNoWebgl, { once: true });
+      // Hard failsafe: never leave the user stuck behind a hidden screen if the
+      // engine fails to boot / fire. Generous vs the ~2.6s genesis + dolly.
+      setTimeout(reveal, 8000);
+    })();`} />
+
     <slot name="head" />
   </head>
-  <body>
+  <body data-boot="loading">
+    <!-- No-JS: without the engine there is no genesis to wait for, so the boot
+         gate must NOT hide content. This override reveals everything the
+         data-boot="loading" rules hide (higher specificity + !important wins). -->
+    <noscript><style>
+      body[data-boot="loading"] .topnav,
+      body[data-boot="loading"] #main,
+      body[data-boot="loading"] #persistent-cta,
+      body[data-boot="loading"] .journey-stop,
+      body[data-boot="loading"] .backdrop-vignette {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+      }
+    </style></noscript>
     <!-- a11y: skip to main content (always first in DOM) -->
     <a href="#main" class="skip-link">{t('a11y.skipToContent')}</a>
 
