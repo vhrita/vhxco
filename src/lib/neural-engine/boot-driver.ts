@@ -16,12 +16,13 @@
 
 import { bootProgress } from '@/lib/neural-engine/boot-progress';
 
-// Formation time of the brain. Bumped 3800 → 4600 so the reworked progressive
-// genesis (staggered soma births 0→0.70 + per-edge axon growth) breathes rather
-// than rushing. The network is substantially formed by ~0.82 (≈3.8s) and the
-// remaining window holds the finished network briefly before the dolly fires
-// at 1.0 (render-loop.ts intro state machine).
-const TOTAL_MS = 4600;
+// Formation time of the brain. Was 4600 (progressive genesis: staggered soma
+// births 0→0.70 + per-edge axon growth). Trimmed 4600 → 2600 (−2000ms) per Vitor
+// — the genesis still reads (network substantially formed by ~0.82 ≈2.1s) but the
+// loading feels ~2s snappier before the dolly fires at 1.0 (render-loop.ts intro
+// state machine). ONLY the genesis duration changed; the mechanic (bootProgress
+// 0→1, dolly handoff, journey:intro-done) is untouched.
+const TOTAL_MS = 2600;
 
 // Char pool for the [data-scramble] reveal effect.
 const SCRAMBLE_CHARS =
