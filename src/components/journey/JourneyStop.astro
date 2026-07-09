@@ -363,17 +363,42 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     flex-direction: column;
     gap: clamp(0.625rem, 1.5svh, 1rem);
 
-    /* Subtle glass surface — gives the secondary (grey) copy a controlled
-     * backdrop so it never disappears over a bright node of the 3D mesh.
-     * Intentionally light (rgba .4 + 10px blur): the neural network still
-     * reads through/around the panel. Padding folds the old journey-stop
-     * gutter inward so the fit at 375×667 is preserved (no net width gain). */
+    /* Content scrim (perf plan P0) — semi-opaque gradient fill, NO backdrop
+     * blur. Gives the copy a controlled dark backdrop so it never disappears
+     * over a bright node of the 3D mesh, with MORE contrast than the old glass.
+     * The old `backdrop-filter: blur(10px)` recomposed a gaussian blur over the
+     * live WebGL canvas every frame (incacheable — the biggest compositor cost
+     * on the page); this replaces it with one normal composite.
+     *
+     * The mesh still BREATHES: the panel is max-width-capped (never full-bleed),
+     * the fill is translucent (alpha .58–.74, so the network glows faintly
+     * through), and the bottom edge fades out via a mask so the panel dissolves
+     * into the 3D instead of reading as a hard block.
+     * Padding folds the old journey-stop gutter inward so the 375×667 fit is
+     * preserved (no net width gain). */
     padding: clamp(0.75rem, 2.2svh, 1.25rem) clamp(0.875rem, 3.5vw, 1.5rem);
-    background: var(--surface-glass-bg);
-    -webkit-backdrop-filter: blur(var(--surface-glass-blur)) saturate(1.1);
-    backdrop-filter: blur(var(--surface-glass-blur)) saturate(1.1);
+    background: linear-gradient(
+      180deg,
+      var(--surface-glass-bg-top) 0%,
+      var(--surface-glass-bg-top) 55%,
+      var(--surface-glass-bg-bottom) 100%
+    );
     border: 1px solid var(--surface-glass-border);
     border-radius: var(--surface-glass-radius);
+    /* Fade the bottom edge so the scrim melts into the mesh (no hard block).
+     * Mask is a cheap per-layer op (no backdrop read) — costs nothing per frame. */
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      #000 0%,
+      #000 80%,
+      rgba(0, 0, 0, 0.82) 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      #000 0%,
+      #000 80%,
+      rgba(0, 0, 0, 0.82) 100%
+    );
   }
 
   /* ── Progress dots ───────────────────────────────────────────────────────── */

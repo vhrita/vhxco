@@ -80,12 +80,13 @@ const ctaText = locale === 'en' ? 'Diagnose →' : 'Diagnosticar →';
     cursor: pointer;
 
     color: var(--color-cyan);
-    background: rgba(0, 0, 0, 0.55);
+    /* Perf plan P7: dropped `backdrop-filter: blur(4px)` — it sat over the live
+     * WebGL canvas and recomposed every frame for no real gain (tiny pill).
+     * Bumped the solid fill .55 → .62 to keep the label crisp without the blur. */
+    background: rgba(0, 0, 0, 0.62);
     border: 1px solid var(--color-cyan);
     padding: 0.4375rem 0.75rem;
     border-radius: 2px;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
 
     transition:
       background 200ms,

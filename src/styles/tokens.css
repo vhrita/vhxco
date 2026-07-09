@@ -38,14 +38,19 @@
   /* Structural */
   --color-line: rgba(255, 255, 255, 0.08); /* Hairline borders / dividers */
 
-  /* ─── Glass surfaces ───────────────────────────────────────────────────────
-   * Subtle glassmorphism behind text blocks so secondary copy never depends on
-   * whatever the 3D happens to render behind it. Kept intentionally light —
-   * the neural mesh must still breathe through/around the glass (Linear /
-   * Anthropic premium-glass reference, NOT an opaque panel). Use via var(),
-   * never hard-code these in components. */
-  --surface-glass-bg: rgba(0, 0, 0, 0.4); /* semi-transparent dark fill */
-  --surface-glass-blur: 10px; /* backdrop blur radius */
+  /* ─── Content scrim ────────────────────────────────────────────────────────
+   * Semi-opaque dark scrim behind text blocks so copy never depends on whatever
+   * the 3D happens to render behind it. Perf plan P0: this REPLACES the old
+   * `backdrop-filter: blur()` glass — a real-time backdrop blur over the live
+   * WebGL canvas recomposes a gaussian blur every frame (incacheable, the most
+   * expensive compositor op over animated content) and was the dominant cause of
+   * the navigation lag. A plain gradient fill costs one normal composite and
+   * gives MORE contrast than the old glass (which the founder asked for), while
+   * the neural mesh still breathes AROUND the panel (max-width, edge fade) and
+   * lightly THROUGH it (alpha < 1). NOT an opaque block.
+   * Use via var(), never hard-code these in components. */
+  --surface-glass-bg-top: rgba(2, 6, 10, 0.74); /* stronger at top (headline) */
+  --surface-glass-bg-bottom: rgba(2, 6, 10, 0.58); /* lighter at bottom — mesh breathes */
   --surface-glass-border: rgba(255, 255, 255, 0.08); /* hairline edge */
   --surface-glass-radius: 14px;
 
