@@ -21,6 +21,26 @@ const {
 } = Astro.props;
 
 const t = getT(locale as Locale);
+
+// Language auto-detection script (emitted inline in <head>, PT root only).
+// See the comment at the injection site below for the full no-loop rationale.
+const langRedirectScript = `(function () {
+  try {
+    var KEY = 'vhxco_lang';
+    var saved = null;
+    try { saved = localStorage.getItem(KEY); } catch (e) {}
+    var go = function () { window.location.replace('/en/'); };
+    if (saved === 'en') { go(); return; }
+    if (saved === 'pt') { return; }
+    var nav = navigator;
+    var langs = nav.languages && nav.languages.length
+      ? nav.languages
+      : [nav.language || nav.userLanguage || 'en'];
+    var first = (langs[0] || '').toLowerCase();
+    var isPt = first === 'pt' || first.indexOf('pt-') === 0;
+    if (!isPt) go();
+  } catch (e) {}
+})();`;
 ---
 
 <!doctype html>
@@ -32,6 +52,25 @@ const t = getT(locale as Locale);
     <meta name="theme-color" content="#000000" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
+
+    {/*
+      Client-side language auto-detection (static site — nginx serves PT at "/",
+      EN at "/en/"). Runs inline in <head>, before paint, ONLY on the PT root
+      page (locale === 'pt'). Logic:
+        1. Manual choice in localStorage (vhxco_lang) ALWAYS wins — if the user
+           picked EN before, redirect to /en/ even in a PT browser (and if they
+           picked PT, stay, even in an EN browser).
+        2. No manual choice → sniff navigator.languages: pt* stays on "/",
+           anything else redirects to /en/.
+      No-loop guard: only the PT page (locale==='pt') ever redirects, and only
+      TO /en/. The /en/ page has locale==='en' so this block is not emitted there
+      → visitors who land on /en/ stay. Redirect is client-side, so both pages
+      remain crawlable/indexable.
+    */}
+    {locale === 'pt' && (
+      <script is:inline set:html={langRedirectScript} />
+    )}
+
     <slot name="head" />
   </head>
   <body>

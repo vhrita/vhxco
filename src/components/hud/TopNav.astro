@@ -121,6 +121,7 @@ const chaptersLabel = locale === 'en' ? 'Chapters' : 'Capítulos';
         href="/"
         class:list={['topnav-lang-btn', { active: locale === 'pt' }]}
         hreflang="pt"
+        data-lang-choice="pt"
         aria-label="Português"
         aria-current={locale === 'pt' ? 'true' : undefined}
       >PT</a>
@@ -128,6 +129,7 @@ const chaptersLabel = locale === 'en' ? 'Chapters' : 'Capítulos';
         href="/en/"
         class:list={['topnav-lang-btn', { active: locale === 'en' }]}
         hreflang="en"
+        data-lang-choice="en"
         aria-label="English"
         aria-current={locale === 'en' ? 'true' : undefined}
       >EN</a>
@@ -249,6 +251,20 @@ const chaptersLabel = locale === 'en' ? 'Chapters' : 'Capítulos';
         e.preventDefault();
         const prev = buttons[idx - 1];
         if (prev) { prev.focus(); prev.click(); }
+      }
+    });
+  });
+
+  // ── Manual language choice persistence ────────────────────────────────────
+  // Clicking PT/EN records the choice in localStorage (vhxco_lang). This OVERRIDES
+  // the auto-detection in BaseLayout on future visits: e.g. a user in a PT browser
+  // who picks EN keeps landing on /en/. Written before navigation (plain <a> nav).
+  const LANG_KEY = 'vhxco_lang';
+  document.querySelectorAll<HTMLAnchorElement>('[data-lang-choice]').forEach((a) => {
+    a.addEventListener('click', () => {
+      const choice = a.dataset.langChoice;
+      if (choice === 'pt' || choice === 'en') {
+        try { localStorage.setItem(LANG_KEY, choice); } catch (e) { /* storage blocked */ }
       }
     });
   });
