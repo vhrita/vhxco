@@ -551,9 +551,13 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     list-style: none;
     margin: 0;
     padding: 0;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: clamp(0.375rem, 1vw, 0.5rem);
+  }
+
+  .stop-tiles > li {
+    min-width: 0;
   }
 
   .stop-tile {
@@ -612,10 +616,18 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     opacity: 1;
   }
 
-  /* Desktop: tiles flow in an auto-fit row when there's horizontal room. */
+  /* Desktop: tiles flow in a wrapping row when there's horizontal room.
+   * Mobile (default) stacks them in a single column so both stay fully
+   * visible inside the content panel at 375px — no horizontal overflow. */
   @media (min-width: 768px) {
     .stop-tiles {
-      grid-template-columns: repeat(auto-fit, minmax(11rem, max-content));
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .stop-tiles > li {
+      flex: 0 1 auto;
     }
   }
 
