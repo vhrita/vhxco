@@ -45,10 +45,16 @@
 //     ArrowUp/Down, PageUp/Down, Space → step ±1 stop (discrete)
 //     Home/End → stop[0]/stop[N-1]
 //
-//   SCROLL CALIBRATION (fix — see _stepStop / _onWheel):
-//     wheel/touch are DISCRETE now — one gesture = one stop step, index-clamped
-//     to [0, STOP_COUNT-1]. Kills the old "extra scroll per stop" + the phantom
-//     dead-range past the last anchor (which sat at the t=1.0 clamp ceiling).
+//   SCROLL CALIBRATION (rework 3 — see _stepTarget / _onWheel):
+//     wheel is a THRESHOLD ACCUMULATOR now — NO lock, NO wheel-idle-unlock timer.
+//     Each wheel event adds normalized delta to _wheelAccum; every time |accum|
+//     crosses STEP_THRESHOLD we advance the TARGET stop index by ±1 (clamped to
+//     [0, STOP_COUNT-1]) and SUBTRACT the threshold from accum (carry remainder).
+//     The camera chases stopCenterT(target) via the easing RAF; the target can
+//     move mid-glide, so continuous scrolling advances stop-after-stop fluidly
+//     and NEVER gets stuck waiting for another input (no pointermove/click/key).
+//     A short idle DECAY zeroes leftover accum so a partial remainder can't fire
+//     later on its own — decay is cleanup, not a lock.
 
 import { setJourneyT, getJourneyT, subscribeJourney } from "./journey-state.js";
 import {
@@ -63,65 +69,80 @@ import { markJourneyInteraction } from "./interaction-signal.js";
 /** Easing factor per RAF tick. 0.08 ≈ feels smooth at 60fps. */
 const ALPHA = 0.08;
 
-// ── Discrete stop-stepping (scroll calibration fix) ───────────────────────────
+// ── Threshold accumulator stop-stepping (rework 3 — no lock) ──────────────────
 //
-// WHY DISCRETE (root-cause of the "1 extra scroll" bug):
-//   The old adapter accumulated wheel/touch delta directly into a continuous
-//   `t` (WHEEL_SCALE * deltaY), and activeStop only flipped at the MIDPOINT
-//   between two arc-length anchors. Because the anchors are unequally spaced
-//   (STOP_ARC_T = [0, .16, .40, .59, .79, 1.0]), crossing one stop took ~2–3
-//   wheel notches — and the last anchor sits at t=1.0 (the clamp ceiling), so
-//   arriving 4→5 flipped the panel at the midpoint (t≈.89) yet the accumulator
-//   kept climbing to 1.0: ~2.8 notches of DEAD travel = the "phantom scroll"
-//   past the last stop, and 2 scrolls to come back 5→4.
+// WHY AN ACCUMULATOR, NOT A LOCK (root-cause of the rework-2 "stuck" bug):
+//   Rework 2 fired ONE step per gesture, then LOCKED until a wheel-idle setTimeout
+//   (re-armed on every event) fired. A user scrolling CONTINUOUSLY re-armed that
+//   timer on every event → it NEVER fired → the gesture stayed locked at one step.
+//   The only thing that unlocked it was a pause — which happened when the user did
+//   something ELSE (moved the cursor, clicked, hit a key). So "keep scrolling" got
+//   stuck at 1 stop, and the accidental idle from doing another action is what made
+//   it "unstick". A lock that depends on stopping is the wrong model for a control
+//   whose whole point is continuous travel.
 //
-//   Fix: one scroll GESTURE = one stop step. We accumulate delta per gesture,
-//   fire a single index step (±1) once it crosses WHEEL_STEP_THRESHOLD, then
-//   LOCK until the gesture ends (a quiet gap) or the direction reverses. `_target`
-//   snaps to stopCenterT(nextIdx) and the easing RAF still glides the camera —
-//   so it FEELS smooth but advances exactly one stop per gesture. Index is
-//   clamped to [0, STOP_COUNT-1], so t can never exceed stopCenterT(N-1)=1.0 →
-//   no phantom range, and 6→5 is a single scroll.
+//   Rework 3: pure delta accumulator with a threshold, NO lock, NO idle-unlock
+//   timer. Each wheel event normalizes its deltaY (deltaMode-aware) and ADDS it to
+//   _wheelAccum. Every time |_wheelAccum| >= STEP_THRESHOLD we advance the TARGET
+//   index by sign(accum), clamp to [0, STOP_COUNT-1], and SUBTRACT the threshold
+//   from accum (carry the remainder — do not zero). One burst that overshoots the
+//   threshold several times advances several stops; the camera chases the moving
+//   target via easing. Nothing ever blocks the next event. A short idle DECAY
+//   (_maybeDecay) drops leftover accum after a quiet gap so a partial remainder
+//   never fires on its own later — that is cleanup, not a lock (it removes travel,
+//   it never withholds a step that the delta already earned).
 
-/** Wheel delta (|deltaY|) that must accumulate in one gesture to step a stop. */
-const WHEEL_STEP_THRESHOLD = 40;
+/**
+ * Normalized wheel delta (px-equivalent) that must accumulate to advance one stop.
+ *
+ * All deltas are normalized to a common px unit first (see _normalizeWheelDelta),
+ * so this threshold is directly comparable across mouse (deltaMode=1, lines) and
+ * trackpad (deltaMode=0, pixels).
+ *
+ * CALIBRATION:
+ *   - One mouse notch normalizes to ~120px (browser standard is ~100–133px/notch;
+ *     we clamp a line to WHEEL_LINE_PX below). At 120 threshold ≈ ~1 notch/stop —
+ *     previsível, sem 2 notches por parada e sem pular.
+ *   - A trackpad flick is a burst of small pixel deltas summing to a few hundred
+ *     px. With the per-event cap (WHEEL_MAX_STEPS_PER_EVENT) and idle decay, a
+ *     single flick lands ~1–2 stops rather than all 6.
+ */
+const WHEEL_STEP_THRESHOLD = 120;
+
+/**
+ * px assigned to one wheel LINE (deltaMode === 1). A mouse notch is typically 3
+ * lines; 3 × 40 = 120 ≈ one WHEEL_STEP_THRESHOLD → ~1 stop per notch. Browsers
+ * vary (Firefox reports lines), so we normalize here instead of trusting raw px.
+ */
+const WHEEL_LINE_PX = 40;
+
+/** px assigned to one wheel PAGE (deltaMode === 2) — rare; keep it bounded. */
+const WHEEL_PAGE_PX = 800;
+
+/**
+ * Per-EVENT cap on how much normalized delta counts toward the accumulator. A
+ * trackpad flick / momentum tail can report a single huge delta (or many medium
+ * ones); without a cap one physical flick could dump 700px+ and jump ~6 stops.
+ * Clamping each event's contribution keeps a flick to ~1–2 stops while a genuine
+ * fast mouse spin (many separate notch events) still advances freely — each notch
+ * is its own event, so the cap never throttles honest notches.
+ */
+const WHEEL_MAX_DELTA_PER_EVENT = WHEEL_STEP_THRESHOLD * 1.6; // ~1.6 stops max/event
 
 /** Touch drag distance (px) in one swipe that must accumulate to step a stop. */
 const TOUCH_STEP_THRESHOLD = 45;
 
 /**
- * Quiet gap (ms) of WHEEL SILENCE after which the discrete gesture unlocks so the
- * next notch/swipe can step again. Trackpads and momentum scroll fire a burst of
- * events per physical swipe; a step must fire ONCE per burst, then the lock
- * releases once the burst goes quiet.
- *
- * CRITICAL — unlock is driven by a TIMER re-armed on every wheel event, NOT by
- * observing the gap on the *next* event. The old design only re-checked the gap
- * inside _onWheel when the next event arrived, so a natural mouse-wheel cadence
- * (consecutive detents <140ms apart) never observed a large-enough gap → the lock
- * never released and every advance past the first got stuck until the user PAUSED
- * (e.g. to move the mouse) long enough for the next event to finally see the gap.
- * That pause is what made "wiggle the cursor then scroll" appear to unlock it —
- * the unlock was really gated on wall-clock idle, not on the pointermove.
- *
- * With the timer, each detent fires its step and the lock self-releases ~this many
- * ms after the LAST wheel event — purely on wheel-idle, no pointermove, no next
- * event required. A fast momentum burst keeps re-arming the timer, so it still
- * collapses to a single step until the burst ends.
- *
- * WINDOW SIZING — this is the mouse-notch / trackpad-burst discriminator, and it
- * is a SPACING gate, not a magnitude one:
- *   - Trackpad/momentum fires events ~8–16ms apart → each event re-arms the timer
- *     before it can fire → the whole burst collapses to ONE step. ✓
- *   - A mouse wheel detent — even scrolled briskly — lands ≥~90ms apart, so the
- *     timer fires in the gap and the next detent steps again. ✓
- * 80ms sits cleanly in the dead-zone between the two (≫ a 16ms burst interval,
- * ≪ a ~90ms+ detent interval). The old value was 140ms, which overlapped a brisk
- * mouse cadence and re-fused consecutive detents into one locked gesture — the
- * root of the "must move the mouse to advance" bug (the mouse-move was just the
- * >140ms pause the stale gap-check needed).
+ * Idle gap (ms) of WHEEL SILENCE after which leftover _wheelAccum DECAYS to zero.
+ * This is NOT a lock and NOT an unlock — steps fire immediately on threshold, with
+ * zero dependency on this timer. It only cleans a sub-threshold REMAINDER so that,
+ * after the user stops scrolling, a stray partial accum can't later combine with a
+ * fresh flick to fire an unearned step. Sized short enough to feel like "the
+ * scroll ended" (a new deliberate scroll starts from ~0) but long enough to not
+ * interrupt a continuous burst (trackpad/momentum events are ~8–16ms apart, far
+ * below this, so a live burst never decays mid-stream).
  */
-const WHEEL_IDLE_UNLOCK_MS = 80;
+const WHEEL_IDLE_DECAY_MS = 120;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -133,20 +154,35 @@ let _reducedMotion = false;
  *  subscriber knows to ignore the notification (it's our own write). */
 let _internalWrite = false;
 
-// Per-gesture accumulators for the discrete stepper.
-let _wheelAccum = 0; // signed |deltaY| accumulated in the current wheel gesture
-let _wheelLocked = false; // true after a step fired this gesture (until reset)
-/** setTimeout handle for the wheel-idle unlock. Re-armed on every wheel event;
- *  when it finally fires (WHEEL_IDLE_UNLOCK_MS of wheel silence) it resets the
- *  gesture so the next notch/swipe can step. This is the ONLY forward-unlock path —
- *  purely wheel-idle, decoupled from pointermove / interaction-signal. */
-let _wheelIdleTimer: ReturnType<typeof setTimeout> | 0 = 0;
+// Threshold accumulator for the wheel stepper (rework 3 — no lock).
+let _wheelAccum = 0; // signed NORMALIZED delta accumulated since the last decay
+/** setTimeout handle for the idle DECAY of leftover accum. Re-armed on every wheel
+ *  event; when it fires (WHEEL_IDLE_DECAY_MS of silence) it zeroes any sub-threshold
+ *  remainder. This is cleanup only — steps never wait on it, so scrolling is never
+ *  blocked (no pointermove / interaction-signal coupling on the journey path). */
+let _wheelDecayTimer: ReturnType<typeof setTimeout> | 0 = 0;
 let _touchAccum = 0; // signed drag distance accumulated in the current swipe
 
-/** Reset the discrete wheel gesture so the next notch can step again. */
-function _resetWheelGesture(): void {
-  _wheelAccum = 0;
-  _wheelLocked = false;
+/**
+ * Normalize a wheel event's deltaY to a common px unit, deltaMode-aware, then cap
+ * its per-event contribution (WHEEL_MAX_DELTA_PER_EVENT) so a single flick/momentum
+ * spike can't dump many stops at once. Sign preserved.
+ */
+function _normalizeWheelDelta(deltaY: number, deltaMode: number): number {
+  let px: number;
+  switch (deltaMode) {
+    case 1: // DOM_DELTA_LINE — Firefox mouse wheel reports lines
+      px = deltaY * WHEEL_LINE_PX;
+      break;
+    case 2: // DOM_DELTA_PAGE — rare
+      px = deltaY * WHEEL_PAGE_PX;
+      break;
+    default: // 0 = DOM_DELTA_PIXEL — trackpad / Chrome mouse
+      px = deltaY;
+      break;
+  }
+  const capped = Math.min(Math.abs(px), WHEEL_MAX_DELTA_PER_EVENT);
+  return Math.sign(px) * capped;
 }
 
 function _lerp(a: number, b: number, alpha: number): number {
@@ -270,51 +306,54 @@ function _goToStop(idx: number): void {
 
 // ─── Event handlers ──────────────────────────────────────────────────────────
 
+/**
+ * Threshold-accumulator wheel handler (rework 3). NO lock, NO input dependency.
+ *
+ * Every event:
+ *   1. Normalize deltaY (deltaMode-aware, per-event capped) → _wheelAccum.
+ *   2. On a direction REVERSAL, drop the opposite-sign remainder first so the very
+ *      first reverse notch counts toward going back (never has to "unwind" forward
+ *      accum before it can move) — then continue accumulating in the new direction.
+ *   3. While |_wheelAccum| >= STEP_THRESHOLD: advance the TARGET index by one
+ *      (sign of accum), SUBTRACT the threshold (carry remainder). A burst that
+ *      overshoots several thresholds advances several stops in one event; a single
+ *      event is bounded by the per-event delta cap, so a flick lands ~1–2 stops.
+ *   4. Re-arm the idle DECAY timer (cleanup of leftover remainder only).
+ *
+ * Because the step loop keys off delta magnitude — never a lock or a timer — a
+ * continuous scroll advances stop-after-stop with zero dependency on pointermove,
+ * click, or keypress. The camera chases the moving target via the easing RAF.
+ */
 function _onWheel(e: WheelEvent): void {
   e.preventDefault();
 
-  // Gesture segmentation. TWO independent unlock paths, both decoupled from
-  // pointermove / the P1 interaction-signal:
-  //
-  //   1. REVERSAL — direction flip vs the accumulated gesture unlocks IMMEDIATELY
-  //      (no timer wait) so "scroll back one stop" always responds on the first
-  //      reverse notch. This is why reversing never needed a cursor wiggle.
-  //
-  //   2. WHEEL-IDLE — a setTimeout re-armed on EVERY wheel event. When it fires
-  //      (WHEEL_IDLE_UNLOCK_MS of wheel silence) it resets the gesture. This is
-  //      the forward-unlock path: after a detent fires its step, the timer releases
-  //      the lock during the natural micro-pause before the next detent — WITHOUT
-  //      needing the next event to observe a gap, and WITHOUT any pointermove.
-  //
-  //      The old code unlocked only by checking `now - lastWheelTs > gap` at the
-  //      TOP of the next event. A normal mouse-wheel cadence (detents <140ms apart)
-  //      never produced a large-enough gap, so forward advances past the first got
-  //      stuck until the user paused long enough (e.g. to move the mouse) for the
-  //      next event to finally see the gap — the pointermove was incidental, the
-  //      wall-clock pause was the real trigger.
-  const dir = Math.sign(e.deltaY);
-  const reversed =
-    _wheelAccum !== 0 && Math.sign(_wheelAccum) !== dir && dir !== 0;
-  if (reversed) {
-    _resetWheelGesture();
-  }
-  _wheelAccum += e.deltaY;
+  const delta = _normalizeWheelDelta(e.deltaY, e.deltaMode);
+  if (delta === 0) return;
 
-  // Fire at most one step per gesture, once the accumulated delta crosses the
-  // threshold. Stays locked until the idle timer (or a reversal) resets it.
-  if (!_wheelLocked && Math.abs(_wheelAccum) >= WHEEL_STEP_THRESHOLD) {
-    _wheelLocked = true;
+  // Reversal: clear an opposite-sign remainder so the first reverse notch counts
+  // toward the new direction immediately (no "unwind the old accum" lag). This is
+  // magnitude-based, not a timer — reversing never needs a pause or a cursor move.
+  if (_wheelAccum !== 0 && Math.sign(_wheelAccum) !== Math.sign(delta)) {
+    _wheelAccum = 0;
+  }
+  _wheelAccum += delta;
+
+  // Advance one target stop per threshold crossed, carrying the remainder so a
+  // fast burst chains multiple stops (1→2→3) and never gets stuck at one.
+  while (Math.abs(_wheelAccum) >= WHEEL_STEP_THRESHOLD) {
+    const dir = Math.sign(_wheelAccum);
+    _wheelAccum -= dir * WHEEL_STEP_THRESHOLD;
     _stepStop(dir);
   }
 
-  // (Re)arm the wheel-idle unlock. A fast momentum burst keeps clearing and
-  // re-arming this, so it only fires once the burst goes quiet → burst collapses
-  // to a single step; spaced detents each get their own unlock.
-  if (_wheelIdleTimer !== 0) clearTimeout(_wheelIdleTimer);
-  _wheelIdleTimer = setTimeout(() => {
-    _wheelIdleTimer = 0;
-    _resetWheelGesture();
-  }, WHEEL_IDLE_UNLOCK_MS);
+  // Re-arm idle decay (cleanup of the sub-threshold remainder — NOT a lock; no
+  // step ever waits on this). A live burst (events ~8–16ms apart) keeps clearing
+  // and re-arming it, so it only fires once scrolling truly stops.
+  if (_wheelDecayTimer !== 0) clearTimeout(_wheelDecayTimer);
+  _wheelDecayTimer = setTimeout(() => {
+    _wheelDecayTimer = 0;
+    _wheelAccum = 0;
+  }, WHEEL_IDLE_DECAY_MS);
 }
 
 let _touchY: number | null = null;
@@ -449,9 +488,9 @@ export function createJourneyInput(
   function destroy(): void {
     cancelAnimationFrame(_rafId);
     _rafId = 0;
-    if (_wheelIdleTimer !== 0) {
-      clearTimeout(_wheelIdleTimer);
-      _wheelIdleTimer = 0;
+    if (_wheelDecayTimer !== 0) {
+      clearTimeout(_wheelDecayTimer);
+      _wheelDecayTimer = 0;
     }
     _unsubscribeJourney();
     container.removeEventListener("wheel", _onWheel as EventListener);
