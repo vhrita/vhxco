@@ -90,12 +90,38 @@ const WHEEL_STEP_THRESHOLD = 40;
 const TOUCH_STEP_THRESHOLD = 45;
 
 /**
- * Quiet gap (ms) after the last wheel/touch event that ends a gesture. Trackpads
- * and momentum scroll fire a burst of events per physical swipe; a step must only
- * fire ONCE per burst. After this gap of silence the gesture resets so the next
- * swipe can step again.
+ * Quiet gap (ms) of WHEEL SILENCE after which the discrete gesture unlocks so the
+ * next notch/swipe can step again. Trackpads and momentum scroll fire a burst of
+ * events per physical swipe; a step must fire ONCE per burst, then the lock
+ * releases once the burst goes quiet.
+ *
+ * CRITICAL — unlock is driven by a TIMER re-armed on every wheel event, NOT by
+ * observing the gap on the *next* event. The old design only re-checked the gap
+ * inside _onWheel when the next event arrived, so a natural mouse-wheel cadence
+ * (consecutive detents <140ms apart) never observed a large-enough gap → the lock
+ * never released and every advance past the first got stuck until the user PAUSED
+ * (e.g. to move the mouse) long enough for the next event to finally see the gap.
+ * That pause is what made "wiggle the cursor then scroll" appear to unlock it —
+ * the unlock was really gated on wall-clock idle, not on the pointermove.
+ *
+ * With the timer, each detent fires its step and the lock self-releases ~this many
+ * ms after the LAST wheel event — purely on wheel-idle, no pointermove, no next
+ * event required. A fast momentum burst keeps re-arming the timer, so it still
+ * collapses to a single step until the burst ends.
+ *
+ * WINDOW SIZING — this is the mouse-notch / trackpad-burst discriminator, and it
+ * is a SPACING gate, not a magnitude one:
+ *   - Trackpad/momentum fires events ~8–16ms apart → each event re-arms the timer
+ *     before it can fire → the whole burst collapses to ONE step. ✓
+ *   - A mouse wheel detent — even scrolled briskly — lands ≥~90ms apart, so the
+ *     timer fires in the gap and the next detent steps again. ✓
+ * 80ms sits cleanly in the dead-zone between the two (≫ a 16ms burst interval,
+ * ≪ a ~90ms+ detent interval). The old value was 140ms, which overlapped a brisk
+ * mouse cadence and re-fused consecutive detents into one locked gesture — the
+ * root of the "must move the mouse to advance" bug (the mouse-move was just the
+ * >140ms pause the stale gap-check needed).
  */
-const GESTURE_RESET_MS = 140;
+const WHEEL_IDLE_UNLOCK_MS = 80;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -110,8 +136,18 @@ let _internalWrite = false;
 // Per-gesture accumulators for the discrete stepper.
 let _wheelAccum = 0; // signed |deltaY| accumulated in the current wheel gesture
 let _wheelLocked = false; // true after a step fired this gesture (until reset)
-let _lastWheelTs = 0; // performance.now() of the last wheel event
+/** setTimeout handle for the wheel-idle unlock. Re-armed on every wheel event;
+ *  when it finally fires (WHEEL_IDLE_UNLOCK_MS of wheel silence) it resets the
+ *  gesture so the next notch/swipe can step. This is the ONLY forward-unlock path —
+ *  purely wheel-idle, decoupled from pointermove / interaction-signal. */
+let _wheelIdleTimer: ReturnType<typeof setTimeout> | 0 = 0;
 let _touchAccum = 0; // signed drag distance accumulated in the current swipe
+
+/** Reset the discrete wheel gesture so the next notch can step again. */
+function _resetWheelGesture(): void {
+  _wheelAccum = 0;
+  _wheelLocked = false;
+}
 
 function _lerp(a: number, b: number, alpha: number): number {
   return a + (b - a) * alpha;
@@ -236,28 +272,49 @@ function _goToStop(idx: number): void {
 
 function _onWheel(e: WheelEvent): void {
   e.preventDefault();
-  const now =
-    typeof performance !== "undefined" ? performance.now() : Date.now();
 
-  // Gesture segmentation: a physical swipe fires a burst of wheel events. After
-  // GESTURE_RESET_MS of silence, or when the scroll direction reverses, we treat
-  // it as a NEW gesture — reset the accumulator and unlock so it can step again.
+  // Gesture segmentation. TWO independent unlock paths, both decoupled from
+  // pointermove / the P1 interaction-signal:
+  //
+  //   1. REVERSAL — direction flip vs the accumulated gesture unlocks IMMEDIATELY
+  //      (no timer wait) so "scroll back one stop" always responds on the first
+  //      reverse notch. This is why reversing never needed a cursor wiggle.
+  //
+  //   2. WHEEL-IDLE — a setTimeout re-armed on EVERY wheel event. When it fires
+  //      (WHEEL_IDLE_UNLOCK_MS of wheel silence) it resets the gesture. This is
+  //      the forward-unlock path: after a detent fires its step, the timer releases
+  //      the lock during the natural micro-pause before the next detent — WITHOUT
+  //      needing the next event to observe a gap, and WITHOUT any pointermove.
+  //
+  //      The old code unlocked only by checking `now - lastWheelTs > gap` at the
+  //      TOP of the next event. A normal mouse-wheel cadence (detents <140ms apart)
+  //      never produced a large-enough gap, so forward advances past the first got
+  //      stuck until the user paused long enough (e.g. to move the mouse) for the
+  //      next event to finally see the gap — the pointermove was incidental, the
+  //      wall-clock pause was the real trigger.
   const dir = Math.sign(e.deltaY);
-  const gapEnded = now - _lastWheelTs > GESTURE_RESET_MS;
-  const reversed = _wheelAccum !== 0 && Math.sign(_wheelAccum) !== dir && dir !== 0;
-  if (gapEnded || reversed) {
-    _wheelAccum = 0;
-    _wheelLocked = false;
+  const reversed =
+    _wheelAccum !== 0 && Math.sign(_wheelAccum) !== dir && dir !== 0;
+  if (reversed) {
+    _resetWheelGesture();
   }
-  _lastWheelTs = now;
   _wheelAccum += e.deltaY;
 
   // Fire at most one step per gesture, once the accumulated delta crosses the
-  // threshold. Stays locked until the gesture resets (gap/reverse above).
+  // threshold. Stays locked until the idle timer (or a reversal) resets it.
   if (!_wheelLocked && Math.abs(_wheelAccum) >= WHEEL_STEP_THRESHOLD) {
     _wheelLocked = true;
     _stepStop(dir);
   }
+
+  // (Re)arm the wheel-idle unlock. A fast momentum burst keeps clearing and
+  // re-arming this, so it only fires once the burst goes quiet → burst collapses
+  // to a single step; spaced detents each get their own unlock.
+  if (_wheelIdleTimer !== 0) clearTimeout(_wheelIdleTimer);
+  _wheelIdleTimer = setTimeout(() => {
+    _wheelIdleTimer = 0;
+    _resetWheelGesture();
+  }, WHEEL_IDLE_UNLOCK_MS);
 }
 
 let _touchY: number | null = null;
@@ -392,6 +449,10 @@ export function createJourneyInput(
   function destroy(): void {
     cancelAnimationFrame(_rafId);
     _rafId = 0;
+    if (_wheelIdleTimer !== 0) {
+      clearTimeout(_wheelIdleTimer);
+      _wheelIdleTimer = 0;
+    }
     _unsubscribeJourney();
     container.removeEventListener("wheel", _onWheel as EventListener);
     container.removeEventListener("touchstart", _onTouchStart as EventListener);
