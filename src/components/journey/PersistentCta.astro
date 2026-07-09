@@ -102,4 +102,25 @@ const ctaText = locale === 'en' ? 'Diagnose →' : 'Diagnosticar →';
   .persistent-cta:focus-visible {
     outline: 2px solid var(--color-cyan);
   }
+
+  /* Large-screen pass: the escape-hatch pill stayed 10px on 4K, invisible.
+   * Scale it up (still subtle relative to the hero, just readable). */
+  @media (min-width: 1440px) {
+    .persistent-cta {
+      bottom: 2.25rem;
+      right: 2rem;
+      font-size: 0.8125rem; /* 13px */
+      padding: 0.6rem 1rem;
+      gap: 0.5rem;
+    }
+  }
+
+  @media (min-width: 1920px) {
+    .persistent-cta {
+      bottom: 2.75rem;
+      right: 2.5rem;
+      font-size: 0.9375rem; /* 15px */
+      padding: 0.7rem 1.25rem;
+    }
+  }
 </style>

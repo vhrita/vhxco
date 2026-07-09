@@ -157,19 +157,28 @@
    * HITL #4: --text-4xl max = 4.75rem = 76px (was 92px).
    */
 
-  /* Sizes */
-  --text-2xs: clamp(0.625rem, 0.6vw + 0.5rem, 0.75rem); /* 10–12px */
-  --text-xs: clamp(0.75rem, 0.7vw + 0.6rem, 0.875rem); /* 12–14px */
-  --text-sm: clamp(0.875rem, 0.8vw + 0.7rem, 1rem); /* 14–16px */
-  --text-base: clamp(1rem, 1vw + 0.8rem, 1.125rem); /* 16–18px */
-  --text-lg: clamp(1.125rem, 1.3vw + 0.85rem, 1.375rem); /* 18–22px */
-  --text-xl: clamp(1.375rem, 1.8vw + 1rem, 1.75rem); /* 22–28px */
-  --text-2xl: clamp(1.75rem, 2.5vw + 1.2rem, 2.5rem); /* 28–40px */
-  --text-3xl: clamp(2rem, 3.5vw + 1.4rem, 3.25rem); /* 32–52px */
-  /* QA iter-02 (P0-C): floor reduzido de 2.25rem (38px) → 1.75rem (28px) e slope
-   * mais suave (4vw + 0.5rem) para evitar h1 phase 1 ocupar 6 linhas em 375px.
-   * Em 375w: 28px (era 44.6). Em 1280w: ~59px (era 76). Em 1920w: cap em 76px. */
-  --text-4xl: clamp(1.75rem, 4vw + 0.5rem, 4.75rem); /* 28–76px (h1) */
+  /* Sizes.
+   *
+   * Large-screen scaling pass (responsividade): the maxes were tuned for ~1920
+   * and left 4K/ultrawide feeling empty (text/components stuck small in a sea
+   * of black). The `vw` slope is intact (floors unchanged → 375px fit preserved)
+   * but the caps are raised one tier so the type keeps growing toward 2560. The
+   * fluid math still reaches the cap around 1920–2100; the extra ceiling is what
+   * lets a 4K monitor read as premium instead of tiny. Floors are byte-identical
+   * to the previous pass — mobile is untouched. */
+  --text-2xs: clamp(0.625rem, 0.6vw + 0.5rem, 0.875rem); /* 10–14px */
+  --text-xs: clamp(0.75rem, 0.7vw + 0.6rem, 1rem); /* 12–16px */
+  --text-sm: clamp(0.875rem, 0.85vw + 0.7rem, 1.1875rem); /* 14–19px */
+  --text-base: clamp(1rem, 1.05vw + 0.8rem, 1.375rem); /* 16–22px */
+  --text-lg: clamp(1.125rem, 1.4vw + 0.85rem, 1.75rem); /* 18–28px */
+  --text-xl: clamp(1.375rem, 2vw + 1rem, 2.25rem); /* 22–36px */
+  --text-2xl: clamp(1.75rem, 2.8vw + 1.2rem, 3.25rem); /* 28–52px */
+  --text-3xl: clamp(2rem, 3.8vw + 1.4rem, 4.25rem); /* 32–68px */
+  /* QA iter-02 (P0-C): floor 1.75rem (28px) mantido + slope suave (4.4vw) para
+   * o h1 não ocupar 6 linhas em 375px. Cap subido 4.75rem → 6.25rem (76→100px)
+   * pra headline preencher tela grande.
+   * Em 375w: 28px. Em 1280w: ~64px. Em 1920w: ~90px. Em 2560w: cap 100px. */
+  --text-4xl: clamp(1.75rem, 4.4vw + 0.4rem, 6.25rem); /* 28–100px (h1) */
 
   /* Line heights */
   --leading-tight: 1.05;
@@ -221,5 +230,19 @@
 @media (min-width: 48rem) {
   :root {
     --hud-corner-h: 5rem; /* 80px — banda vertical reservada ≥768px */
+  }
+}
+
+/* Large-screen pass: taller TopNav band so the scaled-up logo + nav items
+ * (see global.css) have room without crowding the top edge. */
+@media (min-width: 90rem) {
+  :root {
+    --safe-top: 4.25rem; /* 68px — nav band on ≥1440 */
+  }
+}
+
+@media (min-width: 120rem) {
+  :root {
+    --safe-top: 5rem; /* 80px — nav band on ≥1920 */
   }
 }

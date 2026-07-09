@@ -430,7 +430,7 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-eyebrow {
     font-family: var(--font-mono);
-    font-size: clamp(0.625rem, 1.5vw + 0.5rem, 0.75rem);
+    font-size: clamp(0.625rem, 1.5vw + 0.5rem, 1rem);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--color-cyan);
@@ -442,7 +442,10 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-headline {
     font-family: var(--font-display);
-    font-size: clamp(1.75rem, 4vw + 0.5rem, 3.5rem);
+    /* Large-screen pass: cap raised 3.5rem → 5.5rem (56→88px) so the stop
+     * headline scales up on 1440/1920/2560 instead of sitting tiny. Floor and
+     * slope keep the 375px fit (28px, 4vw). */
+    font-size: clamp(1.75rem, 4vw + 0.5rem, 5.5rem);
     font-weight: 600;
     line-height: 1.05;
     letter-spacing: -0.02em;
@@ -454,7 +457,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-body {
     font-family: var(--font-mono);
-    font-size: clamp(0.8125rem, 1.2vw + 0.6rem, 0.9375rem);
+    /* Large-screen pass: cap 0.9375rem → 1.375rem (15→22px). Floor unchanged. */
+    font-size: clamp(0.8125rem, 1.2vw + 0.6rem, 1.375rem);
     line-height: 1.65;
     color: var(--color-dim);
     margin: 0;
@@ -507,8 +511,9 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-card-icon {
     flex: 0 0 auto;
-    width: clamp(18px, 1.4vw + 14px, 22px);
-    height: clamp(18px, 1.4vw + 14px, 22px);
+    /* Large-screen pass: cap 22 → 34px so icons scale with the card copy. */
+    width: clamp(18px, 1.4vw + 14px, 34px);
+    height: clamp(18px, 1.4vw + 14px, 34px);
     color: var(--color-cyan);
     margin-top: 0.05rem;
   }
@@ -522,7 +527,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-card-title {
     font-family: var(--font-mono);
-    font-size: clamp(0.75rem, 1vw + 0.55rem, 0.875rem);
+    /* Large-screen pass: cap 0.875rem → 1.25rem (14→20px). */
+    font-size: clamp(0.75rem, 1vw + 0.55rem, 1.25rem);
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
@@ -536,7 +542,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-card-desc {
     font-family: var(--font-mono);
-    font-size: clamp(0.6875rem, 0.9vw + 0.5rem, 0.8125rem);
+    /* Large-screen pass: cap 0.8125rem → 1.125rem (13→18px). */
+    font-size: clamp(0.6875rem, 0.9vw + 0.5rem, 1.125rem);
     line-height: 1.35;
     color: var(--color-dim);
   }
@@ -563,7 +570,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-mural-label {
     font-family: var(--font-mono);
-    font-size: 0.625rem;
+    /* Large-screen pass: fixed 0.625rem → fluid cap 0.875rem (10→14px). */
+    font-size: clamp(0.625rem, 0.6vw + 0.5rem, 0.875rem);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--color-cyan);
@@ -609,7 +617,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-tile-name {
     font-family: var(--font-mono);
-    font-size: clamp(0.6875rem, 0.9vw + 0.5rem, 0.8125rem);
+    /* Large-screen pass: cap 0.8125rem → 1.0625rem (13→17px). */
+    font-size: clamp(0.6875rem, 0.9vw + 0.5rem, 1.0625rem);
     font-weight: 600;
     color: var(--color-fg);
     white-space: nowrap;
@@ -619,7 +628,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-tile-tag {
     font-family: var(--font-mono);
-    font-size: 0.625rem;
+    /* Large-screen pass: fixed 0.625rem → fluid cap 0.875rem (10→14px). */
+    font-size: clamp(0.625rem, 0.6vw + 0.5rem, 0.875rem);
     color: var(--color-dim);
     white-space: nowrap;
     overflow: hidden;
@@ -660,7 +670,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-tagline-close {
     font-family: var(--font-mono);
-    font-size: clamp(0.625rem, 0.9vw + 0.45rem, 0.75rem);
+    /* Large-screen pass: cap 0.75rem → 1rem (12→16px). */
+    font-size: clamp(0.625rem, 0.9vw + 0.45rem, 1rem);
     letter-spacing: 0.04em;
     line-height: 1.4;
     /* legibility-notch: keeps it the quietest text tier but lifts the opacity
@@ -684,7 +695,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
   .stop-hud-hint {
     font-family: var(--font-mono);
-    font-size: 0.6875rem;
+    /* Large-screen pass: fixed 0.6875rem → fluid cap 0.9375rem (11→15px). */
+    font-size: clamp(0.6875rem, 0.7vw + 0.5rem, 0.9375rem);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     /* legibility-notch: was --color-dim AT opacity:0.5 → effective ~2.7:1, near
@@ -702,5 +714,75 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     color: var(--color-cyan);
     opacity: 0.7;
     font-size: 0.875rem;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+   * Large-screen scaling pass (responsividade — feedback do Vitor)
+   *
+   * Problem: on 1440/1920/2560 the panel maxed at 44rem (704px) and sat in a
+   * small corner of a huge black canvas — text and cards felt lost. The token
+   * clamp caps above already grow the type; these tiers grow the CONTAINER
+   * (max-width), the padding, and the vertical rhythm (gaps) in step so the
+   * bigger type has room to breathe and the panel fills more of the viewport —
+   * premium density instead of tiny-in-a-void.
+   *
+   * Hard law preserved: still capped (never full-bleed → mesh breathes around
+   * it), and the densest stops (Serviços 2×2 cards, Prova mural) are checked to
+   * still fit 100svh at these sizes. Mobile/tablet untouched (≥1440 only).
+   * ═════════════════════════════════════════════════════════════════════════ */
+
+  @media (min-width: 1440px) {
+    .journey-stop {
+      padding-left: clamp(2.25rem, 4vw, 4.5rem);
+    }
+    .stop-inner {
+      max-width: 52rem; /* 832px */
+      gap: clamp(1rem, 1.6svh, 1.5rem);
+      padding: clamp(1.25rem, 2.4svh, 1.75rem) clamp(1.5rem, 2.2vw, 2.25rem);
+    }
+    .progress-dot {
+      width: 1.75rem;
+    }
+    .stop-cards {
+      gap: clamp(0.75rem, 1.4svh, 1rem);
+    }
+    .stop-card {
+      padding: clamp(0.75rem, 1.4svh, 1rem) clamp(1rem, 1.4vw, 1.25rem);
+    }
+    .stop-card-link {
+      padding: clamp(0.75rem, 1.4svh, 1rem) clamp(1rem, 1.4vw, 1.25rem);
+    }
+    .stop-tile {
+      padding: 0.7rem 0.9rem;
+    }
+  }
+
+  @media (min-width: 1920px) {
+    .journey-stop {
+      padding-left: clamp(4.5rem, 5vw, 7rem);
+    }
+    .stop-inner {
+      max-width: 60rem; /* 960px */
+      gap: clamp(1.25rem, 1.8svh, 1.75rem);
+      padding: clamp(1.75rem, 2.6svh, 2.25rem) clamp(2rem, 2.2vw, 2.75rem);
+    }
+    .progress-dot {
+      width: 2.25rem;
+      height: 3px;
+    }
+  }
+
+  /* Guard: the densest stops (2×2 service cards, proof mural) are the ones at
+   * risk of overflowing height when everything scales up. On short-but-wide
+   * large viewports (e.g. 1920×900 laptop) rein the gaps back so the hard law
+   * (100svh fit, no internal overflow) holds even at max type. */
+  @media (min-width: 1440px) and (max-height: 950px) {
+    .stop-inner {
+      gap: clamp(0.75rem, 1.2svh, 1.15rem);
+      padding: clamp(1rem, 1.8svh, 1.4rem) clamp(1.5rem, 2vw, 2rem);
+    }
+    .stop-cards {
+      gap: clamp(0.5rem, 1svh, 0.8rem);
+    }
   }
 </style>
