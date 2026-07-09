@@ -33,6 +33,7 @@
   --color-bg: var(--color-bg);
   --color-fg: var(--color-fg);
   --color-dim: var(--color-dim);
+  --color-hint: var(--color-hint);
   --color-line: var(--color-line);
   --color-cyan: var(--color-cyan);
   --color-cyan-soft: var(--color-cyan-soft);
@@ -1337,7 +1338,10 @@ h1.headline .strike::after {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   letter-spacing: var(--tracking-widest);
-  color: var(--color-dim);
+  /* legibility-notch: cue tier (--color-hint) — same "próximo passo" affordance
+   * as .stop-hud-hint. Lifted from --color-dim so the hero scroll-cue reads
+   * clearly against the mesh instead of fading into it. */
+  color: var(--color-hint);
   text-transform: uppercase;
   text-decoration: none;
   pointer-events: auto;

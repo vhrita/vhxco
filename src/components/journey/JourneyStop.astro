@@ -638,8 +638,11 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     font-size: clamp(0.625rem, 0.9vw + 0.45rem, 0.75rem);
     letter-spacing: 0.04em;
     line-height: 1.4;
+    /* legibility-notch: keeps it the quietest text tier but lifts the opacity
+     * crutch (0.6 → 0.78) so the --color-dim bump actually lands — was doubly
+     * suppressed (muted grey × 0.6). Still clearly below body/cue. */
     color: var(--color-dim);
-    opacity: 0.6;
+    opacity: 0.78;
     margin: 0;
     margin-top: clamp(0.375rem, 1svh, 0.625rem);
   }
@@ -659,8 +662,10 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     font-size: 0.6875rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--color-dim);
-    opacity: 0.5;
+    /* legibility-notch: was --color-dim AT opacity:0.5 → effective ~2.7:1, near
+     * invisible (the worst offender). Now the dedicated --color-hint tier at full
+     * opacity (~12.9:1 on black) so the "próximo passo" cue clearly reads. */
+    color: var(--color-hint);
     margin: 0;
     margin-top: clamp(0.25rem, 1svh, 0.5rem);
     display: flex;

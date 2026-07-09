@@ -19,11 +19,21 @@
 
   /* Foreground / text */
   --color-fg: #f4f8fb; /* White-blue tint — primary text */
-  /* Secondary text / labels. Bumped from #6f7d86 (~3.05:1 on black — fails AA
-   * body) to #9aa7b0 (~5.9:1 — passes WCAG AA 4.5:1) so the grey secondary copy
-   * stays legible over the neural mesh, incl. bright nodes. Still reads as a
-   * muted grey-blue, not white — keeps the title/body hierarchy. */
-  --color-dim: #9aa7b0; /* Light grey-blue — secondary text, labels */
+  /* Secondary text / labels — BODY tier. Bumped through #6f7d86 → #9aa7b0 →
+   * #b0bbc2 (legibility-notch pass): the #9aa7b0 grey read "meio mal" over the
+   * glass panel once the neural mesh bled through the 0.4-alpha fill, so this is
+   * one degree lighter (~10.7:1 on black, comfortably WCAG AA even over a bright
+   * mesh node). Still a muted grey-blue, not white — title/body hierarchy holds. */
+  --color-dim: #b0bbc2; /* Light grey-blue — secondary text (subcopy, descs, tags) */
+
+  /* HINT / cue tier — the "próximo passo" scroll-cues (`> VIAJAR`, `COMEÇAR`…).
+   * Lifted ABOVE --color-dim because these were the worst offender: they used
+   * --color-dim AT opacity:0.5, crushing the effective ratio to ~2.7:1 (near
+   * invisible). Now a distinct lighter grey (~12.9:1 on black) with the opacity
+   * crutch removed at the call site. Sits below the white title but clearly
+   * legible. Keep title (--color-fg) > cue (--color-hint) ≳ body (--color-dim);
+   * the cue stays visually subordinate by its tiny mono/uppercase size. */
+  --color-hint: #c4ccd2; /* Lighter grey-blue — scroll/next-step cues */
 
   /* Structural */
   --color-line: rgba(255, 255, 255, 0.08); /* Hairline borders / dividers */
