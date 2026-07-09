@@ -886,6 +886,239 @@ body[data-intro="active"] #webgl {
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+ * TopNav — mobile sidebar drawer (responsividade — feedback do Vitor)
+ *
+ * Problem 2: on mobile the top row crammed logo + 6 chapter numbers + PT/EN
+ * into one line — cramped and unreadable. Solution: a hamburger toggles an
+ * off-canvas SIDEBAR (slides from the right) with the 6 stops + language.
+ * The logo stays in the top row; the top is otherwise clear.
+ *
+ * Structure: chapters + lang now live inside #topnav-drawer.
+ *   - Desktop (≥768px): the drawer is a normal inline flex child — the
+ *     horizontal nav looks exactly as before. Burger + drawer chrome hidden.
+ *   - Mobile (<768px): the drawer becomes fixed off-canvas; burger shows;
+ *     body.nav-drawer-open slides it in + reveals the scrim.
+ * ═════════════════════════════════════════════════════════════════════════ */
+
+/* Drawer as inline flex container on desktop (default): replaces the old
+ * direct .topnav-chapters flex:1 role. Logo | [chapters(center) + lang] */
+.topnav-drawer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Desktop: hide the drawer's own chrome (header/close) + the hamburger. */
+.topnav-drawer-head {
+  display: none;
+}
+
+.topnav-burger {
+  display: none;
+}
+
+.topnav-scrim {
+  display: none;
+}
+
+/* ── Mobile (<768px): off-canvas sidebar ─────────────────────────────────── */
+@media (max-width: 47.99rem) {
+  /* Hamburger button — pushed to the far right of the top row. */
+  .topnav-burger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    cursor: pointer;
+    outline-offset: 3px;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--dur-fast) var(--ease-emphasized);
+  }
+  .topnav-burger:hover,
+  .topnav-burger:focus-visible {
+    border-color: var(--color-cyan);
+  }
+  .topnav-burger:focus-visible {
+    outline: 2px solid var(--color-cyan);
+  }
+
+  .topnav-burger-box {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: 18px;
+  }
+  .topnav-burger-line {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background: var(--color-fg);
+    border-radius: 2px;
+    transition:
+      transform var(--dur-medium-fast) var(--ease-emphasized),
+      opacity var(--dur-fast) var(--ease-emphasized);
+  }
+
+  /* Burger → X when the drawer is open. */
+  body.nav-drawer-open .topnav-burger-line:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+  body.nav-drawer-open .topnav-burger-line:nth-child(2) {
+    opacity: 0;
+  }
+  body.nav-drawer-open .topnav-burger-line:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  /* Backdrop scrim behind the sidebar. */
+  .topnav-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-chrome) + 1);
+    background: rgba(2, 6, 10, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-medium) var(--ease-emphasized);
+  }
+  body.nav-drawer-open .topnav-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* The drawer becomes a fixed off-canvas panel sliding from the right. */
+  .topnav-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    flex: none;
+    width: min(78vw, 20rem);
+    max-width: 20rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 1rem 1.25rem 1.5rem;
+    z-index: calc(var(--z-chrome) + 2);
+    background: linear-gradient(
+      180deg,
+      rgba(6, 12, 18, 0.98) 0%,
+      rgba(3, 8, 12, 0.98) 100%
+    );
+    border-left: 1px solid var(--surface-glass-border);
+    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
+    transform: translateX(100%);
+    transition: transform var(--dur-medium-slow) var(--ease-emphasized);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  body.nav-drawer-open .topnav-drawer {
+    transform: translateX(0);
+  }
+
+  /* Drawer header: title + close button. */
+  .topnav-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 1rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .topnav-drawer-title {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--color-cyan);
+  }
+  .topnav-drawer-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    background: transparent;
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    color: var(--color-fg);
+    font-size: 0.875rem;
+    cursor: pointer;
+    outline-offset: 3px;
+    transition: border-color var(--dur-fast) var(--ease-emphasized);
+  }
+  .topnav-drawer-close:hover,
+  .topnav-drawer-close:focus-visible {
+    border-color: var(--color-cyan);
+    color: var(--color-cyan);
+  }
+  .topnav-drawer-close:focus-visible {
+    outline: 2px solid var(--color-cyan);
+  }
+
+  /* Chapters stack vertically, full labels, comfortable tap targets. */
+  .topnav-chapters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+    flex: none;
+    justify-content: flex-start;
+    container-type: normal; /* disable label-switch container queries in sidebar */
+  }
+  .topnav-chapter {
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid var(--color-line);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    text-shadow: none;
+  }
+  .topnav-chapter.active,
+  .topnav-chapter[aria-selected="true"] {
+    border-bottom-color: var(--color-cyan);
+  }
+  /* Force full labels in the sidebar (override container-query modes). */
+  .topnav-chapter .topnav-chapter-num {
+    display: inline;
+    opacity: 0.7;
+    margin-right: 0;
+    font-size: 0.8125rem;
+    min-width: 1.75rem;
+  }
+  .topnav-chapter .topnav-chapter-lbl-short {
+    display: none;
+  }
+  .topnav-chapter .topnav-lbl-full {
+    display: inline;
+  }
+
+  /* Language toggle sits at the bottom of the sidebar. */
+  .topnav-lang {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-line);
+    gap: 0.5rem;
+  }
+  .topnav-lang-btn {
+    flex: 1;
+    text-align: center;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.8125rem;
+  }
+}
+
 /* Large-screen pass: nav items + lang toggle scale up so they don't read as a
  * thin row of tiny text on 1440/1920/2560. Viewport queries (not container) so
  * they track the real screen size. */
