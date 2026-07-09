@@ -204,6 +204,17 @@ const WHEEL_IDLE_DECAY_MS = 120;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
+// ── Boot input-lock (Phase 4b-2 rework) ──────────────────────────────────────
+// While the boot/intro is running (brain genesis + dolly, before
+// journey:intro-done), ALL navigation input is IGNORED so the journey can't move
+// off stop 0 before it's ready — the user can't scroll/swipe/key past the intro.
+// This is ONLY an on/off boot gate; it is NOT the old navigation scroll-lock and
+// touches NONE of the calibration (SCROLL_TUNE / accumulator / settle / overscroll
+// fix). After intro-done the flag flips false and every handler behaves exactly as
+// the approved build. Reduced-motion & no-WebGL never lock (see createJourneyInput):
+// there is no genesis to protect, so input is free from the first frame.
+let _bootLocked = false;
+
 let _target = 0; // desired t (set by input handlers) — always a stopCenterT value
 let _easedT = 0; // smoothed t (written to store each RAF)
 let _rafId = 0;
@@ -461,6 +472,12 @@ function _goToStop(idx: number): void {
 function _onWheel(e: WheelEvent): void {
   e.preventDefault();
 
+  // Boot gate: swallow the wheel while the intro genesis/dolly is running so the
+  // journey can't advance off stop 0 before intro-done. preventDefault() above
+  // already blocked native scroll; returning here just skips the accumulator so
+  // the calibration is untouched — it simply never sees these events.
+  if (_bootLocked) return;
+
   let delta = _normalizeWheelDelta(e.deltaY, e.deltaMode);
   if (delta === 0) return;
 
@@ -522,12 +539,21 @@ function _isInteractiveTarget(target: EventTarget | null): boolean {
 }
 
 function _onTouchStart(e: TouchEvent): void {
+  // Boot gate: ignore touches entirely while the intro is running (no swipe →
+  // no journey step). Leaving _touchY null makes _onTouchMove early-return too.
+  if (_bootLocked) return;
   _touchOnInteractive = _isInteractiveTarget(e.target);
   _touchY = e.touches[0]?.clientY ?? null;
   _touchAccum = 0; // new swipe → fresh accumulator (one step per swipe)
 }
 
 function _onTouchMove(e: TouchEvent): void {
+  // Boot gate: prevent native scroll/rubber-band during the intro but never step
+  // the journey (calibration untouched — the swipe accumulator never runs).
+  if (_bootLocked) {
+    if (e.cancelable) e.preventDefault();
+    return;
+  }
   if (_touchY === null) return;
   // Gesture began on the form / sidebar — leave it to the browser (typeable field,
   // scrollable drawer). No preventDefault, no journey step.
@@ -565,6 +591,10 @@ function _onKeyDown(e: KeyboardEvent): void {
   // Don't intercept inside form elements
   const tag = (e.target as HTMLElement)?.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+  // Boot gate: ignore navigation keys while the intro is running so Arrow/Page/
+  // Space/Home/End can't jump the journey before intro-done.
+  if (_bootLocked) return;
 
   switch (e.key) {
     case "ArrowDown":
@@ -611,6 +641,56 @@ export function createJourneyInput(
       : null;
 
   _reducedMotion = mq?.matches ?? false;
+
+  // ── Boot input-lock wiring ─────────────────────────────────────────────────
+  // Lock navigation input until the intro finishes. Reduced-motion has no genesis/
+  // dolly (the engine reveals immediately), so we DON'T lock there — input is free
+  // from the first frame, matching the instant content reveal. WebGL/normal path:
+  // lock now, release on journey:intro-done (fired by the render-loop when the
+  // dolly lands). Belt-and-suspenders so the user is NEVER stuck locked:
+  //   - no-WebGL: the island sets body[data-webgl="unavailable"] and the engine
+  //     never fires intro-done → watch for that marker and unlock.
+  //   - hard failsafe timeout in case the engine fails to boot/fire at all.
+  _bootLocked = !_reducedMotion;
+
+  function _unlockBoot(): void {
+    _bootLocked = false;
+  }
+
+  let _bootFailsafe: ReturnType<typeof setTimeout> | 0 = 0;
+  let _webglObserver: MutationObserver | null = null;
+
+  if (_bootLocked && typeof window !== "undefined") {
+    window.addEventListener("journey:intro-done", _unlockBoot, { once: true });
+
+    // no-WebGL fallback: engine never starts, so intro-done never fires. Unlock as
+    // soon as the island flags the unavailable path (or immediately if already set).
+    if (typeof document !== "undefined" && document.body) {
+      if (document.body.getAttribute("data-webgl") === "unavailable") {
+        _unlockBoot();
+      } else {
+        try {
+          _webglObserver = new MutationObserver(() => {
+            if (document.body.getAttribute("data-webgl") === "unavailable") {
+              _unlockBoot();
+              _webglObserver?.disconnect();
+              _webglObserver = null;
+            }
+          });
+          _webglObserver.observe(document.body, {
+            attributes: true,
+            attributeFilter: ["data-webgl"],
+          });
+        } catch {
+          // MutationObserver unavailable — the failsafe below still covers it.
+        }
+      }
+    }
+
+    // Hard failsafe: never leave input locked if the engine fails to fire. Generous
+    // vs the ~2.6s genesis + dolly. Cleared in destroy().
+    _bootFailsafe = setTimeout(_unlockBoot, 8000);
+  }
 
   function _onMqChange(ev: MediaQueryListEvent): void {
     const wasReduced = _reducedMotion;
@@ -677,6 +757,17 @@ export function createJourneyInput(
       clearTimeout(_wheelDecayTimer);
       _wheelDecayTimer = 0;
     }
+    // Boot-lock cleanup (Phase 4b-2): drop the failsafe, the intro-done listener
+    // and the no-WebGL observer so a re-mount (HMR) doesn't leak them.
+    if (_bootFailsafe !== 0) {
+      clearTimeout(_bootFailsafe);
+      _bootFailsafe = 0;
+    }
+    if (typeof window !== "undefined") {
+      window.removeEventListener("journey:intro-done", _unlockBoot);
+    }
+    _webglObserver?.disconnect();
+    _webglObserver = null;
     _unsubscribeJourney();
     container.removeEventListener("wheel", _onWheel as EventListener);
     container.removeEventListener("touchstart", _onTouchStart as EventListener);
