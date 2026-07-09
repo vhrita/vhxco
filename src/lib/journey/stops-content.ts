@@ -89,7 +89,7 @@ const PT_STOPS: StopContent[] = [
   {
     eyebrow: "O GARGALO",
     headline: "Todo negócio trava\nnum gargalo.",
-    body: "Venda que não converte. Operação manual comendo a margem.\nSeu dia engolido por tarefa repetitiva.\nFerramenta genérica não conserta isso.",
+    body: "Venda que não converte. Operação manual comendo a margem.\nSeu dia engolido por tarefa repetitiva.\nFerramenta genérica não conserta isso.\nTem um caminho — e ele começa num plano.",
     hudHint: "achar o meu",
   },
   // Stop 2 — MÉTODO (Desire) — V2 "medimos o antes e o depois"
@@ -124,7 +124,7 @@ const PT_STOPS: StopContent[] = [
       {
         icon: "scan",
         title: "DIAGNÓSTICO GRÁTIS",
-        desc: "Seu gargalo mapeado em 7 dias.",
+        desc: "O mapa do seu próximo salto — em 7 dias.",
         cta: true,
       },
     ],
@@ -156,7 +156,7 @@ const PT_STOPS: StopContent[] = [
   {
     eyebrow: "DIAGNÓSTICO GRÁTIS",
     headline: "Conte seu gargalo.\nReceba o plano.",
-    body: "Gratuito. Em 7 dias, sem compromisso.",
+    body: "Um plano só seu: o que atacar primeiro pra o número virar. Grátis, em 7 dias, sem compromisso.",
     hudHint: null, // action stop: no hint, has form
     taglineClose: "Construído por agentes. Feito para pessoas.",
   },
@@ -178,7 +178,7 @@ const EN_STOPS: StopContent[] = [
   {
     eyebrow: "THE BOTTLENECK",
     headline: "Every business stalls\nat a bottleneck.",
-    body: "Sales that don't convert. Manual work eating your margin.\nYour day swallowed by repetitive tasks.\nGeneric tools don't fix that.",
+    body: "Sales that don't convert. Manual work eating your margin.\nYour day swallowed by repetitive tasks.\nGeneric tools don't fix that.\nThere's a way out — and it starts with a plan.",
     hudHint: "find mine",
   },
   // Stop 2 — METHOD (Desire) — V2 "we measure before and after"
@@ -213,7 +213,7 @@ const EN_STOPS: StopContent[] = [
       {
         icon: "scan",
         title: "FREE DIAGNOSTIC",
-        desc: "Your bottleneck mapped in 7 days.",
+        desc: "The map to your next leap — in 7 days.",
         cta: true,
       },
     ],
@@ -244,7 +244,7 @@ const EN_STOPS: StopContent[] = [
   {
     eyebrow: "FREE DIAGNOSTIC",
     headline: "Tell us your bottleneck.\nGet the plan.",
-    body: "Free. In 7 days, no strings attached.",
+    body: "A plan built for you: what to fix first to move the number. Free, in 7 days, no strings.",
     hudHint: null, // action stop: no hint, has form
     taglineClose: "Built by agents. Made for people.",
   },
@@ -272,19 +272,19 @@ export function getStopContent(index: number, locale: StopLocale): StopContent {
 /** Labels for the TopNav (0-based, outcome-first order). V6: stop 3 = Resultados. */
 export const STOP_NAV_LABELS = {
   pt: [
-    { label: "Promessa", short: "INI" },
+    { label: "Início", short: "INI" },
     { label: "Gargalo", short: "GAR" },
     { label: "Método", short: "MET" },
     { label: "Resultados", short: "RES" },
-    { label: "Prova", short: "PRV" },
-    { label: "Diagnose", short: "DIA" },
+    { label: "Portfólio", short: "PRV" },
+    { label: "Diagnóstico", short: "DIA" },
   ],
   en: [
-    { label: "Promise", short: "INI" },
+    { label: "Start", short: "INI" },
     { label: "Bottleneck", short: "GAR" },
     { label: "Method", short: "MET" },
     { label: "Results", short: "RES" },
-    { label: "Proof", short: "PRV" },
-    { label: "Diagnose", short: "DIA" },
+    { label: "Portfolio", short: "PRV" },
+    { label: "Diagnostic", short: "DIA" },
   ],
 } as const;
