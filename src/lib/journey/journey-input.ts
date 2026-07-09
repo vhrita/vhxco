@@ -83,9 +83,9 @@ import { markJourneyInteraction } from "./interaction-signal.js";
 //   └─ CAMERA_TWEEN_MS       camera glide duration to the target stop (the premium
 //                            ease-out). ↑ = more languid; ↓ = snappier. ~600ms.
 
-// DEFAULTS — the shipping values. The live object below starts here; the DEV
-// tuning panel mutates SCROLL_TUNE and can reset back to these. Keeping the
-// defaults as a frozen literal lets the panel's "reset" restore them exactly.
+// DEFAULTS — the shipping values (approved by Vitor). The live SCROLL_TUNE object
+// below starts from these; kept as a frozen literal so the shipped values are the
+// single source of truth.
 const SCROLL_TUNE_DEFAULTS = Object.freeze({
   /**
    * Normalized wheel delta (px-equivalent) to advance ONE stop. ↑ = need more
@@ -93,39 +93,33 @@ const SCROLL_TUNE_DEFAULTS = Object.freeze({
    * which felt like a blur / free-scroll) so continuous scroll advances stop-by-stop
    * with a beat, not a smear. ~2 mouse notches per stop at 220.
    */
-  wheelStepThreshold: 220,
+  wheelStepThreshold: 350,
   /**
    * The "stick" — ms after arriving at a stop during which incoming scroll is DAMPED
    * so the stop grabs for a beat (Apple-style magnetic snap). This is soft resistance,
    * never a lock: sustained strong scroll still accumulates past threshold and crosses.
    * Set 0 to disable the stick entirely.
    */
-  settleMs: 320,
+  settleMs: 600,
   /**
    * Damping factor for scroll delta at the START of the settle window (decays linearly
    * back to 1.0 by settleMs). Lower = grabbier stick; 1.0 = no stick. At 0.45 the
    * first ~half of a settle needs roughly double the scroll to break out, but a hard
    * sustained scroll still overpowers it — resistance, not a wall.
    */
-  settleDamp: 0.45,
+  settleDamp: 0.7,
   /**
    * Camera glide duration (ms) to stopCenterT(target) — the premium ease-out. Time-
    * based (quart), restarts from the live eased position on a new target so chained
    * steps compose smoothly. ↑ = more languid settle; ↓ = snappier.
    */
-  cameraTweenMs: 600,
+  cameraTweenMs: 900,
 });
 
 /**
- * LIVE tunables — a MUTABLE config object read fresh on every wheel event / RAF frame
- * (never captured in a closure), so changing a value takes effect on the NEXT scroll
- * with no rebuild. In DEV this is exposed on window.__scrollTune (get/set) and driven
- * by the temporary tuning panel (?tune=1). In prod it just holds the ship defaults.
- *
- * WHY AN OBJECT, NOT `const`s: the old `const WHEEL_STEP_THRESHOLD = 220` was baked
- * at bundle time. The panel needs to move the dials at runtime and have the input
- * logic honor the new number immediately — so the logic reads SCROLL_TUNE.xxx at the
- * point of use rather than a hoisted primitive.
+ * LIVE tunables — a config object read fresh on every wheel event / RAF frame (never
+ * captured in a closure). The logic reads SCROLL_TUNE.xxx at the point of use rather
+ * than a hoisted primitive; the four values are the approved ship defaults.
  */
 const SCROLL_TUNE: {
   wheelStepThreshold: number;
@@ -133,49 +127,6 @@ const SCROLL_TUNE: {
   settleDamp: number;
   cameraTweenMs: number;
 } = { ...SCROLL_TUNE_DEFAULTS };
-
-/**
- * DEV: expose the live tunables on window.__scrollTune with getters/setters so the
- * tuning panel (?tune=1) mutates the SAME object the input logic reads each frame.
- * `reset()` restores the ship defaults; `defaults` is the frozen reference. No-op in
- * prod (never called there). Safe to call more than once — idempotent redefinition.
- */
-function _exposeScrollTuneDev(): void {
-  if (typeof window === "undefined") return;
-  const api = {
-    get wheelStepThreshold() {
-      return SCROLL_TUNE.wheelStepThreshold;
-    },
-    set wheelStepThreshold(v: number) {
-      SCROLL_TUNE.wheelStepThreshold = v;
-    },
-    get settleMs() {
-      return SCROLL_TUNE.settleMs;
-    },
-    set settleMs(v: number) {
-      SCROLL_TUNE.settleMs = v;
-    },
-    get settleDamp() {
-      return SCROLL_TUNE.settleDamp;
-    },
-    set settleDamp(v: number) {
-      SCROLL_TUNE.settleDamp = v;
-    },
-    get cameraTweenMs() {
-      return SCROLL_TUNE.cameraTweenMs;
-    },
-    set cameraTweenMs(v: number) {
-      SCROLL_TUNE.cameraTweenMs = v;
-    },
-    get defaults() {
-      return SCROLL_TUNE_DEFAULTS;
-    },
-    reset() {
-      Object.assign(SCROLL_TUNE, SCROLL_TUNE_DEFAULTS);
-    },
-  };
-  (window as unknown as Record<string, unknown>).__scrollTune = api;
-}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -677,12 +628,6 @@ export function createJourneyInput(
 
   // HUD navigation events (dispatched by TopNav.astro button clicks)
   window.addEventListener("hud:goto-phase", _onHudGotoPhase);
-
-  // DEV: expose the live tunables on window.__scrollTune so the temporary tuning
-  // panel (?tune=1) can move the dials at runtime. Prod path never runs this.
-  if (import.meta.env.DEV) {
-    _exposeScrollTuneDev();
-  }
 
   // Perf plan P2: do NOT start the easing RAF unconditionally. At mount
   // _target === _easedT (both synced to getJourneyT above) so there is nothing
