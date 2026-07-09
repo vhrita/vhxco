@@ -601,11 +601,12 @@ body[data-intro="active"] #webgl {
   font-size: var(--text-xs);
   letter-spacing: var(--tracking-normal);
   pointer-events: auto;
-  /* QA iter-01 Batch C (P0-7): container context for logo text @container query
-   * (hide "VHXCO" word in < 480px so logo stops fighting chapter buttons for
-   * width). Nested vs .topnav-chapters' own container — both resolve to the
-   * nearest ancestor with container-type, so no conflict. */
-  container-type: inline-size;
+  /* NOTE: `.topnav` intentionally does NOT set container-type. A container-query
+   * container becomes the containing block for its fixed-position descendants —
+   * that would trap the mobile #topnav-drawer (position:fixed) inside the 56px
+   * nav row instead of the viewport (the drawer would render only 56px tall).
+   * The label-switch @container queries use `.topnav-chapters`' OWN
+   * container-type (below), not this element, so nothing here depends on it. */
 }
 
 /* Subtle top scrim — soft black→transparent gradient behind the floating nav
@@ -878,9 +879,11 @@ body[data-intro="active"] #webgl {
 }
 
 /* Small-viewport padding relief.
- * At ≤ 30rem (480px) the nav row is tight with logo + chapters + lang.
- * Reduce horizontal padding from --safe-x to 0.75rem to recover ~24px. */
-@container (max-width: 30rem) {
+ * At ≤ 30rem (480px) the nav row is tight with logo + hamburger.
+ * Reduce horizontal padding from --safe-x to 0.75rem to recover ~24px.
+ * (Was a @container query, but `.topnav` no longer has a container ancestor —
+ * see the container-type note on `.topnav` — so this is a media query now.) */
+@media (max-width: 30rem) {
   .topnav {
     padding-inline: 0.75rem;
   }
