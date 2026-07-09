@@ -604,6 +604,12 @@ body[data-boot="loading"] .backdrop-vignette {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
+  /* clip-path forces ZERO painted pixels even for elements promoted to their own
+   * compositor layer (the nav is position:fixed + z-index, so it composites
+   * separately). visibility:hidden alone keeps the layer allocated, which some
+   * compositors (and headless GPU capture) keep painting; clipping the layer to
+   * an empty rect guarantees nothing is drawn until the gate lifts. */
+  clip-path: inset(100%) !important;
 }
 
 /* Smooth fade-in the moment the gate lifts (attribute removed). The elements
@@ -2415,6 +2421,7 @@ h1.headline .strike::after {
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
+    clip-path: none !important;
   }
 
   /* Disable ambient infinite animations */
