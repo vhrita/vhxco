@@ -5,6 +5,8 @@ import HeroFallback from '@/components/hero/HeroFallback.astro';
 import CustomCursor from '@/components/cursor/CustomCursor';
 import TopNav from '@/components/hud/TopNav.astro';
 import PersistentCta from '@/components/journey/PersistentCta.astro';
+// TEMP: scroll tuning panel — remove before ship (delete this import + <ScrollTunePanel/> below)
+import ScrollTunePanel from '@/components/dev/ScrollTunePanel.astro';
 import { getT } from '@/lib/i18n/t';
 import type { Locale } from '@/lib/i18n/config';
 
@@ -59,6 +61,9 @@ const t = getT(locale as Locale);
     <main id="main">
       <slot />
     </main>
+
+    <!-- TEMP: scroll tuning panel — remove before ship (DEV-only + ?tune=1 gated) -->
+    <ScrollTunePanel />
 
     <script>
       // Boot driver — advances bootProgress 0→1 (forms the brain on the canvas)

@@ -83,36 +83,99 @@ import { markJourneyInteraction } from "./interaction-signal.js";
 //   └─ CAMERA_TWEEN_MS       camera glide duration to the target stop (the premium
 //                            ease-out). ↑ = more languid; ↓ = snappier. ~600ms.
 
-/**
- * Normalized wheel delta (px-equivalent) to advance ONE stop. ↑ = need more
- * deliberate scroll per stop (slower); ↓ = quicker. Raised from 120 (1 notch/stop,
- * which felt like a blur / free-scroll) so continuous scroll advances stop-by-stop
- * with a beat, not a smear. ~2 mouse notches per stop at 220.
- */
-const WHEEL_STEP_THRESHOLD = 220;
+// DEFAULTS — the shipping values. The live object below starts here; the DEV
+// tuning panel mutates SCROLL_TUNE and can reset back to these. Keeping the
+// defaults as a frozen literal lets the panel's "reset" restore them exactly.
+const SCROLL_TUNE_DEFAULTS = Object.freeze({
+  /**
+   * Normalized wheel delta (px-equivalent) to advance ONE stop. ↑ = need more
+   * deliberate scroll per stop (slower); ↓ = quicker. Raised from 120 (1 notch/stop,
+   * which felt like a blur / free-scroll) so continuous scroll advances stop-by-stop
+   * with a beat, not a smear. ~2 mouse notches per stop at 220.
+   */
+  wheelStepThreshold: 220,
+  /**
+   * The "stick" — ms after arriving at a stop during which incoming scroll is DAMPED
+   * so the stop grabs for a beat (Apple-style magnetic snap). This is soft resistance,
+   * never a lock: sustained strong scroll still accumulates past threshold and crosses.
+   * Set 0 to disable the stick entirely.
+   */
+  settleMs: 320,
+  /**
+   * Damping factor for scroll delta at the START of the settle window (decays linearly
+   * back to 1.0 by settleMs). Lower = grabbier stick; 1.0 = no stick. At 0.45 the
+   * first ~half of a settle needs roughly double the scroll to break out, but a hard
+   * sustained scroll still overpowers it — resistance, not a wall.
+   */
+  settleDamp: 0.45,
+  /**
+   * Camera glide duration (ms) to stopCenterT(target) — the premium ease-out. Time-
+   * based (quart), restarts from the live eased position on a new target so chained
+   * steps compose smoothly. ↑ = more languid settle; ↓ = snappier.
+   */
+  cameraTweenMs: 600,
+});
 
 /**
- * The "stick" — ms after arriving at a stop during which incoming scroll is DAMPED
- * so the stop grabs for a beat (Apple-style magnetic snap). This is soft resistance,
- * never a lock: sustained strong scroll still accumulates past threshold and crosses.
- * Set 0 to disable the stick entirely.
+ * LIVE tunables — a MUTABLE config object read fresh on every wheel event / RAF frame
+ * (never captured in a closure), so changing a value takes effect on the NEXT scroll
+ * with no rebuild. In DEV this is exposed on window.__scrollTune (get/set) and driven
+ * by the temporary tuning panel (?tune=1). In prod it just holds the ship defaults.
+ *
+ * WHY AN OBJECT, NOT `const`s: the old `const WHEEL_STEP_THRESHOLD = 220` was baked
+ * at bundle time. The panel needs to move the dials at runtime and have the input
+ * logic honor the new number immediately — so the logic reads SCROLL_TUNE.xxx at the
+ * point of use rather than a hoisted primitive.
  */
-const SETTLE_MS = 320;
+const SCROLL_TUNE: {
+  wheelStepThreshold: number;
+  settleMs: number;
+  settleDamp: number;
+  cameraTweenMs: number;
+} = { ...SCROLL_TUNE_DEFAULTS };
 
 /**
- * Damping factor for scroll delta at the START of the settle window (decays linearly
- * back to 1.0 by SETTLE_MS). Lower = grabbier stick; 1.0 = no stick. At 0.45 the
- * first ~half of a settle needs roughly double the scroll to break out, but a hard
- * sustained scroll still overpowers it — resistance, not a wall.
+ * DEV: expose the live tunables on window.__scrollTune with getters/setters so the
+ * tuning panel (?tune=1) mutates the SAME object the input logic reads each frame.
+ * `reset()` restores the ship defaults; `defaults` is the frozen reference. No-op in
+ * prod (never called there). Safe to call more than once — idempotent redefinition.
  */
-const SETTLE_DAMP = 0.45;
-
-/**
- * Camera glide duration (ms) to stopCenterT(target) — the premium ease-out. Time-
- * based (quart), restarts from the live eased position on a new target so chained
- * steps compose smoothly. ↑ = more languid settle; ↓ = snappier.
- */
-const CAMERA_TWEEN_MS = 600;
+function _exposeScrollTuneDev(): void {
+  if (typeof window === "undefined") return;
+  const api = {
+    get wheelStepThreshold() {
+      return SCROLL_TUNE.wheelStepThreshold;
+    },
+    set wheelStepThreshold(v: number) {
+      SCROLL_TUNE.wheelStepThreshold = v;
+    },
+    get settleMs() {
+      return SCROLL_TUNE.settleMs;
+    },
+    set settleMs(v: number) {
+      SCROLL_TUNE.settleMs = v;
+    },
+    get settleDamp() {
+      return SCROLL_TUNE.settleDamp;
+    },
+    set settleDamp(v: number) {
+      SCROLL_TUNE.settleDamp = v;
+    },
+    get cameraTweenMs() {
+      return SCROLL_TUNE.cameraTweenMs;
+    },
+    set cameraTweenMs(v: number) {
+      SCROLL_TUNE.cameraTweenMs = v;
+    },
+    get defaults() {
+      return SCROLL_TUNE_DEFAULTS;
+    },
+    reset() {
+      Object.assign(SCROLL_TUNE, SCROLL_TUNE_DEFAULTS);
+    },
+  };
+  (window as unknown as Record<string, unknown>).__scrollTune = api;
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -164,8 +227,14 @@ const WHEEL_PAGE_PX = 800;
  * fast mouse spin (many separate notch events) still advances freely — each notch
  * is its own event, so the cap never throttles honest notches. Sized just under one
  * threshold so a single flick lands exactly one stop and then hits the settle.
+ *
+ * Derived LIVE from SCROLL_TUNE.wheelStepThreshold (was a bundle-time const) so it
+ * tracks the panel's threshold slider — otherwise raising the threshold would let a
+ * single flick dump multiple stops (cap frozen below the new threshold).
  */
-const WHEEL_MAX_DELTA_PER_EVENT = WHEEL_STEP_THRESHOLD * 0.95; // ≤1 stop max/event
+function _wheelMaxDeltaPerEvent(): number {
+  return SCROLL_TUNE.wheelStepThreshold * 0.95; // ≤1 stop max/event
+}
 
 /** Touch drag distance (px) in one swipe that must accumulate to step a stop. */
 const TOUCH_STEP_THRESHOLD = 45;
@@ -229,12 +298,14 @@ function _now(): number {
  * sustained hard scroll always crosses the threshold anyway (soft stick, not a lock).
  */
 function _settleFactor(now: number): number {
-  if (SETTLE_MS <= 0 || SETTLE_DAMP >= 1) return 1;
+  // Read the dials LIVE each call so the tuning panel takes effect on the next event.
+  const { settleMs, settleDamp } = SCROLL_TUNE;
+  if (settleMs <= 0 || settleDamp >= 1) return 1;
   const elapsed = now - _lastStepAt;
-  if (elapsed >= SETTLE_MS) return 1;
-  // Linear ramp SETTLE_DAMP → 1.0 across the window.
-  const p = elapsed / SETTLE_MS; // 0..1
-  return SETTLE_DAMP + (1 - SETTLE_DAMP) * p;
+  if (elapsed >= settleMs) return 1;
+  // Linear ramp settleDamp → 1.0 across the window.
+  const p = elapsed / settleMs; // 0..1
+  return settleDamp + (1 - settleDamp) * p;
 }
 
 /**
@@ -255,7 +326,7 @@ function _normalizeWheelDelta(deltaY: number, deltaMode: number): number {
       px = deltaY;
       break;
   }
-  const capped = Math.min(Math.abs(px), WHEEL_MAX_DELTA_PER_EVENT);
+  const capped = Math.min(Math.abs(px), _wheelMaxDeltaPerEvent());
   return Math.sign(px) * capped;
 }
 
@@ -317,7 +388,10 @@ function _applyEasing(): void {
   // Progress is real elapsed time / duration, so the feel is frame-rate independent
   // (a 30fps idle-throttle frame and a 120fps frame land the same eased t).
   const elapsed = _now() - _tweenStart;
-  const p = CAMERA_TWEEN_MS <= 0 ? 1 : Math.min(1, elapsed / CAMERA_TWEEN_MS);
+  // Read the glide duration LIVE so the panel's cameraTweenMs slider affects the
+  // in-flight and subsequent tweens without a rebuild.
+  const cameraTweenMs = SCROLL_TUNE.cameraTweenMs;
+  const p = cameraTweenMs <= 0 ? 1 : Math.min(1, elapsed / cameraTweenMs);
   _easedT = _tweenFrom + (_tweenTo - _tweenFrom) * _easeOutQuart(p);
   // Converged when the tween has run its full duration AND we're at the target.
   const converged = p >= 1 || Math.abs(_easedT - _tweenTo) < 0.0001;
@@ -455,7 +529,8 @@ function _onWheel(e: WheelEvent): void {
   // Advance one target stop per threshold crossed, ZEROing the accumulator on each
   // step so the next stop needs a fresh threshold (the settle). The per-event delta
   // cap (≤1 threshold) means at most one step fires per event — no multi-stop jumps.
-  while (Math.abs(_wheelAccum) >= WHEEL_STEP_THRESHOLD) {
+  // Read threshold LIVE so the panel's threshold slider changes scroll-per-stop now.
+  while (Math.abs(_wheelAccum) >= SCROLL_TUNE.wheelStepThreshold) {
     const dir = Math.sign(_wheelAccum);
     _wheelAccum = 0;
     _stepStop(dir);
@@ -602,6 +677,12 @@ export function createJourneyInput(
 
   // HUD navigation events (dispatched by TopNav.astro button clicks)
   window.addEventListener("hud:goto-phase", _onHudGotoPhase);
+
+  // DEV: expose the live tunables on window.__scrollTune so the temporary tuning
+  // panel (?tune=1) can move the dials at runtime. Prod path never runs this.
+  if (import.meta.env.DEV) {
+    _exposeScrollTuneDev();
+  }
 
   // Perf plan P2: do NOT start the easing RAF unconditionally. At mount
   // _target === _easedT (both synced to getJourneyT above) so there is nothing
