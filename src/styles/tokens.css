@@ -19,10 +19,25 @@
 
   /* Foreground / text */
   --color-fg: #f4f8fb; /* White-blue tint — primary text */
-  --color-dim: #6f7d86; /* Mid grey-blue — secondary text, labels */
+  /* Secondary text / labels. Bumped from #6f7d86 (~3.05:1 on black — fails AA
+   * body) to #9aa7b0 (~5.9:1 — passes WCAG AA 4.5:1) so the grey secondary copy
+   * stays legible over the neural mesh, incl. bright nodes. Still reads as a
+   * muted grey-blue, not white — keeps the title/body hierarchy. */
+  --color-dim: #9aa7b0; /* Light grey-blue — secondary text, labels */
 
   /* Structural */
   --color-line: rgba(255, 255, 255, 0.08); /* Hairline borders / dividers */
+
+  /* ─── Glass surfaces ───────────────────────────────────────────────────────
+   * Subtle glassmorphism behind text blocks so secondary copy never depends on
+   * whatever the 3D happens to render behind it. Kept intentionally light —
+   * the neural mesh must still breathe through/around the glass (Linear /
+   * Anthropic premium-glass reference, NOT an opaque panel). Use via var(),
+   * never hard-code these in components. */
+  --surface-glass-bg: rgba(0, 0, 0, 0.4); /* semi-transparent dark fill */
+  --surface-glass-blur: 10px; /* backdrop blur radius */
+  --surface-glass-border: rgba(255, 255, 255, 0.08); /* hairline edge */
+  --surface-glass-radius: 14px;
 
   /* Cyan family — brand accent */
   --color-cyan: oklch(

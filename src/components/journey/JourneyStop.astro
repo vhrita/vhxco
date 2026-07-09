@@ -345,9 +345,12 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     pointer-events: none;
     transition: opacity 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
 
-    /* Padding: left-aligned layout, respect safe zones */
-    padding-left: clamp(1.25rem, 5vw, 3rem);
-    padding-right: clamp(1.25rem, 5vw, 3rem);
+    /* Padding: left-aligned layout, respect safe zones.
+     * Horizontal gutter trimmed (was clamp(1.25rem,5vw,3rem)) because the glass
+     * .stop-inner now carries its own inset padding — keeps the total content
+     * width identical so the 375×667 hard-law fit is preserved. */
+    padding-left: clamp(0.875rem, 3.5vw, 2.25rem);
+    padding-right: clamp(0.875rem, 3.5vw, 2.25rem);
     padding-top: clamp(4rem, 8svh, 6rem);
     padding-bottom: clamp(2.5rem, 5svh, 4rem);
   }
@@ -359,6 +362,18 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     display: flex;
     flex-direction: column;
     gap: clamp(0.625rem, 1.5svh, 1rem);
+
+    /* Subtle glass surface — gives the secondary (grey) copy a controlled
+     * backdrop so it never disappears over a bright node of the 3D mesh.
+     * Intentionally light (rgba .4 + 10px blur): the neural network still
+     * reads through/around the panel. Padding folds the old journey-stop
+     * gutter inward so the fit at 375×667 is preserved (no net width gain). */
+    padding: clamp(0.75rem, 2.2svh, 1.25rem) clamp(0.875rem, 3.5vw, 1.5rem);
+    background: var(--surface-glass-bg);
+    -webkit-backdrop-filter: blur(var(--surface-glass-blur)) saturate(1.1);
+    backdrop-filter: blur(var(--surface-glass-blur)) saturate(1.1);
+    border: 1px solid var(--surface-glass-border);
+    border-radius: var(--surface-glass-radius);
   }
 
   /* ── Progress dots ───────────────────────────────────────────────────────── */
