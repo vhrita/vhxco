@@ -52,6 +52,7 @@ import {
   getActiveStop,
   subscribeJourney,
 } from "../journey/journey-state.js";
+import { getLastInteraction } from "../journey/interaction-signal.js";
 
 // Re-export so index.ts can still wire JourneyHandle without reaching into journey-state directly
 export { setJourneyT, getJourneyT, getActiveStop, subscribeJourney };
@@ -265,6 +266,16 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
   // difference — the animation is wall-clock driven (t_anim = now - startTime),
   // so dropping frames preserves temporal correctness (no slow-mo).
   const FRAME_MIN_MS = 1000 / 61; // 61 as headroom so we don't clip legit 60fps frames
+  // ── Idle fps throttle (perf plan P1) ──────────────────────────────────────
+  // The brain has continuous ambient life (slow cloud rotation, sparse soma
+  // pulses, travelling synapses), so pure render-on-demand isn't viable — but
+  // that ambient motion is imperceptible at 30fps. When the journey has been
+  // idle (no wheel/touch/key/HUD input) for IDLE_THROTTLE_MS AND no intro dolly
+  // is running, we halve the fps cap → cuts ~half the GPU/compositor work
+  // (including half the remaining per-frame paint) while nobody navigates.
+  // The first input bumps getLastInteraction() and we snap back to 60fps.
+  const FRAME_MIN_MS_IDLE = 1000 / 31; // ~30fps when idle
+  const IDLE_THROTTLE_MS = 450; // ≥400ms so a dolly/gesture never gets throttled mid-motion
   let lastDrawn = 0;
 
   // ── Visibility / offscreen pause (Phase 4b-2 perf) ────────────────────────
@@ -370,7 +381,15 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
     // alive so we sample again shortly. Uses raw ms clock (perf.now) for the gate.
     // staticMode draws exactly one settle frame then stops, so it bypasses the cap.
     const nowMs = performance.now();
-    if (!staticMode && nowMs - lastDrawn < FRAME_MIN_MS) {
+    // Idle throttle (P1): 60fps while navigating or during the intro dolly;
+    // 30fps once the journey has been idle for IDLE_THROTTLE_MS. introActive/
+    // introPending force the fast cap so the cinematic dolly is never throttled.
+    const idle =
+      !introActive &&
+      !introPending &&
+      nowMs - getLastInteraction() > IDLE_THROTTLE_MS;
+    const frameMin = idle ? FRAME_MIN_MS_IDLE : FRAME_MIN_MS;
+    if (!staticMode && nowMs - lastDrawn < frameMin) {
       if (running && !isPaused()) rafId = requestAnimationFrame(render);
       return;
     }
