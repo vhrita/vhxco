@@ -498,16 +498,46 @@ function _onWheel(e: WheelEvent): void {
 }
 
 let _touchY: number | null = null;
+/**
+ * True when the current swipe started on an interactive surface that owns its own
+ * touch (the Ação form + the mobile sidebar drawer / hamburger / scrim). For those
+ * the journey must NOT drive navigation and must NOT preventDefault — the field must
+ * stay typeable/selectable and the drawer scrollable/tappable. Captured on touchstart
+ * so a drag that begins in the form isn't hijacked mid-gesture. Mirrors the CSS
+ * `touch-action: auto` carve-out for `.terminal`/`.topnav` in global.css.
+ */
+let _touchOnInteractive = false;
+
+/**
+ * Does `target` sit inside a surface that owns its own native touch? The journey
+ * captures the whole window, so we exclude the form (`.terminal`) and the mobile
+ * sidebar (`.topnav`) here — otherwise a drag on a text field or the chapter list
+ * would step the camera and swallow the tap/scroll. Kept in sync with the
+ * `touch-action: auto` selectors in global.css §4.
+ */
+function _isInteractiveTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || typeof el.closest !== "function") return false;
+  return el.closest(".terminal, .topnav") !== null;
+}
 
 function _onTouchStart(e: TouchEvent): void {
+  _touchOnInteractive = _isInteractiveTarget(e.target);
   _touchY = e.touches[0]?.clientY ?? null;
   _touchAccum = 0; // new swipe → fresh accumulator (one step per swipe)
 }
 
 function _onTouchMove(e: TouchEvent): void {
   if (_touchY === null) return;
+  // Gesture began on the form / sidebar — leave it to the browser (typeable field,
+  // scrollable drawer). No preventDefault, no journey step.
+  if (_touchOnInteractive) return;
   const clientY = e.touches[0]?.clientY;
   if (clientY === undefined) return;
+  // Own the gesture: stop native scroll / pull-to-refresh / rubber-band so the drag
+  // feeds the journey instead of the browser. Requires the listener to be attached
+  // {passive: false} (see createJourneyInput) or this call is a silent no-op.
+  if (e.cancelable) e.preventDefault();
   let dy = _touchY - clientY; // >0 = finger moved up = advance (forward)
   _touchY = clientY;
 
@@ -528,6 +558,7 @@ function _onTouchMove(e: TouchEvent): void {
 function _onTouchEnd(): void {
   _touchY = null;
   _touchAccum = 0;
+  _touchOnInteractive = false;
 }
 
 function _onKeyDown(e: KeyboardEvent): void {
@@ -618,8 +649,12 @@ export function createJourneyInput(
   container.addEventListener("touchstart", _onTouchStart as EventListener, {
     passive: true,
   });
+  // touchmove MUST be {passive: false} so _onTouchMove can preventDefault() the
+  // native scroll / pull-to-refresh / rubber-band and hand the drag to the journey.
+  // The handler still skips preventDefault for form/sidebar targets (see
+  // _touchOnInteractive), so those keep their native touch.
   container.addEventListener("touchmove", _onTouchMove as EventListener, {
-    passive: true,
+    passive: false,
   });
   container.addEventListener("touchend", _onTouchEnd as EventListener, {
     passive: true,

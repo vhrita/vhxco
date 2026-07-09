@@ -64,6 +64,39 @@ body {
   font-family: var(--font-mono);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /*
+   * Mobile overscroll fix — the journey is a FIXED overlay: the page never scrolls
+   * natively, the camera "scrolls". Without this, a downward drag to go "back" a
+   * stop triggers the browser's native pull-to-refresh (Android Chrome) / rubber-
+   * band (iOS Safari ≥16.4) instead of feeding the journey touch input. `none` on
+   * the viewport root kills both. journey-input.ts also preventDefault()s its own
+   * touchmove; this CSS is the belt to that suspenders.
+   * NOTE: does NOT touch the scroll CALIBRATION (SCROLL_TUNE) — purely the browser's
+   * native overscroll gesture ownership.
+   */
+  overscroll-behavior: none;
+  /*
+   * The journey drives navigation via a JS touch handler on window; there is no
+   * native scroll surface at the root, so hand the drag gesture to our listener
+   * instead of the browser's scroll/pull-to-refresh. Interactive surfaces that DO
+   * need native touch (the Ação form, the mobile sidebar drawer / chapter list)
+   * re-enable it below.
+   */
+  touch-action: none;
+}
+
+/*
+ * Re-enable native touch on the interactive surfaces that are NOT the journey's
+ * scroll layer, so form fields stay typeable/selectable and the mobile sidebar
+ * drawer stays scrollable/tappable. journey-input.ts's touchmove handler mirrors
+ * this — it skips preventDefault() for targets inside these (see
+ * _isInteractiveTarget) so the journey never steals the form/sidebar gesture.
+ */
+.terminal,
+.terminal *,
+.topnav,
+.topnav * {
+  touch-action: auto;
 }
 
 ::selection {
