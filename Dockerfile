@@ -8,6 +8,15 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+
+# Build-time public env vars (Astro/Vite inlines PUBLIC_* at build time)
+ARG PUBLIC_FORMSPREE_ID
+ENV PUBLIC_FORMSPREE_ID=$PUBLIC_FORMSPREE_ID
+ARG PUBLIC_POSTHOG_KEY
+ENV PUBLIC_POSTHOG_KEY=$PUBLIC_POSTHOG_KEY
+ARG PUBLIC_POSTHOG_HOST
+ENV PUBLIC_POSTHOG_HOST=$PUBLIC_POSTHOG_HOST
+
 RUN pnpm run build
 
 FROM nginx:alpine AS runtime
