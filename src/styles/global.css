@@ -2309,6 +2309,21 @@ h1.headline .strike::after {
   color: var(--color-cyan);
 }
 
+/* Textarea variant — multi-line details field. Top-aligns the prompt so it
+   sits on the first line of the box; caps growth so it fits the tight Ação
+   viewport (375×667) without internal overflow. */
+.term-line--textarea {
+  align-items: flex-start;
+}
+
+.term-textarea {
+  resize: vertical;
+  min-height: 2.6rem;
+  max-height: 4.5rem;
+  line-height: 1.35;
+  padding: 0;
+}
+
 .term-submit {
   margin-top: 0.5rem;
   width: 100%;

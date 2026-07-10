@@ -5,7 +5,7 @@
  * existing Formspree logic.
  *
  * Changes from previous version:
- *   - 4 fields only: name, email, company, gargalo (text input)
+ *   - 4 fields only: name, email, company, details (textarea)
  *   - Removed: bottleneck radio (bn1-4), brief textarea, nextSlot display
  *   - Button text: "Solicitar diagnóstico" (was configurable — now fixed spec)
  *   - Promise label: "Resposta em até 7 dias." shown below submit
@@ -45,8 +45,8 @@ interface DiagnoseFormProps {
     emailPlaceholder: string;
     companyPrompt: string;
     companyPlaceholder: string;
-    gargaloPrompt: string;
-    gargaloPlaceholder: string;
+    detailsPrompt: string;
+    detailsPlaceholder: string;
     submit: string;
     sending: string;
     ok: string;
@@ -98,7 +98,7 @@ export default function DiagnoseForm({
           setStatus("success");
           form.reset();
           // Analytics: submit success. PII-safe — only the EVENT is sent, never
-          // the field values (name/email/company/gargalo go to Formspree only).
+          // the field values (name/email/company/details go to Formspree only).
           capture("diagnose_submit", { locale });
         } else {
           setStatus("error");
@@ -212,14 +212,14 @@ export default function DiagnoseForm({
           />
         </div>
 
-        {/* Gargalo — text input (replaces bottleneck radio + brief textarea) */}
-        <div className="term-line">
-          <span className="term-prompt">{labels.gargaloPrompt}</span>
-          <input
-            className="term-input"
-            type="text"
-            name="gargalo"
-            placeholder={labels.gargaloPlaceholder}
+        {/* Details — multi-line textarea (optional, user elaborates) */}
+        <div className="term-line term-line--textarea">
+          <span className="term-prompt">{labels.detailsPrompt}</span>
+          <textarea
+            className="term-input term-textarea"
+            name="details"
+            placeholder={labels.detailsPlaceholder}
+            rows={2}
             disabled={status === "loading"}
           />
         </div>
