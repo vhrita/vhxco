@@ -49,11 +49,16 @@ const ctaText = locale === 'en' ? 'Diagnose →' : 'Diagnosticar →';
   // Wire to hud:goto-phase event (journey-input.ts handles internally).
   // Phase = last (action) stop index, read from data-action-index (derived
   // from STOP_COUNT at build time) — same event as TopNav click.
+  import { capture } from '@/lib/analytics/posthog';
+
   const btn = document.getElementById('persistent-cta');
 
   if (btn) {
     const actionIndex = parseInt(btn.dataset.actionIndex ?? '0', 10);
     btn.addEventListener('click', () => {
+      // Analytics: CTA click (no-op when disabled). Source distinguishes it from
+      // the RESULTADOS diagnostic card click.
+      capture('cta_click', { source: 'persistent_cta' });
       window.dispatchEvent(
         new CustomEvent('hud:goto-phase', { detail: { phase: actionIndex } }),
       );

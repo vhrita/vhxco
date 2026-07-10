@@ -7,6 +7,12 @@ import TopNav from '@/components/hud/TopNav.astro';
 import PersistentCta from '@/components/journey/PersistentCta.astro';
 import { getT } from '@/lib/i18n/t';
 import type { Locale } from '@/lib/i18n/config';
+import { STOPS } from '@/lib/journey/stops.config';
+
+// Stop labels for the `stop_viewed` analytics event ({ index, name }). Derived
+// from STOPS (server-side; `three` import stays out of the client bundle) and
+// handed to the client analytics script as a plain string[] via data attribute.
+const stopNames = STOPS.map((s) => s.label);
 
 export interface Props {
   title: string;
@@ -120,7 +126,7 @@ const langRedirectScript = `(function () {
 
     <slot name="head" />
   </head>
-  <body data-boot="loading">
+  <body data-boot="loading" data-stop-names={JSON.stringify(stopNames)}>
     <!-- No-JS: without the engine there is no genesis to wait for, so the boot
          gate must NOT hide content. This override reveals everything the
          data-boot="loading" rules hide (higher specificity + !important wins). -->
@@ -172,6 +178,15 @@ const langRedirectScript = `(function () {
       });
     </script>
     <script>
+      // Analytics: initialize PostHog (gated — no-op with zero console noise when
+      // PUBLIC_POSTHOG_KEY is absent). Loaded after content; fires $pageview.
+      // PII-safe by construction (autocapture off, text masked) — see
+      // src/lib/analytics/posthog.ts.
+      import('@/lib/analytics/posthog').then(({ initPosthog }) => {
+        initPosthog();
+      });
+    </script>
+    <script>
       // Mount journey input adapter after hydration (replaces phase-orchestrator).
       // On activeStop change (not every frame), update the body dataset.
       //
@@ -192,6 +207,24 @@ const langRedirectScript = `(function () {
         // subscribeActiveStop fires only on stop change (not every t tick).
         import('@/lib/journey/journey-state').then(
           ({ subscribeActiveStop, getActiveStop }) => {
+            // Analytics: fire `stop_viewed` on each stop CHANGE (never per frame
+            // — subscribeActiveStop only fires when activeStop actually changes).
+            // No-op when PostHog is disabled (no key). Stop names come from the
+            // server-rendered data attribute so `three` stays out of this bundle.
+            import('@/lib/analytics/posthog').then(({ capture }) => {
+              const names: string[] = (() => {
+                try {
+                  return JSON.parse(document.body.dataset.stopNames ?? '[]');
+                } catch {
+                  return [];
+                }
+              })();
+              subscribeActiveStop(() => {
+                const index = getActiveStop();
+                capture('stop_viewed', { index, name: names[index] ?? String(index) });
+              });
+            });
+
             subscribeActiveStop(() => {
               const stop = getActiveStop();
               document.body.dataset.activeStop = String(stop);

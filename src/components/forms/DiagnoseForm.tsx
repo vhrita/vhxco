@@ -22,6 +22,7 @@
  */
 
 import { useState, useCallback } from "react";
+import { capture } from "@/lib/analytics/posthog";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -96,14 +97,19 @@ export default function DiagnoseForm({
         if (res.ok) {
           setStatus("success");
           form.reset();
+          // Analytics: submit success. PII-safe — only the EVENT is sent, never
+          // the field values (name/email/company/gargalo go to Formspree only).
+          capture("diagnose_submit", { locale });
         } else {
           setStatus("error");
+          capture("diagnose_error", { locale, reason: "http" });
         }
       } catch {
         setStatus("error");
+        capture("diagnose_error", { locale, reason: "network" });
       }
     },
-    [formspreeId],
+    [formspreeId, locale],
   );
 
   // Fallback: no Formspree configured — mailto CTA (iter-08 Fix D2)
@@ -121,6 +127,7 @@ export default function DiagnoseForm({
           <a
             href="mailto:vhrita.dev@gmail.com?subject=Diagnose%20VHXCO"
             className="term-submit term-fallback-cta"
+            onClick={() => capture("diagnose_fallback_click", { locale })}
           >
             {labels.fallbackCta}
           </a>

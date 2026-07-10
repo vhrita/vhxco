@@ -232,6 +232,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 {/* Card 04 (free diagnostic) → jump to form. Same event as PersistentCta. */}
 {hasCards && content.cards!.some((c) => c.cta) && (
   <script>
+    import { capture } from "@/lib/analytics/posthog";
+
     const link = document.querySelector<HTMLAnchorElement>(
       ".stop-card-link[data-goto-action]",
     );
@@ -239,6 +241,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
       const actionIndex = parseInt(link.dataset.gotoAction ?? "0", 10);
       link.addEventListener("click", (e) => {
         e.preventDefault();
+        // Analytics: CTA click from the RESULTADOS diagnostic card.
+        capture("cta_click", { source: "diagnostico_card" });
         window.dispatchEvent(
           new CustomEvent("hud:goto-phase", { detail: { phase: actionIndex } }),
         );
