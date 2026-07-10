@@ -44,7 +44,7 @@
       "emailPrompt": "return channel",
       "emailPlaceholder": "> corporate email",
       "companyPrompt": "company",
-      "companyPlaceholder": "> your company's site or social, if any",
+      "companyPlaceholder": "> your company's site, social, or just its name",
       "detailsPrompt": "your bottleneck",
       "detailsPlaceholder": "> what's blocking you? why are you here?",
       "submit": "Request diagnostic",

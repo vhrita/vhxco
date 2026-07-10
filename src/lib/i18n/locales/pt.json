@@ -44,7 +44,7 @@
       "emailPrompt": "canal de retorno",
       "emailPlaceholder": "> email corporativo",
       "companyPrompt": "empresa",
-      "companyPlaceholder": "> site ou rede social da empresa, se tiver",
+      "companyPlaceholder": "> site, rede social ou apenas o nome da empresa",
       "detailsPrompt": "seu gargalo",
       "detailsPlaceholder": "> qual problema te trava? por que chegou até aqui?",
       "submit": "Solicitar diagnóstico",
