@@ -91,11 +91,21 @@ body {
  * drawer stays scrollable/tappable. journey-input.ts's touchmove handler mirrors
  * this — it skips preventDefault() for targets inside these (see
  * _isInteractiveTarget) so the journey never steals the form/sidebar gesture.
+ *
+ * Fix 2: the whole `.terminal` is NO LONGER carved out — only its real controls.
+ * The form's chrome/labels/background stays journey-owned (body touch-action:none)
+ * so a swipe over the form navigates (esp. to go back), while a field/button keeps
+ * native touch. The sidebar (`.topnav`) is still carved whole (its own scroll).
  */
-.terminal,
-.terminal *,
 .topnav,
-.topnav * {
+.topnav *,
+.terminal input,
+.terminal textarea,
+.terminal select,
+.terminal button,
+.terminal a,
+.terminal [role="button"],
+.terminal [contenteditable] {
   touch-action: auto;
 }
 

@@ -504,6 +504,22 @@ function _onWheel(e: WheelEvent): void {
   let delta = _normalizeWheelDelta(e.deltaY, e.deltaMode);
   if (delta === 0) return;
 
+  // ── Mouse-wheel fast path (Fix 1 — desktop mouse was too long) ──────────────
+  // A classic mouse wheel sends LARGE, DISCRETE, SPACED notches — unlike the
+  // trackpad's small continuous stream. The accumulator (threshold 350) + the
+  // settle damping (×0.7) + the idle decay (120ms) were all tuned for the trackpad,
+  // so a mouse either needed ~3 fast notches to move one stop or, when notching
+  // slowly (>120ms apart), decayed to zero between notches and never advanced.
+  // Detect the mouse and make ONE notch = ONE stop: bypass the trackpad accumulator
+  // AND the settle damping entirely — never touching the trackpad calibration. One
+  // event = one _stepStop (index-clamped), so a fast spin advances one stop per notch
+  // and a single notch can NEVER jump several stops. Trackpad falls through unchanged.
+  if (_isMouseWheel(e)) {
+    _wheelAccum = 0; // don't let a stray mouse notch pollute the trackpad accumulator
+    _stepStop(Math.sign(delta));
+    return;
+  }
+
   // Soft stick: damp incoming delta during the settle window. This ONLY slows
   // accumulation toward the next threshold — sustained scroll still crosses it, so
   // it is resistance, not a lock (the golden rule: keep scrolling ⇒ always advance).
@@ -539,26 +555,44 @@ function _onWheel(e: WheelEvent): void {
 
 let _touchY: number | null = null;
 /**
- * True when the current swipe started on an interactive surface that owns its own
- * touch (the Ação form + the mobile sidebar drawer / hamburger / scrim). For those
- * the journey must NOT drive navigation and must NOT preventDefault — the field must
- * stay typeable/selectable and the drawer scrollable/tappable. Captured on touchstart
- * so a drag that begins in the form isn't hijacked mid-gesture. Mirrors the CSS
- * `touch-action: auto` carve-out for `.terminal`/`.topnav` in global.css.
+ * True when the current swipe started on an interactive control that owns its own
+ * touch (a form FIELD/button/link, or anywhere in the mobile sidebar drawer). For
+ * those the journey must NOT drive navigation and must NOT preventDefault — the field
+ * must stay typeable/selectable and the drawer scrollable/tappable. Captured on
+ * touchstart so a drag that begins on a field isn't hijacked mid-gesture. A swipe on
+ * the form's chrome/background is NOT interactive (Fix 2) → it drives the journey.
+ * Mirrors the narrowed `touch-action` carve-out in global.css §4.
  */
 let _touchOnInteractive = false;
 
 /**
- * Does `target` sit inside a surface that owns its own native touch? The journey
- * captures the whole window, so we exclude the form (`.terminal`) and the mobile
- * sidebar (`.topnav`) here — otherwise a drag on a text field or the chapter list
- * would step the camera and swallow the tap/scroll. Kept in sync with the
- * `touch-action: auto` selectors in global.css §4.
+ * Real interactive controls that own their own native touch (typeable field, tappable
+ * button, selectable link). Kept in sync with the narrowed `touch-action: auto`
+ * selectors in global.css §4.
+ */
+const _INTERACTIVE_CONTROLS =
+  'input, textarea, select, button, a, [role="button"], [contenteditable]';
+
+/**
+ * Does `target` sit on a surface that owns its own native touch? (Fix 2 — swipe over
+ * the form must still navigate.)
+ *
+ *   - The mobile sidebar (`.topnav`) is carved out WHOLE — it has its own internal
+ *     scroll (the chapter list) + hamburger/scrim, so the journey must never steal it.
+ *   - The Ação form (`.terminal`) is NO LONGER carved out wholesale. Only the REAL
+ *     controls inside it match, so dragging on the form's chrome / labels / background
+ *     DRIVES the journey (esp. swiping back), while touching an actual field/button
+ *     still focuses/types/taps. Previously the whole `.terminal` returned true here,
+ *     which trapped the user on the last stop whenever they swiped over the form.
  */
 function _isInteractiveTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el || typeof el.closest !== "function") return false;
-  return el.closest(".terminal, .topnav") !== null;
+  // Sidebar drawer: owns its own scroll → carve out whole.
+  if (el.closest(".topnav") !== null) return true;
+  // Form: only the actual controls own touch — never the container/background.
+  const control = el.closest(_INTERACTIVE_CONTROLS);
+  return control !== null && control.closest(".terminal") !== null;
 }
 
 function _onTouchStart(e: TouchEvent): void {
