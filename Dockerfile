@@ -10,6 +10,10 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # Build-time public env vars (Astro/Vite inlines PUBLIC_* at build time)
+# PUBLIC_SITE_URL gates indexability: only https://vhxco.com emits an indexable
+# build; any other value (or unset, e.g. the sslip.io preview) emits noindex.
+ARG PUBLIC_SITE_URL
+ENV PUBLIC_SITE_URL=$PUBLIC_SITE_URL
 ARG PUBLIC_FORMSPREE_ID
 ENV PUBLIC_FORMSPREE_ID=$PUBLIC_FORMSPREE_ID
 ARG PUBLIC_POSTHOG_KEY
