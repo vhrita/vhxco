@@ -51,7 +51,9 @@
       "sending": "Enviando...",
       "ok": "Sinal recebido. Retorno em ≤ 7 dias.",
       "promise": "Resposta em até 7 dias.",
-      "configMissing": "Form não configurado. Contato pelo email no rodapé.",
+      "configMissing": "Form não configurado. Escreva pra contato@vhxco.com.",
+      "privacyNote": "Ao enviar, você concorda com a",
+      "privacyLink": "política de privacidade",
       "fallbackTag": "AGUARDANDO LINK",
       "fallbackCopy": "Form em provisionamento. Enquanto isso, dispara um email — resposta em ≤7 dias.",
       "fallbackCta": "ABRIR EMAIL →",
@@ -66,8 +68,10 @@
   },
   "errors": {
     "form": {
-      "networkFailure": "Falha no envio. Tente novamente ou contate pelo email no rodapé.",
-      "configMissing": "Form não configurado. Contato pelo email no rodapé."
+      "networkFailure": "Falha no envio. Tente de novo ou escreva pra contato@vhxco.com.",
+      "configMissing": "Form não configurado. Escreva pra contato@vhxco.com.",
+      "required": "Campo obrigatório.",
+      "emailInvalid": "E-mail inválido. Confira o endereço."
     }
   },
   "ecosystem": {

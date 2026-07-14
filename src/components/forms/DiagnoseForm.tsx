@@ -4,14 +4,20 @@
  * Fase 4a sub-passo 4: merged from V1 mockup DiagnoseForm4.astro spec +
  * existing Formspree logic.
  *
- * Changes from previous version:
- *   - 4 fields only: name, email, company, details (textarea)
- *   - Removed: bottleneck radio (bn1-4), brief textarea, nextSlot display
- *   - Button text: "Solicitar diagnóstico" (was configurable — now fixed spec)
- *   - Promise label: "Resposta em até 7 dias." shown below submit
- *   - Labels interface trimmed to 4-field spec (bottleneck/brief keys removed)
+ * a11y/func leva (2026-07-14):
+ *   - Programmatic labels: each field prompt is now a real <label htmlFor> tied
+ *     to the input `id` (the terminal "prompt" spans were NOT labels for a
+ *     screen reader). Every field is announced.
+ *   - Client-side validation: `noValidate` stays (custom terminal styling), but
+ *     handleSubmit now validates name (required) + email (required + pattern)
+ *     BEFORE fetch. Invalid → inline error (role=alert, aria-describedby),
+ *     focus moves to the first invalid field, submit blocked. No more silent
+ *     unreachable leads.
+ *   - Error copy: networkFailure now points to a real, actionable fallback
+ *     (contato@vhxco.com) — no dead-end "email in the footer" (there is none).
+ *   - Consent: discreet privacy-policy line under the submit.
  *
- * Preserved from previous version:
+ * Preserved:
  *   - Formspree fetch + honeypot + loading/success/error states
  *   - Fallback CTA when formspreeId missing (iter-08 Fix D2)
  *   - i18n: labels prop from Astro (no JSON import in client bundle)
@@ -21,7 +27,7 @@
  * Env: PUBLIC_FORMSPREE_ID must be set in .env.local.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { capture } from "@/lib/analytics/posthog";
 
 // ---------------------------------------------------------------------------
@@ -29,6 +35,9 @@ import { capture } from "@/lib/analytics/posthog";
 // ---------------------------------------------------------------------------
 
 type Locale = "pt" | "en";
+
+/** Which field failed client-side validation (null = none). */
+type FieldError = { field: "name" | "email"; message: string } | null;
 
 interface DiagnoseFormProps {
   /** Page locale */
@@ -53,12 +62,22 @@ interface DiagnoseFormProps {
     promise: string;
     networkFailure: string;
     configMissing: string;
+    /** validation copy */
+    requiredError: string;
+    emailInvalidError: string;
+    /** consent line */
+    privacyNote: string;
+    privacyLink: string;
     /** fallback CTA when Formspree not configured */
     fallbackTag: string;
     fallbackCopy: string;
     fallbackCta: string;
   };
 }
+
+// Simple, permissive email shape (same intent as the input `pattern`). Kept in
+// sync with the `pattern` attribute below.
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 // ---------------------------------------------------------------------------
 // Component
@@ -72,10 +91,42 @@ export default function DiagnoseForm({
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
+  const [fieldError, setFieldError] = useState<FieldError>(null);
+
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  // Locale-derived privacy page href (crawlable static routes).
+  const privacyHref = locale === "en" ? "/privacy" : "/privacidade";
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+
+      const form = e.currentTarget;
+
+      // ── Client-side validation (noValidate is on — we own this) ──
+      const nameEl = nameRef.current;
+      const emailEl = emailRef.current;
+      const nameVal = nameEl?.value.trim() ?? "";
+      const emailVal = emailEl?.value.trim() ?? "";
+
+      if (!nameVal) {
+        setFieldError({ field: "name", message: labels.requiredError });
+        nameEl?.focus();
+        return;
+      }
+      if (!emailVal) {
+        setFieldError({ field: "email", message: labels.requiredError });
+        emailEl?.focus();
+        return;
+      }
+      if (!EMAIL_RE.test(emailVal)) {
+        setFieldError({ field: "email", message: labels.emailInvalidError });
+        emailEl?.focus();
+        return;
+      }
+      setFieldError(null);
 
       if (!formspreeId) {
         setStatus("error");
@@ -84,7 +135,6 @@ export default function DiagnoseForm({
 
       setStatus("loading");
 
-      const form = e.currentTarget;
       const data = new FormData(form);
 
       try {
@@ -109,7 +159,7 @@ export default function DiagnoseForm({
         capture("diagnose_error", { locale, reason: "network" });
       }
     },
-    [formspreeId, locale],
+    [formspreeId, locale, labels],
   );
 
   // Fallback: no Formspree configured — mailto CTA (iter-08 Fix D2)
@@ -125,7 +175,7 @@ export default function DiagnoseForm({
         <div className="term-body">
           <p className="term-fallback-copy">{labels.fallbackCopy}</p>
           <a
-            href="mailto:vhrita.dev@gmail.com?subject=Diagnose%20VHXCO"
+            href="mailto:contato@vhxco.com?subject=Diagnose%20VHXCO"
             className="term-submit term-fallback-cta"
             onClick={() => capture("diagnose_fallback_click", { locale })}
           >
@@ -149,6 +199,9 @@ export default function DiagnoseForm({
       </div>
     );
   }
+
+  const nameInvalid = fieldError?.field === "name";
+  const emailInvalid = fieldError?.field === "email";
 
   return (
     <form
@@ -175,35 +228,52 @@ export default function DiagnoseForm({
       <div className="term-body">
         {/* Name */}
         <div className="term-line">
-          <span className="term-prompt">{labels.namePrompt}</span>
+          <label className="term-prompt" htmlFor="df-name">
+            {labels.namePrompt}
+          </label>
           <input
+            ref={nameRef}
+            id="df-name"
             className="term-input"
             type="text"
             name="name"
             placeholder={labels.namePlaceholder}
             required
+            aria-required="true"
+            aria-invalid={nameInvalid || undefined}
+            aria-describedby={nameInvalid ? "df-field-error" : undefined}
             disabled={status === "loading"}
           />
         </div>
 
         {/* Email */}
         <div className="term-line">
-          <span className="term-prompt">{labels.emailPrompt}</span>
+          <label className="term-prompt" htmlFor="df-email">
+            {labels.emailPrompt}
+          </label>
           <input
+            ref={emailRef}
+            id="df-email"
             className="term-input"
             type="email"
             name="email"
             placeholder={labels.emailPlaceholder}
             required
+            aria-required="true"
             pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+            aria-invalid={emailInvalid || undefined}
+            aria-describedby={emailInvalid ? "df-field-error" : undefined}
             disabled={status === "loading"}
           />
         </div>
 
         {/* Company */}
         <div className="term-line">
-          <span className="term-prompt">{labels.companyPrompt}</span>
+          <label className="term-prompt" htmlFor="df-company">
+            {labels.companyPrompt}
+          </label>
           <input
+            id="df-company"
             className="term-input"
             type="text"
             name="company"
@@ -214,8 +284,11 @@ export default function DiagnoseForm({
 
         {/* Details — multi-line textarea (optional, user elaborates) */}
         <div className="term-line term-line--textarea">
-          <span className="term-prompt">{labels.detailsPrompt}</span>
+          <label className="term-prompt" htmlFor="df-details">
+            {labels.detailsPrompt}
+          </label>
           <textarea
+            id="df-details"
             className="term-input term-textarea"
             name="details"
             placeholder={labels.detailsPlaceholder}
@@ -223,6 +296,13 @@ export default function DiagnoseForm({
             disabled={status === "loading"}
           />
         </div>
+
+        {/* Field validation error (required / invalid email) */}
+        {fieldError && (
+          <p id="df-field-error" className="term-error-msg" role="alert">
+            {fieldError.message}
+          </p>
+        )}
 
         {/* Submit */}
         <button
@@ -233,10 +313,19 @@ export default function DiagnoseForm({
           {status === "loading" ? labels.sending : labels.submit}
         </button>
 
+        {/* Consent — discreet privacy-policy line */}
+        <p className="term-consent">
+          {labels.privacyNote}{" "}
+          <a className="term-consent-link" href={privacyHref}>
+            {labels.privacyLink}
+          </a>
+          .
+        </p>
+
         {/* Promise — "Resposta em até 7 dias" */}
         <p className="term-promise">{labels.promise}</p>
 
-        {/* Error state */}
+        {/* Network / config error state */}
         {status === "error" && (
           <p className="term-error-msg" role="alert">
             {labels.networkFailure}
