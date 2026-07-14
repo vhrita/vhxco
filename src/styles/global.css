@@ -954,6 +954,34 @@ body[data-boot="loading"] .backdrop-vignette {
   border-color: var(--color-cyan);
 }
 
+/* Discreet privacy link — bottom of the mobile sidebar drawer. Hidden on
+   desktop (the compact inline nav stays clean; the form's consent line carries
+   the same link on every viewport). */
+.topnav-legal {
+  display: none;
+  color: var(--color-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-decoration: none;
+  opacity: 0.7;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+
+.topnav-legal:hover,
+.topnav-legal:focus-visible {
+  color: var(--color-cyan);
+  opacity: 1;
+}
+
+@media (max-width: 767.98px) {
+  .topnav-legal {
+    display: block;
+    margin-top: auto;
+    padding-top: 1.5rem;
+  }
+}
+
 /* Small-viewport padding relief.
  * At ≤ 30rem (480px) the nav row is tight with logo + hamburger.
  * Reduce horizontal padding from --safe-x to 0.75rem to recover ~24px.

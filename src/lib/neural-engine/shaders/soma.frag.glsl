@@ -24,8 +24,10 @@ void main() {
   // Base soma color (Cyan)
   vec3 baseColor = hsl2rgb(vec3(uHue, 0.9, 0.2 + fresnel * 0.4));
 
-  // Red pulse when firing
-  vec3 fireColor = vec3(1.0, 0.25, 0.35) * 2.0; // Coral/pink — reduced from 5x HDR
+  // Red pulse when firing. HDR intensity trimmed 2.0 -> 1.4 so the warm firing
+  // nodes bloom less and stop bleeding off-brand red behind the panels (brand =
+  // cyan). Still clearly "alive", just no longer the loudest thing on screen.
+  vec3 fireColor = vec3(1.0, 0.25, 0.35) * 1.4; // Coral/pink
   vec3 col = mix(baseColor, fireColor, vEnergy);
 
   gl_FragColor = vec4(col, 0.8 + vEnergy * 0.2);

@@ -50,6 +50,10 @@ const menuLabel = locale === 'en' ? 'Menu' : 'Menu';
 const openLabel = locale === 'en' ? 'Open navigation' : 'Abrir navegação';
 const closeLabel = locale === 'en' ? 'Close navigation' : 'Fechar navegação';
 const chaptersLabel = locale === 'en' ? 'Chapters' : 'Capítulos';
+
+// Discreet privacy link (bottom of the drawer). Locale-routed static page.
+const privacyHref = locale === 'en' ? '/privacy' : '/privacidade';
+const privacyLabel = locale === 'en' ? 'Privacy' : 'Privacidade';
 ---
 
 <nav class="topnav" aria-label="Navegação principal">
@@ -134,6 +138,8 @@ const chaptersLabel = locale === 'en' ? 'Chapters' : 'Capítulos';
         aria-current={locale === 'en' ? 'true' : undefined}
       >EN</a>
     </div>
+
+    <a class="topnav-legal" href={privacyHref}>{privacyLabel}</a>
   </div>
 </nav>
 
