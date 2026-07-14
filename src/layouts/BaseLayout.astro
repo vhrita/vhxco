@@ -7,7 +7,6 @@ import TopNav from '@/components/hud/TopNav.astro';
 import PersistentCta from '@/components/journey/PersistentCta.astro';
 import { getT } from '@/lib/i18n/t';
 import type { Locale } from '@/lib/i18n/config';
-import { getAlternateUrl } from '@/lib/i18n/config';
 import { STOPS } from '@/lib/journey/stops.config';
 
 // Stop labels for the `stop_viewed` analytics event ({ index, name }). Derived
@@ -36,8 +35,10 @@ const t = getT(locale as Locale);
 const site = Astro.site ?? new URL('https://vhxco.com/');
 const pathname = Astro.url.pathname;
 const canonicalURL = new URL(pathname, site).href;
-const ptURL = new URL(getAlternateUrl(pathname, 'pt'), site).href;
-const enURL = new URL(getAlternateUrl(pathname, 'en'), site).href;
+// hreflang cluster is the same on every page (PT root, EN /en/). Fixed +
+// trailing-slash-consistent so hreflang and canonical always agree.
+const ptURL = new URL('/', site).href;
+const enURL = new URL('/en/', site).href;
 
 // Per-locale OG image (1200×630 branded card in /public).
 const ogImage = new URL(`/og-${locale}.png`, site).href;
