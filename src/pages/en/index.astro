@@ -43,45 +43,74 @@ const actionIndex = totalStops - 1;
 const metaDescription =
   'VHXCO finds your business bottleneck and fixes it with AI agents and custom software: more sales, lower operating costs, more free time. We measure before and after. Free 7-day diagnostic.';
 
-// JSON-LD: Organization + 4 Service (the RESULTS cards, outcome-first) —
-// indexable detail; descriptions carry the technical deliverables.
+// JSON-LD: Organization + WebSite + 4 Service (the RESULTS cards,
+// outcome-first) — indexable detail; descriptions carry the technical
+// deliverables. Canonical domain is vhxco.com (never .io).
+const siteHref = Astro.site?.href ?? 'https://vhxco.com/';
+const orgId = `${siteHref}#organization`;
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
       '@type': 'Organization',
+      '@id': orgId,
       name: 'VHXCO',
+      url: siteHref,
+      logo: `${siteHref}vhxco-logo.png`,
       description:
         'VHXCO improves your business metrics: it finds the bottleneck and fixes it with AI agents and custom software, under a senior engineer. It measures before and after.',
-      url: Astro.site?.href ?? 'https://vhxco.io/',
+      slogan: "We don't sell software. We deliver results.",
+      areaServed: 'BR',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'sales',
+        email: 'contato@vhxco.com',
+        availableLanguage: ['Portuguese', 'English'],
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteHref}#website`,
+      url: `${siteHref}en/`,
+      name: 'VHXCO',
+      inLanguage: 'en',
+      publisher: { '@id': orgId },
     },
     {
       '@type': 'Service',
       name: 'Sell more',
+      serviceType: 'Conversion optimization and feature development',
+      areaServed: 'BR',
       description:
         'More revenue through the funnel: CRO, checkout, onboarding and features that unlock conversion. We measure before and after.',
-      provider: { '@type': 'Organization', name: 'VHXCO' },
+      provider: { '@id': orgId },
     },
     {
       '@type': 'Service',
       name: 'Spend less, free your time',
+      serviceType: 'AI agent automation',
+      areaServed: 'BR',
       description:
         'Agentic automation: AI agents take over the manual work of the operation (support, spreadsheets, reconciliation, follow-up), measured in human hours saved.',
-      provider: { '@type': 'Organization', name: 'VHXCO' },
+      provider: { '@id': orgId },
     },
     {
       '@type': 'Service',
       name: "Build what's missing",
+      serviceType: 'Custom software development',
+      areaServed: 'BR',
       description:
         'Custom software, app or system — zero to production, with code, tests and deploy — when the result demands your own tool.',
-      provider: { '@type': 'Organization', name: 'VHXCO' },
+      provider: { '@id': orgId },
     },
     {
       '@type': 'Service',
       name: 'Free diagnostic',
+      serviceType: 'Business diagnostic',
+      areaServed: 'BR',
       description:
         'Your bottleneck mapped in 7 days — what to automate, what to build, what to cut. Free, no strings attached.',
-      provider: { '@type': 'Organization', name: 'VHXCO' },
+      provider: { '@id': orgId },
     },
   ],
 };

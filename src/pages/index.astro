@@ -43,45 +43,74 @@ const actionIndex = totalStops - 1;
 const metaDescription =
   'A VHXCO encontra o gargalo do seu negócio e resolve com agentes de IA e software sob medida: mais venda, menos custo operacional, mais tempo. Medimos o antes e o depois. Diagnóstico gratuito em 7 dias.';
 
-// JSON-LD: Organization + 4 Service (the RESULTADOS cards, outcome-first) —
-// indexable detail; descriptions carry the technical deliverables.
+// JSON-LD: Organization + WebSite + 4 Service (the RESULTADOS cards,
+// outcome-first) — indexable detail; descriptions carry the technical
+// deliverables. Canonical domain is vhxco.com (never .io).
+const siteHref = Astro.site?.href ?? 'https://vhxco.com/';
+const orgId = `${siteHref}#organization`;
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
       '@type': 'Organization',
+      '@id': orgId,
       name: 'VHXCO',
+      url: siteHref,
+      logo: `${siteHref}vhxco-logo.png`,
       description:
         'A VHXCO melhora as métricas do seu negócio: encontra o gargalo e resolve com agentes de IA e software sob medida, sob comando de um engenheiro sênior. Mede o antes e o depois.',
-      url: Astro.site?.href ?? 'https://vhxco.io/',
+      slogan: 'Não vendemos software. Entregamos resultado.',
+      areaServed: 'BR',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'sales',
+        email: 'contato@vhxco.com',
+        availableLanguage: ['Portuguese', 'English'],
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteHref}#website`,
+      url: siteHref,
+      name: 'VHXCO',
+      inLanguage: 'pt-BR',
+      publisher: { '@id': orgId },
     },
     {
       '@type': 'Service',
       name: 'Vender mais',
+      serviceType: 'Otimização de conversão e desenvolvimento de features',
+      areaServed: 'BR',
       description:
         'Mais receita pelo funil: CRO, checkout, onboarding e features que destravam conversão. Medimos o antes e o depois.',
-      provider: { '@type': 'Organization', name: 'VHXCO' },
+      provider: { '@id': orgId },
     },
     {
       '@type': 'Service',
       name: 'Custar menos, sobrar tempo',
+      serviceType: 'Automação com agentes de IA',
+      areaServed: 'BR',
       description:
         'Automação agêntica: agentes de IA assumem o trabalho manual da operação (atendimento, planilha, conciliação, follow-up), medida em horas humanas economizadas.',
-      provider: { '@type': 'Organization', name: 'VHXCO' },
+      provider: { '@id': orgId },
     },
     {
       '@type': 'Service',
       name: 'Construir o que falta',
+      serviceType: 'Desenvolvimento de software sob medida',
+      areaServed: 'BR',
       description:
         'Software, app ou sistema sob medida — do zero à produção, com código, testes e deploy — quando o resultado exige ferramenta própria.',
-      provider: { '@type': 'Organization', name: 'VHXCO' },
+      provider: { '@id': orgId },
     },
     {
       '@type': 'Service',
       name: 'Diagnóstico grátis',
+      serviceType: 'Diagnóstico de negócio',
+      areaServed: 'BR',
       description:
         'Seu gargalo mapeado em 7 dias — o que automatizar, o que construir, o que cortar. Gratuito e sem compromisso.',
-      provider: { '@type': 'Organization', name: 'VHXCO' },
+      provider: { '@id': orgId },
     },
   ],
 };
