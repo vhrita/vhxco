@@ -7,6 +7,7 @@ import TopNav from '@/components/hud/TopNav.astro';
 import PersistentCta from '@/components/journey/PersistentCta.astro';
 import { getT } from '@/lib/i18n/t';
 import type { Locale } from '@/lib/i18n/config';
+import { getAlternateUrl } from '@/lib/i18n/config';
 import { STOPS } from '@/lib/journey/stops.config';
 
 // Stop labels for the `stop_viewed` analytics event ({ index, name }). Derived
@@ -27,6 +28,31 @@ const {
 } = Astro.props;
 
 const t = getT(locale as Locale);
+
+// ─── SEO / discovery meta ──────────────────────────────────────────────────
+// Canonical + hreflang + Open Graph + Twitter derived from Astro.site
+// (https://vhxco.com — the ONE canonical domain) and the current pathname.
+// Every absolute URL here resolves against vhxco.com; never .io.
+const site = Astro.site ?? new URL('https://vhxco.com/');
+const pathname = Astro.url.pathname;
+const canonicalURL = new URL(pathname, site).href;
+const ptURL = new URL(getAlternateUrl(pathname, 'pt'), site).href;
+const enURL = new URL(getAlternateUrl(pathname, 'en'), site).href;
+
+// Per-locale OG image (1200×630 branded card in /public).
+const ogImage = new URL(`/og-${locale}.png`, site).href;
+const ogLocale = locale === 'pt' ? 'pt_BR' : 'en_US';
+const ogLocaleAlt = locale === 'pt' ? 'en_US' : 'pt_BR';
+
+// Noindex gate: ONLY https://vhxco.com may be indexable. Any other host
+// (preview sslip.io, dev, unset build) falls back to noindex — fail-closed.
+// Prod build must pass PUBLIC_SITE_URL=https://vhxco.com as a build arg.
+let isProd = false;
+try {
+  isProd = new URL(import.meta.env.PUBLIC_SITE_URL ?? '').hostname === 'vhxco.com';
+} catch {
+  isProd = false;
+}
 
 // Language auto-detection script (emitted inline in <head>, PT root only).
 // See the comment at the injection site below for the full no-loop rationale.
@@ -50,14 +76,49 @@ const langRedirectScript = `(function () {
 ---
 
 <!doctype html>
-<html lang={locale}>
+<html lang={locale === 'pt' ? 'pt-BR' : 'en'}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#00d7e4" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
+
+    {/* Noindex on any non-prod host (preview/dev). Prod (vhxco.com) is indexable. */}
+    {!isProd && <meta name="robots" content="noindex, nofollow" />}
+
+    {/* Canonical + hreflang (PT↔EN + x-default → PT root) */}
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="alternate" hreflang="pt-BR" href={ptURL} />
+    <link rel="alternate" hreflang="en" href={enURL} />
+    <link rel="alternate" hreflang="x-default" href={ptURL} />
+
+    {/* Open Graph */}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="VHXCO" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="VHXCO — Não vendemos software. Entregamos resultado." />
+    <meta property="og:locale" content={ogLocale} />
+    <meta property="og:locale:alternate" content={ogLocaleAlt} />
+
+    {/* Twitter Card */}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    {/* Icons + PWA manifest */}
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
 
     {/*
       Client-side language auto-detection (static site — nginx serves PT at "/",
