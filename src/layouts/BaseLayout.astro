@@ -207,7 +207,7 @@ const langRedirectScript = `(function () {
     <!-- a11y: skip to main content (always first in DOM) -->
     <a href="#main" class="skip-link">{t('a11y.skipToContent')}</a>
 
-    <NeuralEngineIsland client:only="react" />
+    <NeuralEngineIsland client:only="react" locale={locale} />
     <!-- Fase 5: static neural fallback in the LIVE DOM, hidden by default.
          Revealed via body[data-webgl="unavailable"] when the island detects no
          WebGL support (old/corporate/GPU-blocked browsers) — the engine is not
@@ -281,6 +281,11 @@ const langRedirectScript = `(function () {
                   return [];
                 }
               })();
+              // Fire stop 0 explicitly — the journey initializes at stop 0 and
+              // subscribeActiveStop only fires on CHANGE, so without this the top
+              // of the funnel is invisible. capture() buffers until PostHog loads,
+              // so this survives the async init race.
+              capture('stop_viewed', { index: 0, name: names[0] ?? '0' });
               subscribeActiveStop(() => {
                 const index = getActiveStop();
                 capture('stop_viewed', { index, name: names[index] ?? String(index) });
