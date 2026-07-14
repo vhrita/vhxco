@@ -292,6 +292,24 @@ function _normalizeWheelDelta(deltaY: number, deltaMode: number): number {
   return Math.sign(px) * capped;
 }
 
+/**
+ * Distinguish a classic MOUSE wheel from a TRACKPAD (Fix 1 — desktop mouse felt too
+ * long). Line/page delta modes are ALWAYS a mouse (trackpads report pixel mode). In
+ * pixel mode we treat a LARGE, INTEGER delta as a mouse notch (Chrome/Edge report
+ * ~100–120px per notch, integer), vs the trackpad's small / fractional deltas.
+ *
+ * Deliberately BIASED to NOT flag the trackpad: a misread mouse notch merely falls
+ * back to the (slightly long) accumulator, but a misread trackpad delta would regress
+ * the approved trackpad feel — so we require BOTH a large magnitude AND an integer
+ * value before calling it a mouse. The trackpad's small continuous stream never
+ * matches, so its calibration (SCROLL_TUNE / accumulator / settle) is untouched.
+ */
+function _isMouseWheel(e: WheelEvent): boolean {
+  if (e.deltaMode !== 0) return true; // DOM_DELTA_LINE / PAGE → classic mouse wheel
+  const ad = Math.abs(e.deltaY);
+  return ad >= 100 && Number.isInteger(e.deltaY);
+}
+
 /** Quart ease-out: fast start, long gentle settle — the premium "arrival" curve. */
 function _easeOutQuart(p: number): number {
   const inv = 1 - p;
@@ -407,8 +425,13 @@ function _stepStop(dir: number): void {
   markJourneyInteraction();
   // Anchor the step on where we're HEADED (target), not the mid-glide eased t,
   // so a fast second gesture composes cleanly (1→2→3) instead of snapping back.
-  const fromIdx = _reducedMotion ? nearestStopIndex(getJourneyT()) : _targetStopIndex();
-  const nextIdx = Math.max(0, Math.min(STOP_COUNT - 1, fromIdx + Math.sign(dir)));
+  const fromIdx = _reducedMotion
+    ? nearestStopIndex(getJourneyT())
+    : _targetStopIndex();
+  const nextIdx = Math.max(
+    0,
+    Math.min(STOP_COUNT - 1, fromIdx + Math.sign(dir)),
+  );
   // Clamp guard: if already at the edge, nextIdx === fromIdx — no step, no settle.
   // (Keeps _lastStepAt from re-arming the stick every wheel event at stop 0 or N-1.)
   if (nextIdx === fromIdx) return;
