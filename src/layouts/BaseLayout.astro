@@ -5,6 +5,7 @@ import HeroFallback from '@/components/hero/HeroFallback.astro';
 import CustomCursor from '@/components/cursor/CustomCursor';
 import TopNav from '@/components/hud/TopNav.astro';
 import PersistentCta from '@/components/journey/PersistentCta.astro';
+import ScrollIndicator from '@/components/journey/ScrollIndicator.astro';
 import { getT } from '@/lib/i18n/t';
 import type { Locale } from '@/lib/i18n/config';
 import { STOPS } from '@/lib/journey/stops.config';
@@ -224,6 +225,8 @@ const langRedirectScript = `(function () {
     <TopNav locale={locale} />
     <!-- Fase 4a S3: persistent "Diagnosticar" CTA (V1 signature) -->
     <PersistentCta locale={locale} />
+    <!-- Arrival scroll cue (stop 0 only, dismisses after first departure) -->
+    <ScrollIndicator locale={locale} />
 
     <main id="main">
       <slot />

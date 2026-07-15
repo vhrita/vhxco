@@ -1,0 +1,174 @@
+---
+/**
+ * ScrollIndicator.astro — Arrival "scroll to start" affordance (stop 0 only).
+ *
+ * Premium 3D-site convention: a centered, bottom-anchored cue that tells the
+ * visitor the page is a scroll-driven journey and they must scroll to begin.
+ *
+ * Form (on-brand — terminal/synapse cyan): a thin vertical "synapse line" with
+ * a glowing dot traveling DOWN it + a small uppercase label. Reads as a signal
+ * pulsing down the wire → "scroll down".
+ *
+ * Behavior (visibility driven by global.css, crosses component scope boundary):
+ *   - HIDDEN during boot/genesis (body[data-boot="loading"]) and during the
+ *     cinematic dolly (body[data-intro="active"]) — same gate as the content.
+ *   - SHOWN only on stop 0, after the reveal:
+ *       body[data-active-stop="0"] #scroll-indicator:not(.is-dismissed)
+ *   - DISMISSED for good on the first departure from stop 0 (activeStop > 0):
+ *     the <script> below latches `.is-dismissed`, so it never reappears (even
+ *     if the user scrolls back up to stop 0) — arrival affordance, not clutter.
+ *   - Reduced-motion: label + line shown STATIC (dot animation disabled in CSS).
+ *   - no-WebGL fallback (body[data-webgl="unavailable"]): hidden — the fallback
+ *     reveals everything statically, so a "scroll to start" cue would be a lie.
+ *
+ * aria-hidden: decorative reinforcement of the journey; the journey itself is
+ * navigable via keyboard/HUD, so this cue is not announced. pointer-events:none
+ * so it never intercepts touches or collides with the persistent CTA.
+ */
+
+interface Props {
+  locale?: 'pt' | 'en';
+}
+
+const { locale = 'pt' } = Astro.props;
+
+const label = locale === 'en' ? 'scroll to start' : 'role para começar';
+---
+
+<div id="scroll-indicator" class="scroll-indicator" aria-hidden="true">
+  <span class="scroll-indicator-label">{label}</span>
+  <span class="scroll-indicator-track">
+    <span class="scroll-indicator-dot"></span>
+  </span>
+</div>
+
+<script>
+  // Latch: dismiss the indicator for good the first time the visitor leaves
+  // stop 0. Adds `.is-dismissed` so the global show rule (`:not(.is-dismissed)`)
+  // can never re-match — it will not reappear when scrolling back to stop 0.
+  import { subscribeActiveStop, getActiveStop } from '@/lib/journey/journey-state';
+
+  const el = document.getElementById('scroll-indicator');
+  if (el) {
+    let unsub: (() => void) | null = null;
+    const check = () => {
+      if (getActiveStop() > 0) {
+        el.classList.add('is-dismissed');
+        unsub?.();
+      }
+    };
+    unsub = subscribeActiveStop(check);
+    check(); // already past stop 0 (e.g. deep-link / restored scroll)
+  }
+</script>
+
+<style>
+  .scroll-indicator {
+    position: fixed;
+    /* Bottom-centered (3D-site convention). CTA sits bottom-RIGHT, so the two
+     * never share horizontal space; kept just above the CTA baseline. */
+    bottom: 1.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    /* z 24: above content (10) / HUD (20), just below the persistent CTA (25). */
+    z-index: 24;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4375rem;
+
+    /* Decorative — never intercept touches or block the CTA. */
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .scroll-indicator-label {
+    font-family: var(--font-mono);
+    font-size: 0.625rem; /* 10px — subtle, matches the CTA/eyebrow tier */
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-cyan);
+    opacity: 0.82;
+    white-space: nowrap;
+    line-height: 1;
+  }
+
+  .scroll-indicator-track {
+    position: relative;
+    width: 1px;
+    height: 32px;
+    /* Faint synapse wire — fades in from the top so the traveling dot reads as
+     * a signal emerging and running down. */
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      oklch(from var(--color-cyan) l c h / 0.3) 40%,
+      oklch(from var(--color-cyan) l c h / 0.3)
+    );
+    border-radius: 1px;
+    overflow: visible;
+  }
+
+  .scroll-indicator-dot {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
+    border-radius: 50%;
+    background: var(--color-cyan);
+    box-shadow: 0 0 6px 1px oklch(from var(--color-cyan) l c h / 0.9);
+    animation: scrollTravel 1.9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  }
+
+  @keyframes scrollTravel {
+    0% {
+      transform: translateY(-2px);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    75% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(30px);
+      opacity: 0;
+    }
+  }
+
+  /* Reduced-motion: static cue — dot parks near the bottom of the wire, no
+   * travel animation (the label + wire still communicate "scroll"). */
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-indicator-dot {
+      animation: none;
+      top: auto;
+      bottom: 0;
+      opacity: 1;
+    }
+  }
+
+  /* Large screens: scale the cue up a touch so it isn't lost on 1440/1920,
+   * mirroring the persistent CTA's large-screen pass. */
+  @media (min-width: 1440px) {
+    .scroll-indicator {
+      bottom: 2.25rem;
+      gap: 0.5625rem;
+    }
+    .scroll-indicator-label {
+      font-size: 0.75rem; /* 12px */
+    }
+    .scroll-indicator-track {
+      height: 40px;
+    }
+    @keyframes scrollTravel {
+      0% { transform: translateY(-2px); opacity: 0; }
+      15% { opacity: 1; }
+      75% { opacity: 1; }
+      100% { transform: translateY(38px); opacity: 0; }
+    }
+  }
+</style>

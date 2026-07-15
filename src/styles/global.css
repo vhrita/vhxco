@@ -610,6 +610,7 @@ body[data-intro="active"] #webgl {
 body[data-boot="loading"] .topnav,
 body[data-boot="loading"] #main,
 body[data-boot="loading"] #persistent-cta,
+body[data-boot="loading"] #scroll-indicator,
 body[data-boot="loading"] .backdrop-vignette {
   opacity: 0 !important;
   visibility: hidden !important;
@@ -1384,6 +1385,36 @@ body[data-intro="active"] #persistent-cta {
 body[data-active-stop="5"] #persistent-cta {
   opacity: 0;
   pointer-events: none;
+}
+
+/* ── ScrollIndicator visibility (arrival cue) ───────────────────────────────
+ * Crosses the body→#scroll-indicator scope boundary, so it lives here (same
+ * reason as PersistentCta above). The cue is HIDDEN by default and only shown
+ * on stop 0 after the reveal; it latches `.is-dismissed` on the first departure
+ * from stop 0 (ScrollIndicator.astro <script>) so it never comes back.
+ *
+ * Gates already covered elsewhere:
+ *   - boot: body[data-boot="loading"] #scroll-indicator (boot-hide list §above)
+ *   - dolly: body[data-intro="active"] #scroll-indicator (below)
+ *   - no-WebGL: body[data-webgl="unavailable"] hides it (a static fallback has
+ *     no scroll journey, so a "scroll to start" cue would be a lie).
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+#scroll-indicator {
+  opacity: 0;
+  transition: opacity 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body[data-active-stop="0"] #scroll-indicator:not(.is-dismissed) {
+  opacity: 1;
+}
+
+body[data-intro="active"] #scroll-indicator {
+  opacity: 0 !important;
+}
+
+body[data-webgl="unavailable"] #scroll-indicator {
+  display: none;
 }
 
 /* iter-09 Bug B/D: mask-image "more below" fade was added to .phase[data-phase="0"]

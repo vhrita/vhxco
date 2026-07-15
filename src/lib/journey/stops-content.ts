@@ -83,7 +83,9 @@ const PT_STOPS: StopContent[] = [
     eyebrow: "VHXCO · RESULTADO POR AGENTES",
     headline: "Não vendemos software.\nEntregamos resultado.",
     body: "Encontramos o gargalo do seu negócio e resolvemos\ncom agentes de IA: mais venda, menos custo, mais tempo livre.\nUm engenheiro sênior responde pelo resultado.",
-    hudHint: "viajar",
+    // Stop 0's scroll cue is the animated ScrollIndicator (bottom-center), not a
+    // text hint — avoids redundancy with the new arrival affordance.
+    hudHint: null,
   },
   // Stop 1 — GARGALO (Interest) — dor do NEGÓCIO
   {
@@ -172,7 +174,9 @@ const EN_STOPS: StopContent[] = [
     eyebrow: "VHXCO · RESULTS BY AGENTS",
     headline: "We don't sell software.\nWe deliver results.",
     body: "We find your business bottleneck and fix it\nwith AI agents: more sales, lower costs, more free time.\nA senior engineer answers for the result.",
-    hudHint: "travel",
+    // Stop 0's scroll cue is the animated ScrollIndicator (bottom-center), not a
+    // text hint — avoids redundancy with the new arrival affordance.
+    hudHint: null,
   },
   // Stop 1 — BOTTLENECK (Interest) — business pain
   {
