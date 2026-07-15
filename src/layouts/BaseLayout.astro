@@ -162,8 +162,15 @@ const langRedirectScript = `(function () {
         if (document.body) document.body.removeAttribute('data-boot');
       }
       // Primary path: the engine fires this when the intro genesis+dolly finish
-      // (reduced-motion fires it instantly).
-      window.addEventListener('journey:intro-done', reveal, { once: true });
+      // (reduced-motion fires it instantly). Also mark the intro as SEEN for this
+      // tab session — a later re-navigation (e.g. PT↔EN language switch) reads this
+      // flag (sessionStorage 'vhxco_intro_seen') and skips the genesis+dolly,
+      // revealing content immediately. Key is shared with intro-session.ts + the
+      // language-toggle handler in TopNav.astro; keep them in sync.
+      window.addEventListener('journey:intro-done', function () {
+        try { sessionStorage.setItem('vhxco_intro_seen', '1'); } catch (e) {}
+        reveal();
+      }, { once: true });
       // Safety for the no-WebGL fallback: the island sets data-webgl="unavailable"
       // and never starts the render loop, so intro-done never fires. Watch <body>
       // for that marker and reveal immediately (content is meant to be visible).

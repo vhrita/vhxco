@@ -53,6 +53,7 @@ import {
   subscribeJourney,
 } from "../journey/journey-state.js";
 import { getLastInteraction } from "../journey/interaction-signal.js";
+import { hasSeenIntro } from "../journey/intro-session.js";
 
 // Re-export so index.ts can still wire JourneyHandle without reaching into journey-state directly
 export { setJourneyT, getJourneyT, getActiveStop, subscribeJourney };
@@ -123,7 +124,7 @@ function computeIntroStartPos(
   camera: RendererContext["camera"],
   out: Vector3,
 ): void {
-  const halfV = ((camera.fov * Math.PI) / 180) / 2;
+  const halfV = (camera.fov * Math.PI) / 180 / 2;
   // Horizontal half-FOV from vertical + aspect.
   const halfH = Math.atan(Math.tan(halfV) * camera.aspect);
   // Limiting (smaller) half-angle drives the distance.
@@ -415,8 +416,7 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
       // QA introDebug: when a frozen p is set, use it (raw, no time advance) so
       // the frame is deterministic; otherwise advance by wall-clock as normal.
       const timeRawP = (now - introStart) / (INTRO_MS / 1000);
-      const rawP =
-        introDebug && introDebugP !== null ? introDebugP : timeRawP;
+      const rawP = introDebug && introDebugP !== null ? introDebugP : timeRawP;
       const p = _cubicOut(Math.min(rawP, 1));
 
       // Landing position: curve start point (same target as applyCameraF at t=0).
@@ -516,6 +516,12 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    // Returning visitor THIS session (e.g. PT↔EN switch / re-navigation): the
+    // impactful arrival already played, so skip the genesis + dolly and reveal
+    // immediately. See intro-session.ts. Distinct from reduced-motion so a
+    // motion-OK visitor keeps the living brain (no static freeze).
+    const introSeen = typeof window !== "undefined" && hasSeenIntro();
+
     if (reducedMotion) {
       // Skip intro entirely — place camera at f(0) immediately.
       introPending = false;
@@ -533,6 +539,28 @@ export function createRenderLoop(params: RenderLoopParams): RenderLoopHandle {
       }
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("journey:intro-done"));
+      }
+    } else if (introSeen) {
+      // Same instant end-state as reduced-motion (brain formed at f(0), content
+      // revealed, no genesis, no dolly) — BUT the brain keeps its ambient life
+      // (no staticMode) because the visitor has NOT asked to reduce motion.
+      introPending = false;
+      introActive = false;
+      applyCameraF(ctx, 0, curve);
+      bootProgress.set(1);
+      if (typeof document !== "undefined") {
+        delete document.body.dataset.intro;
+      }
+      // Fire intro-done on the NEXT frame, NOT synchronously. The boot-lock
+      // listener in journey-input.ts is attached asynchronously (after its dynamic
+      // import); unlike reduced-motion — which never locks — this skip path DOES
+      // engage the boot-lock, so a synchronous dispatch could race ahead of the
+      // listener and leave input stuck until the 8s failsafe. One rAF guarantees
+      // the listener (and the <head> reveal listener) are registered first.
+      if (typeof window !== "undefined") {
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent("journey:intro-done"));
+        });
       }
     } else {
       // Compute the far start from the real aspect ratio (frames whole brain),

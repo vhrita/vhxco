@@ -14,7 +14,8 @@
 //
 // Imported for side-effects by BaseLayout.astro (client script). Idempotent.
 
-import { bootProgress } from '@/lib/neural-engine/boot-progress';
+import { bootProgress } from "@/lib/neural-engine/boot-progress";
+import { hasSeenIntro } from "@/lib/journey/intro-session";
 
 // Formation time of the brain. Was 4600 (progressive genesis: staggered soma
 // births 0→0.70 + per-edge axon growth). Trimmed 4600 → 2600 (−2000ms) per Vitor
@@ -51,30 +52,37 @@ export function startBootDriver(): void {
       ? /[?&]bootDebug(?:=([0-9]*\.?[0-9]+))?\b/.exec(window.location.search)
       : null;
   if (bootDebugMatch) {
-    const p = bootDebugMatch[1] !== undefined ? parseFloat(bootDebugMatch[1]) : 0.5;
+    const p =
+      bootDebugMatch[1] !== undefined ? parseFloat(bootDebugMatch[1]) : 0.5;
     bootProgress.set(Math.max(0, Math.min(1, p)));
     // Do NOT start the RAF driver — hold this frozen value indefinitely.
     return;
   }
 
   const reducedMotion = window.matchMedia(
-    '(prefers-reduced-motion: reduce)',
+    "(prefers-reduced-motion: reduce)",
   ).matches;
+
+  // Skip the ~2.6s genesis when the intro has already played THIS session (e.g. a
+  // PT↔EN language switch / re-navigation). The brain is placed fully formed; only
+  // the first arrival of the session pays for the loading theater. Reduced motion
+  // also takes the instant path (unchanged). See intro-session.ts.
+  const introSeen = hasSeenIntro();
 
   // ── Scramble helper ───────────────────────────────────────────────────────
   // Shuffles characters of a text element, then resolves to the real text.
   function scrambleHeading(el: HTMLElement, durationMs: number): void {
     if (reducedMotion) {
-      el.style.opacity = '0';
+      el.style.opacity = "0";
       requestAnimationFrame(() => {
         el.style.transition = `opacity 400ms ease`;
-        el.style.opacity = '1';
+        el.style.opacity = "1";
       });
       return;
     }
 
-    const original = el.textContent ?? '';
-    const chars = original.split('');
+    const original = el.textContent ?? "";
+    const chars = original.split("");
     const settled = new Array(chars.length).fill(false);
     const startTime = performance.now();
 
@@ -84,17 +92,19 @@ export function startBootDriver(): void {
 
       let allDone = true;
       const result = chars.map((ch, i) => {
-        if (ch === ' ' || ch === '\n') return ch;
+        if (ch === " " || ch === "\n") return ch;
         const threshold = (i + 1) / chars.length;
         if (progress >= threshold || settled[i]) {
           settled[i] = true;
           return ch;
         }
         allDone = false;
-        return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+        return SCRAMBLE_CHARS[
+          Math.floor(Math.random() * SCRAMBLE_CHARS.length)
+        ];
       });
 
-      el.textContent = result.join('');
+      el.textContent = result.join("");
 
       if (!allDone) {
         requestAnimationFrame(tick);
@@ -112,10 +122,10 @@ export function startBootDriver(): void {
     const delay = reducedMotion ? 0 : 400;
     setTimeout(() => {
       // Phase components subscribe to this to run HTML-aware scramble + dolly.
-      window.dispatchEvent(new CustomEvent('bootComplete'));
+      window.dispatchEvent(new CustomEvent("bootComplete"));
 
       // Scramble plain-text [data-scramble] elements (no HTML children).
-      const targets = document.querySelectorAll<HTMLElement>('[data-scramble]');
+      const targets = document.querySelectorAll<HTMLElement>("[data-scramble]");
       targets.forEach((el, i) => {
         if (el.childElementCount > 0) return;
         const duration = 600 + i * 100;
@@ -125,9 +135,12 @@ export function startBootDriver(): void {
   }
 
   // ── Main boot tick ────────────────────────────────────────────────────────
-  if (reducedMotion) {
+  // Instant-form path: no genesis RAF. Reduced-motion OR a returning visitor this
+  // session (intro already seen). The brain snaps to fully formed and content is
+  // revealed without the loading theater; only the real page load costs time.
+  if (reducedMotion || introSeen) {
     bootProgress.set(1.0);
-    setTimeout(onBootComplete, 200);
+    setTimeout(onBootComplete, reducedMotion ? 200 : 0);
     return;
   }
 

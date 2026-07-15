@@ -266,12 +266,19 @@ const privacyLabel = locale === 'en' ? 'Privacy' : 'Privacidade';
   // the auto-detection in BaseLayout on future visits: e.g. a user in a PT browser
   // who picks EN keeps landing on /en/. Written before navigation (plain <a> nav).
   const LANG_KEY = 'vhxco_lang';
+  const INTRO_SEEN_KEY = 'vhxco_intro_seen';
   document.querySelectorAll<HTMLAnchorElement>('[data-lang-choice]').forEach((a) => {
     a.addEventListener('click', () => {
       const choice = a.dataset.langChoice;
       if (choice === 'pt' || choice === 'en') {
         try { localStorage.setItem(LANG_KEY, choice); } catch (e) { /* storage blocked */ }
       }
+      // Mark the intro as SEEN for this session BEFORE navigating so the target
+      // page (/, /en/) skips the genesis+dolly and reveals immediately. Set here
+      // (not only on journey:intro-done) so switching language DURING the genesis
+      // — before intro-done fires — still skips on arrival. sessionStorage survives
+      // same-tab navigation. Key shared with intro-session.ts + BaseLayout.astro.
+      try { sessionStorage.setItem(INTRO_SEEN_KEY, '1'); } catch (e) { /* storage blocked */ }
     });
   });
 
