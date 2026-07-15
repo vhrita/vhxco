@@ -65,9 +65,12 @@ const label = locale === 'en' ? 'scroll to start' : 'role para começar';
 <style>
   .scroll-indicator {
     position: fixed;
-    /* Bottom-centered (3D-site convention). CTA sits bottom-RIGHT, so the two
-     * never share horizontal space; kept just above the CTA baseline. */
-    bottom: 1.75rem;
+    /* Horizontally centered, seated in the vertical GAP between the content panel
+     * (vertically centered, above) and the persistent CTA (bottom-right, at
+     * ~1.75rem). Raised well off the baseline so it reads as its own cue with
+     * clear breathing room from the CTA — critical on 375, where the old
+     * bottom:1.75rem sat right on top of the Diagnosticar pill. */
+    bottom: clamp(5.5rem, 15svh, 8.5rem);
     left: 50%;
     transform: translateX(-50%);
     /* z 24: above content (10) / HUD (20), just below the persistent CTA (25). */
@@ -155,7 +158,8 @@ const label = locale === 'en' ? 'scroll to start' : 'role para começar';
    * mirroring the persistent CTA's large-screen pass. */
   @media (min-width: 1440px) {
     .scroll-indicator {
-      bottom: 2.25rem;
+      /* Large screens have more vertical room in the gap — lift it a touch more. */
+      bottom: clamp(6.5rem, 15svh, 10rem);
       gap: 0.5625rem;
     }
     .scroll-indicator-label {
