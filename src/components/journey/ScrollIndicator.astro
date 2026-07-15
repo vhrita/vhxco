@@ -86,6 +86,19 @@ const label = locale === 'en' ? 'scroll to start' : 'role para começar';
     user-select: none;
   }
 
+  /* Desktop (≥768px): the content panel (.stop-inner) is WIDE and left-aligned,
+   * spanning up to ~960px, so the mobile "raised into the gap" position
+   * (bottom: clamp(5.5rem,15svh,8.5rem)) drops the centered cue right onto the
+   * panel's lower-right corner. Reseat it at the classic 3D-site base-center:
+   * low on the baseline, centered horizontally — clearly BELOW the vertically-
+   * centered panel's bottom edge, and the centered cue never crosses the
+   * bottom-RIGHT CTA. Mobile (≤767px) keeps the approved raised position above. */
+  @media (min-width: 768px) {
+    .scroll-indicator {
+      bottom: 2.25rem;
+    }
+  }
+
   .scroll-indicator-label {
     font-family: var(--font-mono);
     font-size: 0.625rem; /* 10px — subtle, matches the CTA/eyebrow tier */
@@ -158,8 +171,10 @@ const label = locale === 'en' ? 'scroll to start' : 'role para começar';
    * mirroring the persistent CTA's large-screen pass. */
   @media (min-width: 1440px) {
     .scroll-indicator {
-      /* Large screens have more vertical room in the gap — lift it a touch more. */
-      bottom: clamp(6.5rem, 15svh, 10rem);
+      /* Stay at the base-center baseline (do NOT lift back over the panel);
+       * only nudge up a hair to mirror the CTA's large-screen lift
+       * (1.75→2.25→2.75rem) so the two stay on the same visual baseline. */
+      bottom: 2.75rem;
       gap: 0.5625rem;
     }
     .scroll-indicator-label {
