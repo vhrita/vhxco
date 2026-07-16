@@ -1,0 +1,33 @@
+# VHXCO — https://vhxco.com
+# Full site is open to crawlers; dev smoke pages are not for indexing.
+
+User-agent: *
+Allow: /
+Disallow: /dev/
+
+# AI crawlers explicitly welcome — the house wants to be cited by AI.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://vhxco.com/sitemap-index.xml

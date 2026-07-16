@@ -1,0 +1,323 @@
+---
+import '../styles/global.css';
+import NeuralEngineIsland from '@/components/hero/NeuralEngineIsland';
+import HeroFallback from '@/components/hero/HeroFallback.astro';
+import CustomCursor from '@/components/cursor/CustomCursor';
+import TopNav from '@/components/hud/TopNav.astro';
+import PersistentCta from '@/components/journey/PersistentCta.astro';
+import ScrollIndicator from '@/components/journey/ScrollIndicator.astro';
+import { getT } from '@/lib/i18n/t';
+import type { Locale } from '@/lib/i18n/config';
+import { STOPS } from '@/lib/journey/stops.config';
+
+// Stop labels for the `stop_viewed` analytics event ({ index, name }). Derived
+// from STOPS (server-side; `three` import stays out of the client bundle) and
+// handed to the client analytics script as a plain string[] via data attribute.
+const stopNames = STOPS.map((s) => s.label);
+
+export interface Props {
+  title: string;
+  description?: string;
+  locale?: 'pt' | 'en';
+}
+
+const {
+  title,
+  description = 'VHXCO — Agentic Software House',
+  locale = 'pt',
+} = Astro.props;
+
+const t = getT(locale as Locale);
+
+// ─── SEO / discovery meta ──────────────────────────────────────────────────
+// Canonical + hreflang + Open Graph + Twitter derived from Astro.site
+// (https://vhxco.com — the ONE canonical domain) and the current pathname.
+// Every absolute URL here resolves against vhxco.com; never .io.
+const site = Astro.site ?? new URL('https://vhxco.com/');
+const pathname = Astro.url.pathname;
+const canonicalURL = new URL(pathname, site).href;
+// hreflang cluster is the same on every page (PT root, EN /en/). Fixed +
+// trailing-slash-consistent so hreflang and canonical always agree.
+const ptURL = new URL('/', site).href;
+const enURL = new URL('/en/', site).href;
+
+// Per-locale OG image (1200×630 branded card in /public).
+const ogImage = new URL(`/og-${locale}.png`, site).href;
+const ogLocale = locale === 'pt' ? 'pt_BR' : 'en_US';
+const ogLocaleAlt = locale === 'pt' ? 'en_US' : 'pt_BR';
+
+// Noindex gate: ONLY https://vhxco.com may be indexable. Any other host
+// (preview sslip.io, dev, unset build) falls back to noindex — fail-closed.
+// Prod build must pass PUBLIC_SITE_URL=https://vhxco.com as a build arg.
+let isProd = false;
+try {
+  isProd = new URL(import.meta.env.PUBLIC_SITE_URL ?? '').hostname === 'vhxco.com';
+} catch {
+  isProd = false;
+}
+
+// Language auto-detection script (emitted inline in <head>, PT root only).
+// See the comment at the injection site below for the full no-loop rationale.
+const langRedirectScript = `(function () {
+  try {
+    var KEY = 'vhxco_lang';
+    var saved = null;
+    try { saved = localStorage.getItem(KEY); } catch (e) {}
+    var go = function () { window.location.replace('/en/'); };
+    if (saved === 'en') { go(); return; }
+    if (saved === 'pt') { return; }
+    var nav = navigator;
+    var langs = nav.languages && nav.languages.length
+      ? nav.languages
+      : [nav.language || nav.userLanguage || 'en'];
+    var first = (langs[0] || '').toLowerCase();
+    var isPt = first === 'pt' || first.indexOf('pt-') === 0;
+    if (!isPt) go();
+  } catch (e) {}
+})();`;
+---
+
+<!doctype html>
+<html lang={locale === 'pt' ? 'pt-BR' : 'en'}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="theme-color" content="#00d7e4" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+
+    {/* Noindex on any non-prod host (preview/dev). Prod (vhxco.com) is indexable. */}
+    {!isProd && <meta name="robots" content="noindex, nofollow" />}
+
+    {/* Canonical + hreflang (PT↔EN + x-default → PT root) */}
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="alternate" hreflang="pt-BR" href={ptURL} />
+    <link rel="alternate" hreflang="en" href={enURL} />
+    <link rel="alternate" hreflang="x-default" href={ptURL} />
+
+    {/* Open Graph */}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="VHXCO" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="VHXCO — Não vendemos software. Entregamos resultado." />
+    <meta property="og:locale" content={ogLocale} />
+    <meta property="og:locale:alternate" content={ogLocaleAlt} />
+
+    {/* Twitter Card */}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    {/* Icons + PWA manifest */}
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    {/*
+      Client-side language auto-detection (static site — nginx serves PT at "/",
+      EN at "/en/"). Runs inline in <head>, before paint, ONLY on the PT root
+      page (locale === 'pt'). Logic:
+        1. Manual choice in localStorage (vhxco_lang) ALWAYS wins — if the user
+           picked EN before, redirect to /en/ even in a PT browser (and if they
+           picked PT, stay, even in an EN browser).
+        2. No manual choice → sniff navigator.languages: pt* stays on "/",
+           anything else redirects to /en/.
+      No-loop guard: only the PT page (locale==='pt') ever redirects, and only
+      TO /en/. The /en/ page has locale==='en' so this block is not emitted there
+      → visitors who land on /en/ stay. Redirect is client-side, so both pages
+      remain crawlable/indexable.
+    */}
+    {locale === 'pt' && (
+      <script is:inline set:html={langRedirectScript} />
+    )}
+
+    {/*
+      Boot reveal gate (inline, in <head>, before <body> paints).
+      The <body> ships with data-boot="loading" in the SERVER markup (see below),
+      so from the very first paint ALL content/chrome (nav, headline, cards, mural,
+      CTA, HUD hints, progress dots) is hidden by CSS — only the #webgl canvas (the
+      brain genesis) is visible. No flash of content before JS runs.
+
+      This inline script only REGISTERS the reveal so it can never miss the event:
+        - journey:intro-done  → remove data-boot (fade-in via CSS). Fired by the
+          render-loop when the dolly lands (WebGL) OR immediately in reduced-motion.
+        - no-JS               → covered by the <noscript> rule that clears the gate.
+        - no-WebGL            → the island sets data-webgl="unavailable" and the
+          engine never starts (never fires intro-done), so a safety listener here
+          reveals when that marker appears (MutationObserver on <body>), and a hard
+          timeout guarantees the user is NEVER stuck behind a hidden screen.
+    */}
+    <script is:inline set:html={`(function () {
+      var b = document.body || document.documentElement;
+      function reveal() {
+        if (document.body) document.body.removeAttribute('data-boot');
+      }
+      // Primary path: the engine fires this when the intro genesis+dolly finish
+      // (reduced-motion fires it instantly). Also mark the intro as SEEN for this
+      // tab session — a later re-navigation (e.g. PT↔EN language switch) reads this
+      // flag (sessionStorage 'vhxco_intro_seen') and skips the genesis+dolly,
+      // revealing content immediately. Key is shared with intro-session.ts + the
+      // language-toggle handler in TopNav.astro; keep them in sync.
+      window.addEventListener('journey:intro-done', function () {
+        try { sessionStorage.setItem('vhxco_intro_seen', '1'); } catch (e) {}
+        reveal();
+      }, { once: true });
+      // Safety for the no-WebGL fallback: the island sets data-webgl="unavailable"
+      // and never starts the render loop, so intro-done never fires. Watch <body>
+      // for that marker and reveal immediately (content is meant to be visible).
+      function watchNoWebgl() {
+        if (!document.body) return;
+        if (document.body.getAttribute('data-webgl') === 'unavailable') { reveal(); return; }
+        try {
+          var mo = new MutationObserver(function () {
+            if (document.body.getAttribute('data-webgl') === 'unavailable') {
+              reveal();
+              mo.disconnect();
+            }
+          });
+          mo.observe(document.body, { attributes: true, attributeFilter: ['data-webgl'] });
+        } catch (e) {}
+      }
+      if (document.body) watchNoWebgl();
+      else document.addEventListener('DOMContentLoaded', watchNoWebgl, { once: true });
+      // Hard failsafe: never leave the user stuck behind a hidden screen if the
+      // engine fails to boot / fire. Generous vs the ~2.6s genesis + dolly.
+      setTimeout(reveal, 8000);
+    })();`} />
+
+    <slot name="head" />
+  </head>
+  <body data-boot="loading" data-stop-names={JSON.stringify(stopNames)}>
+    <!-- No-JS: without the engine there is no genesis to wait for, so the boot
+         gate must NOT hide content. This override reveals everything the
+         data-boot="loading" rules hide (higher specificity + !important wins). -->
+    <noscript><style>
+      body[data-boot="loading"] .topnav,
+      body[data-boot="loading"] #main,
+      body[data-boot="loading"] #persistent-cta,
+      body[data-boot="loading"] .journey-stop,
+      body[data-boot="loading"] .backdrop-vignette {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        clip-path: none !important;
+      }
+    </style></noscript>
+    <!-- a11y: skip to main content (always first in DOM) -->
+    <a href="#main" class="skip-link">{t('a11y.skipToContent')}</a>
+
+    <NeuralEngineIsland client:only="react" locale={locale} />
+    <!-- Fase 5: static neural fallback in the LIVE DOM, hidden by default.
+         Revealed via body[data-webgl="unavailable"] when the island detects no
+         WebGL support (old/corporate/GPU-blocked browsers) — the engine is not
+         mounted in that case, so this static brain stands in for the canvas and
+         the site stays usable (no black screen). The <noscript> copy below
+         covers the JS-disabled path. -->
+    <HeroFallback id="webgl-fallback-live" />
+    <!-- Fase 4a D7: backdrop vignette between canvas (z=1) and content (z=10) -->
+    <div class="backdrop-vignette" aria-hidden="true"></div>
+    <CustomCursor client:idle />
+    <noscript><HeroFallback /></noscript>
+
+    <!-- HUD layer (z-index: var(--z-hud)) -->
+    <TopNav locale={locale} />
+    <!-- Fase 4a S3: persistent "Diagnosticar" CTA (V1 signature) -->
+    <PersistentCta locale={locale} />
+    <!-- Arrival scroll cue (stop 0 only, dismisses after first departure) -->
+    <ScrollIndicator locale={locale} />
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <script>
+      // Boot driver — advances bootProgress 0→1 (forms the brain on the canvas)
+      // and dispatches 'bootComplete' (drives the dolly + content reveal).
+      // The ONLY loading UI is the brain forming on the canvas; the old sci-fi
+      // preloader overlay (rings / SYNAPSE OS / progress bar / boot ticker /
+      // white flash) was removed. This module carries only the behavior.
+      import('@/lib/neural-engine/boot-driver').then(({ startBootDriver }) => {
+        startBootDriver();
+      });
+    </script>
+    <script>
+      // Analytics: initialize PostHog (gated — no-op with zero console noise when
+      // PUBLIC_POSTHOG_KEY is absent). Loaded after content; fires $pageview.
+      // PII-safe by construction (autocapture off, text masked) — see
+      // src/lib/analytics/posthog.ts.
+      import('@/lib/analytics/posthog').then(({ initPosthog }) => {
+        initPosthog();
+      });
+    </script>
+    <script>
+      // Mount journey input adapter after hydration (replaces phase-orchestrator).
+      // On activeStop change (not every frame), update the body dataset.
+      //
+      // Architecture (blueprint §4.4):
+      //   - createJourneyInput() mounts wheel/touch/keyboard/HUD handlers.
+      //   - Easing lives inside journey-input.ts — NOT in the render loop.
+      //   - subscribeActiveStop fires only when the active stop changes (not 60fps).
+      //   - window.__journey (set by createNeuralEngine) is the programmatic API.
+      //   - hud:goto-phase is handled by journey-input.ts internally.
+
+      import('@/lib/journey/journey-input').then(({ createJourneyInput }) => {
+        const input = createJourneyInput();
+
+        // Write activeStop to body dataset so CSS can target it.
+        // Initialize at stop 0.
+        document.body.dataset.activeStop = '0';
+
+        // subscribeActiveStop fires only on stop change (not every t tick).
+        import('@/lib/journey/journey-state').then(
+          ({ subscribeActiveStop, getActiveStop }) => {
+            // Analytics: fire `stop_viewed` on each stop CHANGE (never per frame
+            // — subscribeActiveStop only fires when activeStop actually changes).
+            // No-op when PostHog is disabled (no key). Stop names come from the
+            // server-rendered data attribute so `three` stays out of this bundle.
+            import('@/lib/analytics/posthog').then(({ capture }) => {
+              const names: string[] = (() => {
+                try {
+                  return JSON.parse(document.body.dataset.stopNames ?? '[]');
+                } catch {
+                  return [];
+                }
+              })();
+              // Fire stop 0 explicitly — the journey initializes at stop 0 and
+              // subscribeActiveStop only fires on CHANGE, so without this the top
+              // of the funnel is invisible. capture() buffers until PostHog loads,
+              // so this survives the async init race.
+              capture('stop_viewed', { index: 0, name: names[0] ?? '0' });
+              subscribeActiveStop(() => {
+                const index = getActiveStop();
+                capture('stop_viewed', { index, name: names[index] ?? String(index) });
+              });
+            });
+
+            subscribeActiveStop(() => {
+              const stop = getActiveStop();
+              document.body.dataset.activeStop = String(stop);
+            });
+
+            // Dev-only global (replaces __phaseStore)
+            if (import.meta.env.DEV) {
+              (window as unknown as Record<string, unknown>).__journeyInput = {
+                getActiveStop,
+                destroy: input.destroy.bind(input),
+                reducedMotion: input.reducedMotion,
+              };
+            }
+          }
+        );
+      });
+    </script>
+  </body>
+</html>

@@ -6,15 +6,30 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "qa:shots": "bash qa/dev-and-shots.sh"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@astrojs/react": "^5.0.4",
+    "@astrojs/sitemap": "^3.7.2",
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@tailwindcss/vite": "^4.1.13",
-    "astro": "^5.13.11"
+    "@types/three": "^0.184.1",
+    "astro": "^5.13.11",
+    "posthog-js": "^1.399.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "three": "^0.184.0",
+    "typescript": "^6.0.3",
+    "vite-plugin-glsl": "^1.6.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.21",
+    "puppeteer-core": "^23.0.0",
     "tailwindcss": "^4.1.13"
   },
   "packageManager": "pnpm@10.15.0+sha512.486ebc259d3e999a4e8691ce03b5cac4a71cbeca39372a9b762cb500cfdf0873e2cb16abe3d951b1ee2cf012503f027b98b6584e4df22524e0c7450d9ec7aa7b"

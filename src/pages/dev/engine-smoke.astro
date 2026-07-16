@@ -1,0 +1,275 @@
+---
+/**
+ * DEV-ONLY smoke page — /dev/engine-smoke
+ *
+ * Validates the Three.js neural engine camera-journey (ADR-0020):
+ * - Camera moves when slider changes t (setJourneyProgress)
+ * - getCameraSnapshot() values shown in real-time (determinism gate)
+ * - FPS counter (≥60fps target desktop M1)
+ * - Boot sequence (preloader)
+ *
+ * Determinism test (the gate of Builder#1):
+ *   1. Set slider to 0.5
+ *   2. Click "Snapshot at t=0.5" (waits 1 RAF then logs)
+ *   3. Reload page, repeat
+ *   4. Both snapshots must be identical
+ *
+ * Exposes window.__journey for DevTools inspection.
+ * Access: pnpm dev → http://localhost:4321/dev/engine-smoke
+ */
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>[DEV] Engine Smoke — VHXCO</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      #neural {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        background: black;
+      }
+      #hud {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        color: rgba(94, 234, 255, 0.8);
+        font-size: 11px;
+        line-height: 1.8;
+        pointer-events: none;
+        text-shadow: 0 0 8px rgba(94, 234, 255, 0.5);
+        min-width: 280px;
+      }
+      #hud .label {
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      #controls {
+        position: fixed;
+        bottom: 40px;
+        left: 16px;
+        right: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #journey-slider {
+        width: 100%;
+        accent-color: rgba(94, 234, 255, 0.9);
+        cursor: pointer;
+      }
+      #controls label {
+        color: rgba(94, 234, 255, 0.7);
+        font-size: 10px;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      #controls button {
+        padding: 6px 12px;
+        background: rgba(94, 234, 255, 0.1);
+        border: 1px solid rgba(94, 234, 255, 0.4);
+        color: rgba(94, 234, 255, 0.9);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        cursor: pointer;
+        border-radius: 3px;
+        align-self: flex-start;
+      }
+      #controls button:hover {
+        background: rgba(94, 234, 255, 0.2);
+      }
+      #snapshot-display {
+        color: rgba(255, 255, 100, 0.85);
+        font-size: 9px;
+        line-height: 1.6;
+        white-space: pre;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 6px 8px;
+        border-radius: 3px;
+        border: 1px solid rgba(255, 255, 100, 0.2);
+        max-height: 120px;
+        overflow-y: auto;
+      }
+      #boot-progress {
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 1px;
+      }
+      #boot-bar {
+        height: 100%;
+        background: rgba(94, 234, 255, 0.8);
+        width: 0%;
+        transition: width 0.1s linear;
+        border-radius: 1px;
+        box-shadow: 0 0 8px rgba(94, 234, 255, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="neural" aria-label="VHXCO neural engine smoke test" role="img"></canvas>
+
+    <div id="hud">
+      <div class="label">engine — camera journey smoke</div>
+      <div id="fps">FPS: —</div>
+      <div id="journey-t">t: 0.000</div>
+      <div id="active-stop">stop: 0</div>
+      <div id="stop-count">stops: —</div>
+      <div id="status">BOOTING...</div>
+    </div>
+
+    <div id="controls">
+      <label for="journey-slider">journey t: <span id="slider-val">0.000</span></label>
+      <input
+        id="journey-slider"
+        type="range"
+        min="0"
+        max="1"
+        step="0.001"
+        value="0"
+      />
+      <button id="btn-snapshot">Snapshot at current t (wait 1 RAF)</button>
+      <div id="snapshot-display">— no snapshot yet —</div>
+    </div>
+
+    <div id="boot-progress">
+      <div id="boot-bar"></div>
+    </div>
+
+    <script>
+      import { createNeuralEngine, bootProgress } from '@/lib/neural-engine/index';
+      import type { JourneyHandle } from '@/lib/neural-engine/index';
+
+      const canvas = document.getElementById('neural') as HTMLCanvasElement | null;
+      if (!canvas) throw new Error('canvas#neural not found');
+
+      const engine = createNeuralEngine(canvas);
+      const journey = engine.journey;
+
+      // Expose for DevTools inspection (dev-only)
+      if (import.meta.env.DEV) {
+        // @ts-ignore — intentional dev-only global
+        window.__engine = engine;
+        // window.__journey is set by createNeuralEngine itself
+      }
+
+      // ── HUD refs ────────────────────────────────────────────────────────────
+      const hudT      = document.getElementById('journey-t');
+      const hudStop   = document.getElementById('active-stop');
+      const hudStops  = document.getElementById('stop-count');
+      const statusEl  = document.getElementById('status');
+      const slider    = document.getElementById('journey-slider') as HTMLInputElement;
+      const sliderVal = document.getElementById('slider-val');
+      const snapBtn   = document.getElementById('btn-snapshot');
+      const snapDisp  = document.getElementById('snapshot-display');
+
+      if (hudStops) hudStops.textContent = `stops: ${journey.stopCount}`;
+
+      // ── Slider → setJourneyProgress ─────────────────────────────────────────
+      slider?.addEventListener('input', () => {
+        const t = parseFloat(slider.value);
+        if (sliderVal) sliderVal.textContent = t.toFixed(3);
+        journey.setJourneyProgress(t);
+      });
+
+      // ── Snapshot button: wait 1 RAF then read getCameraSnapshot() ───────────
+      snapBtn?.addEventListener('click', () => {
+        const t = journey.getJourneyProgress();
+        requestAnimationFrame(() => {
+          const snap = journey.getCameraSnapshot();
+          const out = [
+            `t: ${t.toFixed(4)}`,
+            `pos: [${snap.position.map(v => v.toFixed(6)).join(', ')}]`,
+            `quat: [${snap.quaternion.map(v => v.toFixed(6)).join(', ')}]`,
+            `fov: ${snap.fov.toFixed(4)}`,
+            `stop: ${journey.getActiveStop()}`,
+          ].join('\n');
+          if (snapDisp) snapDisp.textContent = out;
+          console.log('[journey snapshot]', snap);
+        });
+      });
+
+      // ── HUD t/stop update tick ───────────────────────────────────────────────
+      function hudTick() {
+        const t = journey.getJourneyProgress();
+        if (hudT) hudT.textContent = `t: ${t.toFixed(3)}`;
+        if (hudStop) hudStop.textContent = `stop: ${journey.getActiveStop()}`;
+        requestAnimationFrame(hudTick);
+      }
+      requestAnimationFrame(hudTick);
+
+      // ── Boot progress simulation (cinematic 3.8s from v0) ───────────────────
+      const TOTAL_MS = 3800;
+      const start = performance.now();
+      const bootBar = document.getElementById('boot-bar');
+
+      const bootSteps = [
+        'BOOT.0 → kernel_init',
+        'BOOT.1 → vector_db_connect',
+        'BOOT.2 → genesis_sequence_start',
+        'BOOT.3 → isolated_synapse_test',
+        'BOOT.4 → massive_neurogenesis',
+        'READY → synaptic_handoff',
+      ];
+      let stepIdx = 0;
+      const stepInterval = setInterval(() => {
+        if (statusEl && bootSteps[stepIdx]) {
+          statusEl.textContent = bootSteps[stepIdx]!;
+        }
+        stepIdx++;
+        if (stepIdx >= bootSteps.length) clearInterval(stepInterval);
+      }, TOTAL_MS / bootSteps.length);
+
+      function tickBoot(now: number) {
+        const elapsed = now - start;
+        const bp = Math.min(elapsed / TOTAL_MS, 1.0);
+        bootProgress.set(bp);
+        if (bootBar) bootBar.style.width = (bp * 100).toFixed(1) + '%';
+        if (bp < 1.0) {
+          requestAnimationFrame(tickBoot);
+        } else {
+          if (statusEl) statusEl.textContent = 'ONLINE';
+        }
+      }
+      requestAnimationFrame(tickBoot);
+
+      // ── FPS counter ─────────────────────────────────────────────────────────
+      let lastTime = performance.now();
+      let frames = 0;
+      const fpsEl = document.getElementById('fps');
+
+      function fpsLoop() {
+        frames++;
+        const now = performance.now();
+        if (now - lastTime >= 1000) {
+          if (fpsEl) fpsEl.textContent = `FPS: ${frames}`;
+          frames = 0;
+          lastTime = now;
+        }
+        requestAnimationFrame(fpsLoop);
+      }
+      requestAnimationFrame(fpsLoop);
+    </script>
+  </body>
+</html>

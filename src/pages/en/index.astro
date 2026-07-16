@@ -1,0 +1,147 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import JourneyStop from '@/components/journey/JourneyStop.astro';
+import DiagnoseForm from '@/components/forms/DiagnoseForm';
+import { getStopsContent } from '@/lib/journey/stops-content';
+import { getLangFromUrl } from '@/i18n/utils';
+import { getT } from '@/lib/i18n/t';
+import type { Locale } from '@/lib/i18n/config';
+
+const lang = getLangFromUrl(Astro.url);
+const tLocale = getT(lang as Locale);
+const stops = getStopsContent('en');
+const totalStops = stops.length;
+
+// Form labels for DiagnoseForm (stop 4) — V1 4-field spec.
+const formLabels = {
+  formTitle:           tLocale('diagnose.form.title'),
+  formLive:            tLocale('diagnose.form.live'),
+  namePrompt:          tLocale('diagnose.form.namePrompt'),
+  namePlaceholder:     tLocale('diagnose.form.namePlaceholder'),
+  emailPrompt:         tLocale('diagnose.form.emailPrompt'),
+  emailPlaceholder:    tLocale('diagnose.form.emailPlaceholder'),
+  companyPrompt:       tLocale('diagnose.form.companyPrompt'),
+  companyPlaceholder:  tLocale('diagnose.form.companyPlaceholder'),
+  detailsPrompt:       tLocale('diagnose.form.detailsPrompt'),
+  detailsPlaceholder:  tLocale('diagnose.form.detailsPlaceholder'),
+  submit:              tLocale('diagnose.form.submit'),
+  sending:             tLocale('diagnose.form.sending'),
+  ok:                  tLocale('diagnose.form.ok'),
+  promise:             tLocale('diagnose.form.promise'),
+  networkFailure:      tLocale('errors.form.networkFailure'),
+  configMissing:       tLocale('diagnose.form.configMissing'),
+  requiredError:       tLocale('errors.form.required'),
+  emailInvalidError:   tLocale('errors.form.emailInvalid'),
+  privacyNote:         tLocale('diagnose.form.privacyNote'),
+  privacyLink:         tLocale('diagnose.form.privacyLink'),
+  fallbackTag:         tLocale('diagnose.form.fallbackTag'),
+  fallbackCopy:        tLocale('diagnose.form.fallbackCopy'),
+  fallbackCta:         tLocale('diagnose.form.fallbackCta'),
+};
+
+const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
+
+// Form renders on the last (action) stop — derive, never hardcode.
+const actionIndex = totalStops - 1;
+
+const metaDescription =
+  'VHXCO finds your business bottleneck and fixes it with AI agents and custom software: more sales, lower operating costs, more free time. We measure before and after. Free 7-day diagnostic.';
+
+// JSON-LD: Organization + WebSite + 4 Service (the RESULTS cards,
+// outcome-first) — indexable detail; descriptions carry the technical
+// deliverables. Canonical domain is vhxco.com (never .io).
+const siteHref = Astro.site?.href ?? 'https://vhxco.com/';
+const orgId = `${siteHref}#organization`;
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': orgId,
+      name: 'VHXCO',
+      url: siteHref,
+      logo: `${siteHref}vhxco-logo.png`,
+      description:
+        'VHXCO improves your business metrics: it finds the bottleneck and fixes it with AI agents and custom software, under a senior engineer. It measures before and after.',
+      slogan: "We don't sell software. We deliver results.",
+      areaServed: 'BR',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'sales',
+        email: 'contato@vhxco.com',
+        availableLanguage: ['Portuguese', 'English'],
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteHref}#website`,
+      url: `${siteHref}en/`,
+      name: 'VHXCO',
+      inLanguage: 'en',
+      publisher: { '@id': orgId },
+    },
+    {
+      '@type': 'Service',
+      name: 'Sell more',
+      serviceType: 'Conversion optimization and feature development',
+      areaServed: 'BR',
+      description:
+        'More revenue through the funnel: CRO, checkout, onboarding and features that unlock conversion. We measure before and after.',
+      provider: { '@id': orgId },
+    },
+    {
+      '@type': 'Service',
+      name: 'Spend less, free your time',
+      serviceType: 'AI agent automation',
+      areaServed: 'BR',
+      description:
+        'Agentic automation: AI agents take over the manual work of the operation (support, spreadsheets, reconciliation, follow-up), measured in human hours saved.',
+      provider: { '@id': orgId },
+    },
+    {
+      '@type': 'Service',
+      name: "Build what's missing",
+      serviceType: 'Custom software development',
+      areaServed: 'BR',
+      description:
+        'Custom software, app or system — zero to production, with code, tests and deploy — when the result demands your own tool.',
+      provider: { '@id': orgId },
+    },
+    {
+      '@type': 'Service',
+      name: 'Free diagnostic',
+      serviceType: 'Business diagnostic',
+      areaServed: 'BR',
+      description:
+        'Your bottleneck mapped in 7 days — what to automate, what to build, what to cut. Free, no strings attached.',
+      provider: { '@id': orgId },
+    },
+  ],
+};
+---
+
+<BaseLayout
+  title="VHXCO — AI agents that improve your business metrics"
+  description={metaDescription}
+  locale="en"
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+
+  {stops.map((content, i) => (
+    <JourneyStop
+      stopIndex={i}
+      totalStops={totalStops}
+      content={content}
+    >
+      {i === actionIndex && (
+        <DiagnoseForm
+          slot="form"
+          client:visible
+          locale="en"
+          formspreeId={formspreeId}
+          labels={formLabels}
+        />
+      )}
+    </JourneyStop>
+  ))}
+</BaseLayout>

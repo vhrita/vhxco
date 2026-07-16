@@ -1,0 +1,90 @@
+[
+  {
+    "t": 0,
+    "filename": "t0_0.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  },
+  {
+    "t": 0.1,
+    "filename": "t0_1.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  },
+  {
+    "t": 0.2,
+    "filename": "t0_2.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  },
+  {
+    "t": 0.3,
+    "filename": "t0_3.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  },
+  {
+    "t": 0.4,
+    "filename": "t0_4.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  },
+  {
+    "t": 0.5,
+    "filename": "t0_5.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  },
+  {
+    "t": 0.6,
+    "filename": "t0_6.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  },
+  {
+    "t": 0.7,
+    "filename": "t0_7.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  },
+  {
+    "t": 0.8,
+    "filename": "t0_8.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  },
+  {
+    "t": 0.9,
+    "filename": "t0_9.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  },
+  {
+    "t": 1,
+    "filename": "t1_0.png",
+    "ratio": 0,
+    "nonBlack": 0,
+    "total": 399360,
+    "passed": false
+  }
+]

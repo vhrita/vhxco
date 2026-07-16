@@ -1,0 +1,286 @@
+---
+/**
+ * TopNav.astro
+ *
+ * Fixed top navigation: VHXCO logo (image) + N chapter buttons + PT/EN lang toggle.
+ * Ported from VHXCO.html lines 1643-1657.
+ *
+ * Logo: full VHXCO lockup (cyan X + light wordmark) as an <img>, sized to the
+ * nav row. Replaces the previous text wordmark + cyan-dot mark.
+ * Audio/MuteButton fully removed (no sound system).
+ *
+ * Chapter labels: PT default. i18n dict is empty for now — hard-coded with TODO.
+ * Lang toggle: PT → "/" | EN → "/en/" (Astro i18n routing).
+ * Active state driven by journey-state subscribeActiveStop (fires only on stop change,
+ * not 60fps). Keyboard nav: Tab focus + roving tabindex within tablist.
+ *
+ * Blueprint §3.3: chapters array is zipped against STOP_COUNT so N is parametrizable.
+ * If STOP_COUNT < chapters.length, extra entries are ignored.
+ * If STOP_COUNT > chapters.length, generic labels are used for overflow.
+ *
+ * Fase 4 (marketer): replace chapter labels/slugs from stops.config.ts when copy is ready.
+ *
+ * TODO(i18n): when pt.json / en.json have nav.chapter.0..N keys, replace
+ *             hard-coded labels with t('nav.chapter.N').
+ */
+
+import { STOP_COUNT } from '@/lib/neural-engine/hero-anchors';
+import { STOP_NAV_LABELS } from '@/lib/journey/stops-content';
+
+interface Props {
+  locale?: 'pt' | 'en';
+}
+
+const { locale = 'pt' } = Astro.props;
+
+// V1 chapter labels from stops-content.ts (single source of truth for copy).
+// Zipped against STOP_COUNT so N remains parametrizable.
+const navLabels = STOP_NAV_LABELS[locale as 'pt' | 'en'] ?? STOP_NAV_LABELS.pt;
+
+const chapters = Array.from({ length: STOP_COUNT }, (_, i) => {
+  const entry = navLabels[i];
+  const num = String(i + 1).padStart(2, '0');
+  if (entry) return { num, label: entry.label, short: entry.short };
+  // Overflow fallback
+  return { num, label: `Stop ${num}`, short: `S${num}` };
+});
+
+// Mobile sidebar labels (open/close the drawer).
+const menuLabel = locale === 'en' ? 'Menu' : 'Menu';
+const openLabel = locale === 'en' ? 'Open navigation' : 'Abrir navegação';
+const closeLabel = locale === 'en' ? 'Close navigation' : 'Fechar navegação';
+const chaptersLabel = locale === 'en' ? 'Chapters' : 'Capítulos';
+
+// Discreet privacy link (bottom of the drawer). Locale-routed static page.
+const privacyHref = locale === 'en' ? '/privacy' : '/privacidade';
+const privacyLabel = locale === 'en' ? 'Privacy' : 'Privacidade';
+---
+
+<nav class="topnav" aria-label="Navegação principal">
+  <a href="/" class="topnav-logo" aria-label="VHXCO — página inicial">
+    <img
+      src="/vhxco-logo-nav-light.png"
+      alt="VHXCO"
+      class="topnav-logo-img"
+      width="112"
+      height="28"
+      decoding="async"
+      fetchpriority="high"
+    />
+  </a>
+
+  {/* Hamburger — mobile only (hidden ≥768px via CSS). Toggles the sidebar. */}
+  <button
+    class="topnav-burger"
+    id="topnav-burger"
+    type="button"
+    aria-label={openLabel}
+    aria-expanded="false"
+    aria-controls="topnav-drawer"
+  >
+    <span class="topnav-burger-box" aria-hidden="true">
+      <span class="topnav-burger-line"></span>
+      <span class="topnav-burger-line"></span>
+      <span class="topnav-burger-line"></span>
+    </span>
+  </button>
+
+  {/* Backdrop scrim — mobile only, click closes the drawer. */}
+  <div class="topnav-scrim" id="topnav-scrim" aria-hidden="true"></div>
+
+  {/*
+    Drawer: horizontal inline nav on desktop (≥768px), off-canvas sidebar on
+    mobile. Holds the chapters tablist + language toggle.
+  */}
+  <div class="topnav-drawer" id="topnav-drawer" role="dialog" aria-modal="false" aria-label={menuLabel}>
+    <div class="topnav-drawer-head">
+      <span class="topnav-drawer-title">{chaptersLabel}</span>
+      <button
+        class="topnav-drawer-close"
+        id="topnav-drawer-close"
+        type="button"
+        aria-label={closeLabel}
+      >✕</button>
+    </div>
+
+    <div class="topnav-chapters" id="topnav-chapters" role="tablist" aria-label={chaptersLabel}>
+      {chapters.map((ch, i) => (
+        <button
+          class="topnav-chapter"
+          data-phase={i}
+          role="tab"
+          aria-selected={i === 0 ? 'true' : 'false'}
+          aria-controls={`phase-panel-${i}`}
+          tabindex={i === 0 ? 0 : -1}
+        >
+          <span class="topnav-chapter-num" aria-hidden="true">{ch.num}</span>
+          <span class="topnav-chapter-lbl-short" aria-hidden="true">{ch.short}</span>
+          <span class="topnav-lbl-full">{ch.label}</span>
+        </button>
+      ))}
+    </div>
+
+    <div class="topnav-lang" aria-label="Idioma">
+      <a
+        href="/"
+        class:list={['topnav-lang-btn', { active: locale === 'pt' }]}
+        hreflang="pt"
+        data-lang-choice="pt"
+        aria-label="Português"
+        aria-current={locale === 'pt' ? 'true' : undefined}
+      >PT</a>
+      <a
+        href="/en/"
+        class:list={['topnav-lang-btn', { active: locale === 'en' }]}
+        hreflang="en"
+        data-lang-choice="en"
+        aria-label="English"
+        aria-current={locale === 'en' ? 'true' : undefined}
+      >EN</a>
+    </div>
+
+    <a class="topnav-legal" href={privacyHref}>{privacyLabel}</a>
+  </div>
+</nav>
+
+<script>
+  // Subscribe to activeStop changes (not every t tick — fires only when stop changes).
+  // journey-input.ts handles the hud:goto-phase event internally via _onHudGotoPhase.
+  import { subscribeActiveStop, getActiveStop } from '@/lib/journey/journey-state';
+
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.topnav-chapter');
+
+  function setActiveChapter(stop: number) {
+    buttons.forEach((btn, i) => {
+      const isActive = i === stop;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      btn.tabIndex = isActive ? 0 : -1;
+    });
+  }
+
+  // Initialize from current store state
+  setActiveChapter(getActiveStop());
+
+  // Subscribe to activeStop changes (fires only when stop changes, not 60fps)
+  const unsub = subscribeActiveStop(() => {
+    setActiveChapter(getActiveStop());
+  });
+
+  // ── Mobile sidebar drawer ─────────────────────────────────────────────────
+  // The chapters + lang toggle live in #topnav-drawer. On mobile (<768px) it is
+  // an off-canvas panel opened by the hamburger. Open/close toggles a class on
+  // <body> (so CSS can slide the panel + show the scrim) and manages aria +
+  // Esc + focus. Desktop (≥768px) ignores all of this — the drawer is inline.
+  const burger = document.getElementById('topnav-burger');
+  const drawer = document.getElementById('topnav-drawer');
+  const scrim = document.getElementById('topnav-scrim');
+  const drawerClose = document.getElementById('topnav-drawer-close');
+  const DRAWER_OPEN_CLASS = 'nav-drawer-open';
+
+  const isMobileNav = () =>
+    window.matchMedia('(max-width: 767.98px)').matches;
+
+  function openDrawer() {
+    document.body.classList.add(DRAWER_OPEN_CLASS);
+    burger?.setAttribute('aria-expanded', 'true');
+    // Move focus into the drawer for keyboard users.
+    drawerClose?.focus();
+  }
+
+  function closeDrawer(restoreFocus = true) {
+    document.body.classList.remove(DRAWER_OPEN_CLASS);
+    burger?.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) burger?.focus();
+  }
+
+  function toggleDrawer() {
+    if (document.body.classList.contains(DRAWER_OPEN_CLASS)) closeDrawer();
+    else openDrawer();
+  }
+
+  burger?.addEventListener('click', toggleDrawer);
+  drawerClose?.addEventListener('click', () => closeDrawer());
+  scrim?.addEventListener('click', () => closeDrawer());
+
+  // Esc closes the drawer (only when open).
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && document.body.classList.contains(DRAWER_OPEN_CLASS)) {
+      e.preventDefault();
+      closeDrawer();
+    }
+  });
+
+  // If the viewport crosses to desktop while open, drop the drawer state so the
+  // inline nav renders normally (no stuck scrim/lock).
+  window.matchMedia('(min-width: 768px)').addEventListener('change', (e) => {
+    if (e.matches) closeDrawer(false);
+  });
+
+  // Lightweight focus containment: while open on mobile, keep Tab inside the
+  // drawer so focus doesn't wander behind the scrim.
+  drawer?.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key !== 'Tab' || !document.body.classList.contains(DRAWER_OPEN_CLASS)) return;
+    if (!isMobileNav()) return;
+    const focusables = drawer.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+    );
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+
+  // Click → dispatch hud:goto-phase (journey-input.ts handles this event internally)
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const phase = parseInt(btn.dataset.phase ?? '0', 10);
+      window.dispatchEvent(new CustomEvent('hud:goto-phase', { detail: { phase } }));
+      // Selecting a chapter closes the mobile sidebar so the journey is visible.
+      if (isMobileNav()) closeDrawer(false);
+    });
+
+    // Keyboard: roving tabindex within tablist
+    btn.addEventListener('keydown', (e: KeyboardEvent) => {
+      const idx = parseInt(btn.dataset.phase ?? '0', 10);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = buttons[idx + 1];
+        if (next) { next.focus(); next.click(); }
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = buttons[idx - 1];
+        if (prev) { prev.focus(); prev.click(); }
+      }
+    });
+  });
+
+  // ── Manual language choice persistence ────────────────────────────────────
+  // Clicking PT/EN records the choice in localStorage (vhxco_lang). This OVERRIDES
+  // the auto-detection in BaseLayout on future visits: e.g. a user in a PT browser
+  // who picks EN keeps landing on /en/. Written before navigation (plain <a> nav).
+  const LANG_KEY = 'vhxco_lang';
+  const INTRO_SEEN_KEY = 'vhxco_intro_seen';
+  document.querySelectorAll<HTMLAnchorElement>('[data-lang-choice]').forEach((a) => {
+    a.addEventListener('click', () => {
+      const choice = a.dataset.langChoice;
+      if (choice === 'pt' || choice === 'en') {
+        try { localStorage.setItem(LANG_KEY, choice); } catch (e) { /* storage blocked */ }
+      }
+      // Mark the intro as SEEN for this session BEFORE navigating so the target
+      // page (/, /en/) skips the genesis+dolly and reveals immediately. Set here
+      // (not only on journey:intro-done) so switching language DURING the genesis
+      // — before intro-done fires — still skips on arrival. sessionStorage survives
+      // same-tab navigation. Key shared with intro-session.ts + BaseLayout.astro.
+      try { sessionStorage.setItem(INTRO_SEEN_KEY, '1'); } catch (e) { /* storage blocked */ }
+    });
+  });
+
+  document.addEventListener('astro:before-swap', () => unsub(), { once: true });
+</script>
