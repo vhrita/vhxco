@@ -53,3 +53,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            PUBLIC_SITE_URL=https://vhxco.com
+            PUBLIC_FORMSPREE_ID=mnjkebjk
+            PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+            PUBLIC_POSTHOG_KEY=${{ secrets.PUBLIC_POSTHOG_KEY }}
