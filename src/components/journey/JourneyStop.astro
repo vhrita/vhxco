@@ -1,0 +1,792 @@
+---
+/**
+ * JourneyStop.astro — Live journey stop content panel.
+ *
+ * Ported from feature/refactor-mockups StopPanel.astro.
+ * Key differences from the mockup:
+ *   - stopIndex is 0-based (matches body[data-active-stop] from journey-state).
+ *   - Visibility is driven by body[data-active-stop="N"] CSS in global.css
+ *     (NOT .is-active class toggled by JS) — Astro scoping constraint.
+ *   - Stop 0 renders an <h1> (SEO + bootComplete scramble).
+ *     All other stops render <h2>.
+ *   - The last stop (action, index totalStops-1) has a form slot for DiagnoseForm.
+ *
+ * v2 REPIVOT (outcome-first):
+ *   - RESULTADOS stop renders 4 result cards with inline Lucide icons (no new
+ *     dep). The free-diagnostic card (cta:true) is an <a> that dispatches the
+ *     same hud:goto-phase event PersistentCta uses — jumps to the form (V5).
+ *   - PROVA stop renders a proof mural (ProofTile[]) below the body: a label +
+ *     grid of external chip links (target=_blank rel=noopener) (V3/V4).
+ *   - Gabriel linkify REMOVED — the mural shows, the body no longer claims.
+ *
+ * Layout rules (same as mockup):
+ *   - Fixed overlay over the canvas, not inside a scroll container.
+ *   - All content must fit 100svh at 375×667 — no overflow:auto, no shrink.
+ *   - Typography uses clamp() — responsive scaling, NOT shrink-to-fit.
+ *   - Design tokens only — no literal color values.
+ *
+ * bootComplete scramble: stop 0 only, wired via <script> below.
+ */
+
+import type { StopContent, ServiceIconId } from "@/lib/journey/stops-content";
+import { STOP_COUNT } from "@/lib/journey/stops.config";
+
+interface Props {
+  /** 0-based stop index — matches activeStop from journey-state */
+  stopIndex: number;
+  /** Total number of stops (for progress dots) */
+  totalStops: number;
+  /** Stop content (locale-specific, passed from parent) */
+  content: StopContent;
+}
+
+const { stopIndex, totalStops, content } = Astro.props;
+
+const isHero = stopIndex === 0;                 // renders <h1>, wires bootComplete scramble
+const isAction = stopIndex === totalStops - 1;  // renders form slot instead of hud hint (derived, not hardcoded)
+const hasCards = Array.isArray(content.cards) && content.cards.length > 0;
+const hasTiles = Array.isArray(content.tiles) && content.tiles.length > 0;
+
+// Card 04 (cta:true) jumps to the last (action) stop — same event PersistentCta
+// dispatches. Derive the index from STOP_COUNT; never hardcode.
+const actionIndex = STOP_COUNT - 1;
+
+// Render headline with line breaks at \n
+const headlineLines = content.headline.split("\n");
+
+// Render body lines
+const bodyLines = content.body ? content.body.split("\n") : [];
+
+// Lucide icon paths (inline SVG, stroke 1.5, 24 viewBox) — HUD gramática, no dep.
+// trend=trending-up · clock=clock · build=blocks · scan=scan-search
+const ICON_PATHS: Record<ServiceIconId, string[]> = {
+  trend: ["M16 7h6v6", "m22 7-8.5 8.5-5-5L2 17"],
+  clock: ["M12 6v6l4 2"],
+  build: [
+    "M10 22V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v13a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6a1 1 0 0 0-1-1h-5",
+    "M14 22V13a1 1 0 0 0-1-1h-3",
+    "M15 6v4",
+    "M18 6v4",
+    "M15 3h4a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z",
+  ],
+  scan: [
+    "M3 7V5a2 2 0 0 1 2-2h2",
+    "M17 3h2a2 2 0 0 1 2 2v2",
+    "M21 17v2a2 2 0 0 1-2 2h-2",
+    "M7 21H5a2 2 0 0 1-2-2v-2",
+    "m14 14-1.5-1.5",
+  ],
+};
+const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: number }>> = {
+  clock: { cx: 12, cy: 12, r: 10 },
+  scan: { cx: 10.5, cy: 10.5, r: 3.5 },
+};
+---
+
+<div
+  class="journey-stop"
+  data-stop={stopIndex}
+  role="region"
+  aria-labelledby={`stop-heading-${stopIndex}`}
+>
+  <div class="stop-inner">
+    <!-- Progress indicator -->
+    <div class="stop-progress-bar" aria-hidden="true">
+      {Array.from({ length: totalStops }).map((_, i) => (
+        <span class={`progress-dot ${i === stopIndex ? "active" : ""}`} />
+      ))}
+    </div>
+
+    <!-- Eyebrow -->
+    <p class="stop-eyebrow">{content.eyebrow}</p>
+
+    <!-- Headline: h1 for stop 0 (SEO + scramble), h2 for all others -->
+    {isHero ? (
+      <h1
+        id={`stop-heading-${stopIndex}`}
+        class="stop-headline"
+        data-scramble
+      >
+        {headlineLines.map((line, i) => (
+          <>
+            {line}{i < headlineLines.length - 1 && <br />}
+          </>
+        ))}
+      </h1>
+    ) : (
+      <h2
+        id={`stop-heading-${stopIndex}`}
+        class="stop-headline"
+      >
+        {headlineLines.map((line, i) => (
+          <>
+            {line}{i < headlineLines.length - 1 && <br />}
+          </>
+        ))}
+      </h2>
+    )}
+
+    <!-- Body (optional) — plain line render. -->
+    {bodyLines.length > 0 && (
+      <p class="stop-body">
+        {bodyLines.map((line, i) => (
+          <>
+            {line}{i < bodyLines.length - 1 && <br />}
+          </>
+        ))}
+      </p>
+    )}
+
+    <!-- Service cards (RESULTADOS stop) — icon + result. Card 04 (cta) jumps to form. -->
+    {hasCards && (
+      <ul class="stop-cards" role="list">
+        {content.cards!.map((card) => {
+          const paths = ICON_PATHS[card.icon];
+          const circle = ICON_CIRCLE[card.icon];
+          const icon = (
+            <svg
+              class="stop-card-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              {circle && <circle cx={circle.cx} cy={circle.cy} r={circle.r} />}
+              {paths.map((d) => <path d={d} />)}
+            </svg>
+          );
+          const inner = (
+            <>
+              {icon}
+              <span class="stop-card-body">
+                <span class="stop-card-title">
+                  {card.title}
+                  {card.cta && <span class="stop-card-arrow" aria-hidden="true"> →</span>}
+                </span>
+                <span class="stop-card-desc">{card.desc}</span>
+              </span>
+            </>
+          );
+          return card.cta ? (
+            <li class="stop-card is-cta">
+              <a
+                class="stop-card-link"
+                href={`#stop-${actionIndex}`}
+                data-goto-action={actionIndex}
+              >{inner}</a>
+            </li>
+          ) : (
+            <li class="stop-card">{inner}</li>
+          );
+        })}
+      </ul>
+    )}
+
+    <!-- Proof mural (PROVA stop) — label + external chip links. Shows, doesn't claim. -->
+    {hasTiles && (
+      <div class="stop-mural">
+        {content.muralLabel && (
+          <p class="stop-mural-label">{content.muralLabel}</p>
+        )}
+        <ul class="stop-tiles" role="list">
+          {content.tiles!.map((tile) => (
+            <li>
+              <a
+                class="stop-tile"
+                href={tile.url}
+                target="_blank"
+                rel="noopener"
+              >
+                <span class="stop-tile-name">{tile.name}</span>
+                <span class="stop-tile-tag">{tile.tag}</span>
+                <span class="stop-tile-arrow" aria-hidden="true">↗</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    <!-- Action slot: form injected by parent for the last stop -->
+    {isAction && <slot name="form" />}
+
+    <!-- Closing tagline (D2) — action stop only, subtle, below the form -->
+    {isAction && content.taglineClose && (
+      <p class="stop-tagline-close">{content.taglineClose}</p>
+    )}
+
+    <!-- HUD hint (only for non-action stops) -->
+    {!isAction && content.hudHint && (
+      <p class="stop-hud-hint" aria-hidden="true">
+        <span class="hud-hint-arrow">›</span>
+        {content.hudHint}
+      </p>
+    )}
+  </div>
+</div>
+
+{/* Card 04 (free diagnostic) → jump to form. Same event as PersistentCta. */}
+{hasCards && content.cards!.some((c) => c.cta) && (
+  <script>
+    import { capture } from "@/lib/analytics/posthog";
+
+    const link = document.querySelector<HTMLAnchorElement>(
+      ".stop-card-link[data-goto-action]",
+    );
+    if (link) {
+      const actionIndex = parseInt(link.dataset.gotoAction ?? "0", 10);
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        // Analytics: CTA click from the RESULTADOS diagnostic card.
+        capture("cta_click", { source: "diagnostico_card" });
+        window.dispatchEvent(
+          new CustomEvent("hud:goto-phase", { detail: { phase: actionIndex } }),
+        );
+      });
+    }
+  </script>
+)}
+
+{/* bootComplete scramble — stop 0 only */}
+{isHero && (
+  <script>
+    import { SCRAMBLE_CHARS } from "@/lib/effects/scramble";
+
+    function scrambleTextNodes(container: HTMLElement, durationMs: number): void {
+      const reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      if (reducedMotion) {
+        container.style.opacity = "0";
+        requestAnimationFrame(() => {
+          container.style.transition = "opacity 400ms ease";
+          container.style.opacity = "1";
+        });
+        return;
+      }
+
+      const textNodes: Text[] = [];
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+      let node: Node | null;
+      while ((node = walker.nextNode())) {
+        if ((node as Text).textContent?.trim()) {
+          textNodes.push(node as Text);
+        }
+      }
+
+      if (textNodes.length === 0) return;
+
+      const originals = textNodes.map((n) => n.textContent ?? "");
+      const startTime = performance.now();
+
+      function tick(now: number): void {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        let anyActive = false;
+
+        textNodes.forEach((textNode, ni) => {
+          const orig = originals[ni];
+          const chars = orig.split("");
+          const settled = chars.map((_, i) => progress >= (i + 1) / chars.length);
+          const result = chars.map((ch, i) => {
+            if (ch === " " || ch === "\n" || ch === "\t") return ch;
+            if (settled[i]) return ch;
+            anyActive = true;
+            return SCRAMBLE_CHARS[
+              Math.floor(Math.random() * SCRAMBLE_CHARS.length)
+            ];
+          });
+          textNode.textContent = result.join("");
+        });
+
+        if (anyActive) {
+          requestAnimationFrame(tick);
+        } else {
+          textNodes.forEach((n, i) => {
+            n.textContent = originals[i];
+          });
+        }
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    // Wire to bootComplete event (dispatched by Preloader after fade-out)
+    const h1 = document.querySelector<HTMLElement>(
+      '.journey-stop[data-stop="0"] [data-scramble]',
+    );
+
+    if (h1) {
+      window.addEventListener(
+        "bootComplete",
+        () => {
+          scrambleTextNodes(h1, 900);
+        },
+        { once: true },
+      );
+    }
+  </script>
+)}
+
+<style>
+  /* ── Panel shell ─────────────────────────────────────────────────────────── */
+
+  .journey-stop {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-content);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    /* Default hidden — global.css rules show the active stop */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    /* Padding: left-aligned layout, respect safe zones.
+     * Horizontal gutter trimmed (was clamp(1.25rem,5vw,3rem)) because the glass
+     * .stop-inner now carries its own inset padding — keeps the total content
+     * width identical so the 375×667 hard-law fit is preserved. */
+    padding-left: clamp(0.875rem, 3.5vw, 2.25rem);
+    padding-right: clamp(0.875rem, 3.5vw, 2.25rem);
+    padding-top: clamp(4rem, 8svh, 6rem);
+    padding-bottom: clamp(2.5rem, 5svh, 4rem);
+  }
+
+  /* ── Content block ───────────────────────────────────────────────────────── */
+
+  .stop-inner {
+    max-width: 36rem; /* ~576px — readable on desktop, full-width mobile */
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.625rem, 1.5svh, 1rem);
+
+    /* Content scrim (perf plan P0) — semi-opaque gradient fill, NO backdrop
+     * blur. Gives the copy a controlled dark backdrop so it never disappears
+     * over a bright node of the 3D mesh, with MORE contrast than the old glass.
+     * The old `backdrop-filter: blur(10px)` recomposed a gaussian blur over the
+     * live WebGL canvas every frame (incacheable — the biggest compositor cost
+     * on the page); this replaces it with one normal composite.
+     *
+     * The mesh still BREATHES: the panel is max-width-capped (never full-bleed),
+     * the fill is translucent (alpha .58–.74, so the network glows faintly
+     * through), and the bottom edge fades out via a mask so the panel dissolves
+     * into the 3D instead of reading as a hard block.
+     * Padding folds the old journey-stop gutter inward so the 375×667 fit is
+     * preserved (no net width gain). */
+    padding: clamp(0.75rem, 2.2svh, 1.25rem) clamp(0.875rem, 3.5vw, 1.5rem);
+    background: linear-gradient(
+      180deg,
+      var(--surface-glass-bg-top) 0%,
+      var(--surface-glass-bg-top) 55%,
+      var(--surface-glass-bg-bottom) 100%
+    );
+    border: 1px solid var(--surface-glass-border);
+    border-radius: var(--surface-glass-radius);
+    /* Fade the bottom edge so the scrim melts into the mesh (no hard block).
+     * Mask is a cheap per-layer op (no backdrop read) — costs nothing per frame. */
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      #000 0%,
+      #000 80%,
+      rgba(0, 0, 0, 0.82) 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      #000 0%,
+      #000 80%,
+      rgba(0, 0, 0, 0.82) 100%
+    );
+  }
+
+  /* ── Progress dots ───────────────────────────────────────────────────────── */
+
+  .stop-progress-bar {
+    display: flex;
+    gap: 0.375rem;
+    margin-bottom: clamp(0.25rem, 1svh, 0.5rem);
+  }
+
+  .progress-dot {
+    display: inline-block;
+    width: 1.25rem;
+    height: 2px;
+    background: var(--color-dim);
+    opacity: 0.4;
+    border-radius: 1px;
+    transition:
+      background 240ms,
+      opacity 240ms;
+  }
+
+  .progress-dot.active {
+    background: var(--color-cyan);
+    opacity: 1;
+  }
+
+  /* ── Eyebrow ─────────────────────────────────────────────────────────────── */
+
+  .stop-eyebrow {
+    font-family: var(--font-mono);
+    font-size: clamp(0.625rem, 1.5vw + 0.5rem, 1rem);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-cyan);
+    margin: 0;
+    line-height: 1;
+  }
+
+  /* ── Headline (h1 or h2) ─────────────────────────────────────────────────── */
+
+  .stop-headline {
+    font-family: var(--font-display);
+    /* Large-screen pass: cap raised 3.5rem → 5.5rem (56→88px) so the stop
+     * headline scales up on 1440/1920/2560 instead of sitting tiny. Floor and
+     * slope keep the 375px fit (28px, 4vw). */
+    font-size: clamp(1.75rem, 4vw + 0.5rem, 5.5rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--color-fg);
+    margin: 0;
+  }
+
+  /* ── Body ────────────────────────────────────────────────────────────────── */
+
+  .stop-body {
+    font-family: var(--font-mono);
+    /* Large-screen pass: cap 0.9375rem → 1.375rem (15→22px). Floor unchanged. */
+    font-size: clamp(0.8125rem, 1.2vw + 0.6rem, 1.375rem);
+    line-height: 1.65;
+    color: var(--color-dim);
+    margin: 0;
+  }
+
+  /* ── Service cards (RESULTADOS stop) ─────────────────────────────────────── */
+
+  .stop-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.4375rem, 1.2svh, 0.75rem);
+  }
+
+  .stop-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: clamp(0.4375rem, 1.2svh, 0.625rem) clamp(0.625rem, 2vw, 0.875rem);
+    border: 1px solid var(--color-cyan-soft);
+    border-radius: 3px;
+    background: rgba(94, 234, 255, 0.03);
+  }
+
+  /* Card 04 (free diagnostic) — the only action card: full cyan border + arrow. */
+  .stop-card.is-cta {
+    border-color: var(--color-cyan);
+    padding: 0;
+  }
+
+  .stop-card-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    width: 100%;
+    padding: clamp(0.4375rem, 1.2svh, 0.625rem) clamp(0.625rem, 2vw, 0.875rem);
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: background 200ms;
+  }
+
+  .stop-card-link:hover,
+  .stop-card-link:focus-visible {
+    background: rgba(94, 234, 255, 0.08);
+    outline: none;
+  }
+
+  .stop-card-icon {
+    flex: 0 0 auto;
+    /* Large-screen pass: cap 22 → 34px so icons scale with the card copy. */
+    width: clamp(18px, 1.4vw + 14px, 34px);
+    height: clamp(18px, 1.4vw + 14px, 34px);
+    color: var(--color-cyan);
+    margin-top: 0.05rem;
+  }
+
+  .stop-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+  }
+
+  .stop-card-title {
+    font-family: var(--font-mono);
+    /* Large-screen pass: cap 0.875rem → 1.25rem (14→20px). */
+    font-size: clamp(0.75rem, 1vw + 0.55rem, 1.25rem);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    color: var(--color-fg);
+  }
+
+  .stop-card-arrow {
+    color: var(--color-cyan);
+  }
+
+  .stop-card-desc {
+    font-family: var(--font-mono);
+    /* Large-screen pass: cap 0.8125rem → 1.125rem (13→18px). */
+    font-size: clamp(0.6875rem, 0.9vw + 0.5rem, 1.125rem);
+    line-height: 1.35;
+    color: var(--color-dim);
+  }
+
+  /* Desktop: 2×2 grid (4 cards in a row would cramp the 44rem max-width). */
+  @media (min-width: 768px) {
+    .stop-inner {
+      max-width: 44rem;
+    }
+    .stop-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* ── Proof mural (PROVA stop) ────────────────────────────────────────────── */
+
+  .stop-mural {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.375rem, 1svh, 0.625rem);
+    margin-top: clamp(0.125rem, 0.5svh, 0.375rem);
+  }
+
+  .stop-mural-label {
+    font-family: var(--font-mono);
+    /* Large-screen pass: fixed 0.625rem → fluid cap 0.875rem (10→14px). */
+    font-size: clamp(0.625rem, 0.6vw + 0.5rem, 0.875rem);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-cyan);
+    opacity: 0.85;
+    margin: 0;
+    line-height: 1;
+  }
+
+  .stop-tiles {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.375rem, 1vw, 0.5rem);
+  }
+
+  .stop-tiles > li {
+    min-width: 0;
+  }
+
+  .stop-tile {
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--color-cyan-soft);
+    border-radius: 3px;
+    background: rgba(94, 234, 255, 0.03);
+    text-decoration: none;
+    transition:
+      border-color 200ms,
+      background 200ms;
+    min-width: 0;
+  }
+
+  .stop-tile:hover,
+  .stop-tile:focus-visible {
+    border-color: var(--color-cyan);
+    background: rgba(94, 234, 255, 0.08);
+    outline: none;
+  }
+
+  .stop-tile-name {
+    font-family: var(--font-mono);
+    /* Large-screen pass: cap 0.8125rem → 1.0625rem (13→17px). */
+    font-size: clamp(0.6875rem, 0.9vw + 0.5rem, 1.0625rem);
+    font-weight: 600;
+    color: var(--color-fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stop-tile-tag {
+    font-family: var(--font-mono);
+    /* Large-screen pass: fixed 0.625rem → fluid cap 0.875rem (10→14px). */
+    font-size: clamp(0.625rem, 0.6vw + 0.5rem, 0.875rem);
+    color: var(--color-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .stop-tile-arrow {
+    flex: 0 0 auto;
+    font-size: 0.6875rem;
+    color: var(--color-cyan);
+    opacity: 0.6;
+    transition: opacity 200ms;
+  }
+
+  .stop-tile:hover .stop-tile-arrow,
+  .stop-tile:focus-visible .stop-tile-arrow {
+    opacity: 1;
+  }
+
+  /* Desktop: tiles flow in a wrapping row when there's horizontal room.
+   * Mobile (default) stacks them in a single column so both stay fully
+   * visible inside the content panel at 375px — no horizontal overflow. */
+  @media (min-width: 768px) {
+    .stop-tiles {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .stop-tiles > li {
+      flex: 0 1 auto;
+    }
+  }
+
+  /* ── Closing tagline (D2) ────────────────────────────────────────────────── */
+
+  .stop-tagline-close {
+    font-family: var(--font-mono);
+    /* Large-screen pass: cap 0.75rem → 1rem (12→16px). */
+    font-size: clamp(0.625rem, 0.9vw + 0.45rem, 1rem);
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+    /* legibility-notch: keeps it the quietest text tier but lifts the opacity
+     * crutch (0.6 → 0.78) so the --color-dim bump actually lands — was doubly
+     * suppressed (muted grey × 0.6). Still clearly below body/cue. */
+    color: var(--color-dim);
+    opacity: 0.78;
+    margin: 0;
+    margin-top: clamp(0.375rem, 1svh, 0.625rem);
+  }
+
+  /* On very short viewports (375×667) hide the tagline so the form never
+   * gets pushed out (D2 hard law: form fit wins). */
+  @media (max-height: 700px) {
+    .stop-tagline-close {
+      display: none;
+    }
+  }
+
+  /* ── HUD hint ────────────────────────────────────────────────────────────── */
+
+  .stop-hud-hint {
+    font-family: var(--font-mono);
+    /* Large-screen pass: fixed 0.6875rem → fluid cap 0.9375rem (11→15px). */
+    font-size: clamp(0.6875rem, 0.7vw + 0.5rem, 0.9375rem);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    /* legibility-notch: was --color-dim AT opacity:0.5 → effective ~2.7:1, near
+     * invisible (the worst offender). Now the dedicated --color-hint tier at full
+     * opacity (~12.9:1 on black) so the "próximo passo" cue clearly reads. */
+    color: var(--color-hint);
+    margin: 0;
+    margin-top: clamp(0.25rem, 1svh, 0.5rem);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .hud-hint-arrow {
+    color: var(--color-cyan);
+    opacity: 0.7;
+    font-size: 0.875rem;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+   * Large-screen scaling pass (responsividade — feedback do Vitor)
+   *
+   * Problem: on 1440/1920/2560 the panel maxed at 44rem (704px) and sat in a
+   * small corner of a huge black canvas — text and cards felt lost. The token
+   * clamp caps above already grow the type; these tiers grow the CONTAINER
+   * (max-width), the padding, and the vertical rhythm (gaps) in step so the
+   * bigger type has room to breathe and the panel fills more of the viewport —
+   * premium density instead of tiny-in-a-void.
+   *
+   * Hard law preserved: still capped (never full-bleed → mesh breathes around
+   * it), and the densest stops (Serviços 2×2 cards, Prova mural) are checked to
+   * still fit 100svh at these sizes. Mobile/tablet untouched (≥1440 only).
+   * ═════════════════════════════════════════════════════════════════════════ */
+
+  @media (min-width: 1440px) {
+    .journey-stop {
+      padding-left: clamp(2.25rem, 4vw, 4.5rem);
+    }
+    .stop-inner {
+      max-width: 52rem; /* 832px */
+      gap: clamp(1rem, 1.6svh, 1.5rem);
+      padding: clamp(1.25rem, 2.4svh, 1.75rem) clamp(1.5rem, 2.2vw, 2.25rem);
+    }
+    .progress-dot {
+      width: 1.75rem;
+    }
+    .stop-cards {
+      gap: clamp(0.75rem, 1.4svh, 1rem);
+    }
+    .stop-card {
+      padding: clamp(0.75rem, 1.4svh, 1rem) clamp(1rem, 1.4vw, 1.25rem);
+    }
+    .stop-card-link {
+      padding: clamp(0.75rem, 1.4svh, 1rem) clamp(1rem, 1.4vw, 1.25rem);
+    }
+    .stop-tile {
+      padding: 0.7rem 0.9rem;
+    }
+  }
+
+  @media (min-width: 1920px) {
+    .journey-stop {
+      padding-left: clamp(4.5rem, 5vw, 7rem);
+    }
+    .stop-inner {
+      max-width: 60rem; /* 960px */
+      gap: clamp(1.25rem, 1.8svh, 1.75rem);
+      padding: clamp(1.75rem, 2.6svh, 2.25rem) clamp(2rem, 2.2vw, 2.75rem);
+    }
+    .progress-dot {
+      width: 2.25rem;
+      height: 3px;
+    }
+  }
+
+  /* Guard: the densest stops (2×2 service cards, proof mural) are the ones at
+   * risk of overflowing height when everything scales up. On short-but-wide
+   * large viewports (e.g. 1920×900 laptop) rein the gaps back so the hard law
+   * (100svh fit, no internal overflow) holds even at max type. */
+  @media (min-width: 1440px) and (max-height: 950px) {
+    .stop-inner {
+      gap: clamp(0.75rem, 1.2svh, 1.15rem);
+      padding: clamp(1rem, 1.8svh, 1.4rem) clamp(1.5rem, 2vw, 2rem);
+    }
+    .stop-cards {
+      gap: clamp(0.5rem, 1svh, 0.8rem);
+    }
+  }
+</style>

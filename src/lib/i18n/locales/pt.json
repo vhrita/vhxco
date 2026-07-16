@@ -43,28 +43,35 @@
       "namePlaceholder": "> Nome completo",
       "emailPrompt": "canal de retorno",
       "emailPlaceholder": "> email corporativo",
-      "companyPrompt": "organização",
-      "companyPlaceholder": "> Empresa // setor",
+      "companyPrompt": "empresa",
+      "companyPlaceholder": "> site, rede social ou apenas o nome da empresa",
+      "detailsPrompt": "seu gargalo",
+      "detailsPlaceholder": "> qual problema te trava? por que chegou até aqui?",
+      "submit": "Solicitar diagnóstico",
+      "sending": "Enviando...",
+      "ok": "Sinal recebido. Retorno em ≤ 7 dias.",
+      "promise": "Resposta em até 7 dias.",
+      "configMissing": "Form não configurado. Escreva pra contato@vhxco.com.",
+      "privacyNote": "Ao enviar, você concorda com a",
+      "privacyLink": "política de privacidade",
+      "fallbackTag": "AGUARDANDO LINK",
+      "fallbackCopy": "Form em provisionamento. Enquanto isso, dispara um email — resposta em ≤7 dias.",
+      "fallbackCta": "ABRIR EMAIL →",
       "bottleneckPrompt": "qual gargalo atual",
       "briefPrompt": "contexto",
       "briefPlaceholder": "> O que está custando tempo ou dinheiro hoje?",
       "bn1": "IA / Agentes",
       "bn2": "Sistemas Lentos",
       "bn3": "Processos",
-      "bn4": "Reduzir Custos",
-      "submit": "Solicitar diagnose direto com o arquiteto",
-      "sending": "Enviando...",
-      "ok": "Sinal recebido. Retorno do Arquiteto em ≤ 24h.",
-      "configMissing": "Form não configurado. Contato pelo email no rodapé.",
-      "fallbackTag": "AGUARDANDO LINK",
-      "fallbackCopy": "Form em provisionamento. Enquanto isso, dispara um email — resposta em ≤24h.",
-      "fallbackCta": "ABRIR EMAIL →"
+      "bn4": "Reduzir Custos"
     }
   },
   "errors": {
     "form": {
-      "networkFailure": "Falha no envio. Tente novamente ou contate pelo email no rodapé.",
-      "configMissing": "Form não configurado. Contato pelo email no rodapé."
+      "networkFailure": "Falha no envio. Tente de novo ou escreva pra contato@vhxco.com.",
+      "configMissing": "Form não configurado. Escreva pra contato@vhxco.com.",
+      "required": "Campo obrigatório.",
+      "emailInvalid": "E-mail inválido. Confira o endereço."
     }
   },
   "ecosystem": {

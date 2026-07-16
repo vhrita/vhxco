@@ -1,19 +1,147 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import PhaseCore from '@/components/phases/PhaseCore.astro';
-import PhaseEngineering from '@/components/phases/PhaseEngineering.astro';
-import PhaseEcosystem from '@/components/phases/PhaseEcosystem.astro';
-import PhaseDataRoom from '@/components/phases/PhaseDataRoom.astro';
-import PhaseDiagnose from '@/components/phases/PhaseDiagnose.astro';
+import JourneyStop from '@/components/journey/JourneyStop.astro';
+import DiagnoseForm from '@/components/forms/DiagnoseForm';
+import { getStopsContent } from '@/lib/journey/stops-content';
+import { getLangFromUrl } from '@/i18n/utils';
+import { getT } from '@/lib/i18n/t';
+import type { Locale } from '@/lib/i18n/config';
+
+const lang = getLangFromUrl(Astro.url);
+const tLocale = getT(lang as Locale);
+const stops = getStopsContent('pt');
+const totalStops = stops.length;
+
+// Form labels for DiagnoseForm (stop 4) — V1 4-field spec.
+const formLabels = {
+  formTitle:           tLocale('diagnose.form.title'),
+  formLive:            tLocale('diagnose.form.live'),
+  namePrompt:          tLocale('diagnose.form.namePrompt'),
+  namePlaceholder:     tLocale('diagnose.form.namePlaceholder'),
+  emailPrompt:         tLocale('diagnose.form.emailPrompt'),
+  emailPlaceholder:    tLocale('diagnose.form.emailPlaceholder'),
+  companyPrompt:       tLocale('diagnose.form.companyPrompt'),
+  companyPlaceholder:  tLocale('diagnose.form.companyPlaceholder'),
+  detailsPrompt:       tLocale('diagnose.form.detailsPrompt'),
+  detailsPlaceholder:  tLocale('diagnose.form.detailsPlaceholder'),
+  submit:              tLocale('diagnose.form.submit'),
+  sending:             tLocale('diagnose.form.sending'),
+  ok:                  tLocale('diagnose.form.ok'),
+  promise:             tLocale('diagnose.form.promise'),
+  networkFailure:      tLocale('errors.form.networkFailure'),
+  configMissing:       tLocale('diagnose.form.configMissing'),
+  requiredError:       tLocale('errors.form.required'),
+  emailInvalidError:   tLocale('errors.form.emailInvalid'),
+  privacyNote:         tLocale('diagnose.form.privacyNote'),
+  privacyLink:         tLocale('diagnose.form.privacyLink'),
+  fallbackTag:         tLocale('diagnose.form.fallbackTag'),
+  fallbackCopy:        tLocale('diagnose.form.fallbackCopy'),
+  fallbackCta:         tLocale('diagnose.form.fallbackCta'),
+};
+
+const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
+
+// Form renders on the last (action) stop — derive, never hardcode.
+const actionIndex = totalStops - 1;
+
+const metaDescription =
+  'A VHXCO encontra o gargalo do seu negócio e resolve com agentes de IA e software sob medida: mais venda, menos custo operacional, mais tempo. Medimos o antes e o depois. Diagnóstico gratuito em 7 dias.';
+
+// JSON-LD: Organization + WebSite + 4 Service (the RESULTADOS cards,
+// outcome-first) — indexable detail; descriptions carry the technical
+// deliverables. Canonical domain is vhxco.com (never .io).
+const siteHref = Astro.site?.href ?? 'https://vhxco.com/';
+const orgId = `${siteHref}#organization`;
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': orgId,
+      name: 'VHXCO',
+      url: siteHref,
+      logo: `${siteHref}vhxco-logo.png`,
+      description:
+        'A VHXCO melhora as métricas do seu negócio: encontra o gargalo e resolve com agentes de IA e software sob medida, sob comando de um engenheiro sênior. Mede o antes e o depois.',
+      slogan: 'Não vendemos software. Entregamos resultado.',
+      areaServed: 'BR',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'sales',
+        email: 'contato@vhxco.com',
+        availableLanguage: ['Portuguese', 'English'],
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteHref}#website`,
+      url: siteHref,
+      name: 'VHXCO',
+      inLanguage: 'pt-BR',
+      publisher: { '@id': orgId },
+    },
+    {
+      '@type': 'Service',
+      name: 'Vender mais',
+      serviceType: 'Otimização de conversão e desenvolvimento de features',
+      areaServed: 'BR',
+      description:
+        'Mais receita pelo funil: CRO, checkout, onboarding e features que destravam conversão. Medimos o antes e o depois.',
+      provider: { '@id': orgId },
+    },
+    {
+      '@type': 'Service',
+      name: 'Custar menos, sobrar tempo',
+      serviceType: 'Automação com agentes de IA',
+      areaServed: 'BR',
+      description:
+        'Automação agêntica: agentes de IA assumem o trabalho manual da operação (atendimento, planilha, conciliação, follow-up), medida em horas humanas economizadas.',
+      provider: { '@id': orgId },
+    },
+    {
+      '@type': 'Service',
+      name: 'Construir o que falta',
+      serviceType: 'Desenvolvimento de software sob medida',
+      areaServed: 'BR',
+      description:
+        'Software, app ou sistema sob medida — do zero à produção, com código, testes e deploy — quando o resultado exige ferramenta própria.',
+      provider: { '@id': orgId },
+    },
+    {
+      '@type': 'Service',
+      name: 'Diagnóstico grátis',
+      serviceType: 'Diagnóstico de negócio',
+      areaServed: 'BR',
+      description:
+        'Seu gargalo mapeado em 7 dias — o que automatizar, o que construir, o que cortar. Gratuito e sem compromisso.',
+      provider: { '@id': orgId },
+    },
+  ],
+};
 ---
 
 <BaseLayout
-  title="VHXCO — Operational Efficiency Engineering"
+  title="VHXCO — Agentes de IA que melhoram as métricas do seu negócio"
+  description={metaDescription}
   locale="pt"
 >
-  <PhaseCore />
-  <PhaseEngineering />
-  <PhaseEcosystem />
-  <PhaseDataRoom />
-  <PhaseDiagnose />
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+
+  {stops.map((content, i) => (
+    <JourneyStop
+      stopIndex={i}
+      totalStops={totalStops}
+      content={content}
+    >
+      {i === actionIndex && (
+        <DiagnoseForm
+          slot="form"
+          client:visible
+          locale="pt"
+          formspreeId={formspreeId}
+          labels={formLabels}
+        />
+      )}
+    </JourneyStop>
+  ))}
 </BaseLayout>

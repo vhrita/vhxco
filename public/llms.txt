@@ -1,0 +1,18 @@
+# VHXCO
+
+> Agentic software house. We don't sell software — we deliver results. VHXCO finds your business bottleneck and fixes it with AI agents and custom software, under a senior engineer, and measures the before and after.
+
+VHXCO is a Brazil-based agentic software house led by a senior engineer (7+ years). AI agents execute; a human decides. The standard engagement: find the bottleneck, fix it with AI automation or bespoke software, and measure the outcome — more revenue, lower operating cost, or time saved. Bilingual (Portuguese and English).
+
+## Pages
+- [Home (Portuguese)](https://vhxco.com/): AI agents that improve your business metrics.
+- [Home (English)](https://vhxco.com/en/): AI agents that improve your business metrics.
+
+## Services
+- [Sell more](https://vhxco.com/): More revenue through the funnel — CRO, checkout, onboarding, and features that unlock conversion. Measured before and after.
+- [Spend less, free your time](https://vhxco.com/): Agentic automation — AI agents take over the manual work of the operation (support, spreadsheets, reconciliation, follow-up), measured in human hours saved.
+- [Build what's missing](https://vhxco.com/): Custom software, app, or system from zero to production — code, tests, and deploy — when the result demands your own tool.
+- [Free diagnostic](https://vhxco.com/): Your bottleneck mapped in 7 days — what to automate, what to build, what to cut. Free, no strings attached.
+
+## Contact
+- Free diagnostic (7 days): submit the form at https://vhxco.com/

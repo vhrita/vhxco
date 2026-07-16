@@ -1,0 +1,170 @@
+---
+// Privacy Policy (EN). Standalone + light — never boots the 3D engine. Honest
+// and short: what we collect (cookieless PostHog analytics + Formspree form
+// data), why, and how to reach us. Crawlable; honors the same noindex gate as
+// BaseLayout (only https://vhxco.com is indexable — everything else noindex).
+import '../styles/global.css';
+
+const site = Astro.site ?? new URL('https://vhxco.com/');
+const canonicalURL = new URL('/privacy', site).href;
+const ptURL = new URL('/privacidade', site).href;
+const enURL = new URL('/privacy', site).href;
+
+let isProd = false;
+try {
+  isProd = new URL(import.meta.env.PUBLIC_SITE_URL ?? '').hostname === 'vhxco.com';
+} catch {
+  isProd = false;
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy — VHXCO</title>
+    <meta name="theme-color" content="#00d7e4" />
+    <meta
+      name="description"
+      content="How VHXCO handles your data: cookieless analytics (PostHog, EU Cloud) and the data you send through the diagnostic form (via Formspree)."
+    />
+    {!isProd && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="alternate" hreflang="pt-BR" href={ptURL} />
+    <link rel="alternate" hreflang="en" href={enURL} />
+    <link rel="alternate" hreflang="x-default" href={ptURL} />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+  </head>
+  <body class="legal">
+    <main class="legal-wrap">
+      <a class="legal-back" href="/en/">← Back home</a>
+
+      <h1 class="legal-title">Privacy Policy</h1>
+      <p class="legal-lede">
+        Straight to the point: we collect the minimum, with no tracking cookies,
+        for just two purposes — to understand how the site is used and to reply to
+        people who request a diagnostic. Nothing is sold or shared for advertising.
+      </p>
+
+      <h2 class="legal-h2">Analytics — no cookies</h2>
+      <p>
+        We use <strong>PostHog</strong> hosted on the European cloud
+        (<span class="mono">eu.i.posthog.com</span>) in
+        <strong>cookieless</strong> mode: no cookie and no persistent identifier
+        is stored in your browser. The anonymous id only lives for the duration of
+        the visit and is dropped on reload.
+      </p>
+      <p>
+        We record only <strong>anonymous navigation events</strong> — pages
+        viewed, which journey stops you reached, button clicks and the form
+        submission. We <strong>never</strong> capture the content of the fields
+        you type.
+      </p>
+
+      <h2 class="legal-h2">Diagnostic form</h2>
+      <p>
+        When you submit the form, the data (name, email, company and your
+        bottleneck description) is processed by <strong>Formspree</strong> and
+        delivered to us by email. We use this information only to answer your
+        diagnostic request. We do not build a marketing list or pass it to third
+        parties.
+      </p>
+
+      <h2 class="legal-h2">Your rights (LGPD / GDPR)</h2>
+      <p>
+        You can request access to, correction of, or deletion of the data you
+        sent us at any time. Just write to
+        <a class="legal-link" href="mailto:contato@vhxco.com">contato@vhxco.com</a>.
+      </p>
+
+      <h2 class="legal-h2">Contact</h2>
+      <p>
+        Questions about this policy?
+        <a class="legal-link" href="mailto:contato@vhxco.com">contato@vhxco.com</a>.
+      </p>
+
+      <p class="legal-foot">
+        <a class="legal-link" href="/privacidade" hreflang="pt-BR">Versão em português</a>
+      </p>
+    </main>
+
+    <style>
+      html,
+      body.legal {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(
+          circle at 50% 0%,
+          oklch(from var(--color-cyan) l c h / 0.1),
+          var(--color-bg) 55%
+        );
+        color: var(--color-fg);
+        font-family: var(--font-mono);
+      }
+      .legal-wrap {
+        max-width: 44rem;
+        margin: 0 auto;
+        padding: clamp(3rem, 8vh, 6rem) 1.5rem 4rem;
+        line-height: 1.7;
+      }
+      .legal-back {
+        display: inline-block;
+        margin-bottom: 2rem;
+        color: var(--color-cyan);
+        text-decoration: none;
+        font-size: 0.8125rem;
+        letter-spacing: 0.04em;
+      }
+      .legal-back:hover,
+      .legal-back:focus-visible {
+        text-decoration: underline;
+      }
+      .legal-title {
+        font-family: var(--font-display);
+        font-size: clamp(1.75rem, 5vw, 2.75rem);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin: 0 0 1rem;
+      }
+      .legal-lede {
+        color: var(--color-dim);
+        font-size: 1rem;
+        margin: 0 0 2.5rem;
+      }
+      .legal-h2 {
+        font-family: var(--font-display);
+        font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+        font-weight: 600;
+        color: var(--color-cyan);
+        margin: 2.25rem 0 0.5rem;
+      }
+      .legal-wrap p {
+        color: var(--color-dim);
+        font-size: 0.9375rem;
+        margin: 0 0 0.75rem;
+      }
+      .legal-wrap strong {
+        color: var(--color-fg);
+        font-weight: 600;
+      }
+      .mono {
+        color: var(--color-fg);
+      }
+      .legal-link {
+        color: var(--color-cyan);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .legal-foot {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--color-line);
+        font-size: 0.8125rem;
+      }
+    </style>
+  </body>
+</html>

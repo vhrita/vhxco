@@ -1,22 +1,34 @@
 /**
- * DiagnoseForm.tsx — React island for Phase 05 / Diagnose
+ * DiagnoseForm.tsx — React island for stop 4 (Diagnose / Ação)
  *
- * Terminal-styled contact form. Submits to Formspree via fetch (SSG-safe).
+ * Fase 4a sub-passo 4: merged from V1 mockup DiagnoseForm4.astro spec +
+ * existing Formspree logic.
+ *
+ * a11y/func leva (2026-07-14):
+ *   - Programmatic labels: each field prompt is now a real <label htmlFor> tied
+ *     to the input `id` (the terminal "prompt" spans were NOT labels for a
+ *     screen reader). Every field is announced.
+ *   - Client-side validation: `noValidate` stays (custom terminal styling), but
+ *     handleSubmit now validates name (required) + email (required + pattern)
+ *     BEFORE fetch. Invalid → inline error (role=alert, aria-describedby),
+ *     focus moves to the first invalid field, submit blocked. No more silent
+ *     unreachable leads.
+ *   - Error copy: networkFailure now points to a real, actionable fallback
+ *     (contato@vhxco.com) — no dead-end "email in the footer" (there is none).
+ *   - Consent: discreet privacy-policy line under the submit.
+ *
+ * Preserved:
+ *   - Formspree fetch + honeypot + loading/success/error states
+ *   - Fallback CTA when formspreeId missing (iter-08 Fix D2)
+ *   - i18n: labels prop from Astro (no JSON import in client bundle)
+ *   - locale prop
+ *
  * Hydration: client:visible — loads only when section scrolls into view.
- *
- * Env requirement: PUBLIC_FORMSPREE_ID must be set in .env.local.
- * If missing, renders a graceful config-missing error message.
- *
- * Features:
- *   - 4 text inputs: name, email, company, brief
- *   - Bottleneck selector: 4 radio-style buttons (ai / auto / iot / full)
- *   - Honeypot anti-spam field (_gotcha)
- *   - Loading / success / error states
- *   - i18n: locale prop → all copy from JSON dict
- *   - Next available slot: +2 business days at 14:30 (Intl.DateTimeFormat)
+ * Env: PUBLIC_FORMSPREE_ID must be set in .env.local.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
+import { capture } from "@/lib/analytics/posthog";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,12 +36,15 @@ import { useState, useCallback } from "react";
 
 type Locale = "pt" | "en";
 
+/** Which field failed client-side validation (null = none). */
+type FieldError = { field: "name" | "email"; message: string } | null;
+
 interface DiagnoseFormProps {
-  /** Page locale — drives all copy via inline dict. */
+  /** Page locale */
   locale?: Locale;
-  /** Formspree form ID (e.g. "xqakeyzv"). Injected server-side via Astro. */
+  /** Formspree form ID. Injected server-side via Astro. */
   formspreeId?: string;
-  /** i18n strings passed from Astro (server-rendered, no JSON import needed). */
+  /** i18n strings passed from Astro (server-rendered). */
   labels: {
     formTitle: string;
     formLive: string;
@@ -39,55 +54,30 @@ interface DiagnoseFormProps {
     emailPlaceholder: string;
     companyPrompt: string;
     companyPlaceholder: string;
-    bottleneckPrompt: string;
-    briefPrompt: string;
-    briefPlaceholder: string;
-    bn1: string;
-    bn2: string;
-    bn3: string;
-    bn4: string;
+    detailsPrompt: string;
+    detailsPlaceholder: string;
     submit: string;
     sending: string;
     ok: string;
+    promise: string;
     networkFailure: string;
     configMissing: string;
-    /** iter-08 Fix D2: fallback CTA when Formspree not configured */
+    /** validation copy */
+    requiredError: string;
+    emailInvalidError: string;
+    /** consent line */
+    privacyNote: string;
+    privacyLink: string;
+    /** fallback CTA when Formspree not configured */
     fallbackTag: string;
     fallbackCopy: string;
     fallbackCta: string;
   };
 }
 
-// ---------------------------------------------------------------------------
-// Next business-day slot helper
-// ---------------------------------------------------------------------------
-
-function getNextSlot(locale: Locale): string {
-  const d = new Date();
-  // advance +2 business days
-  let added = 0;
-  while (added < 2) {
-    d.setDate(d.getDate() + 1);
-    const day = d.getDay();
-    if (day !== 0 && day !== 6) added++;
-  }
-  d.setHours(14, 30, 0, 0);
-
-  const intlLocale = locale === "pt" ? "pt-BR" : "en";
-  const dateStr = new Intl.DateTimeFormat(intlLocale, {
-    day: "2-digit",
-    month: "2-digit",
-  }).format(d);
-
-  return `${dateStr} 14:30`;
-}
-
-// ---------------------------------------------------------------------------
-// Bottleneck options
-// ---------------------------------------------------------------------------
-
-const BOTTLENECK_VALUES = ["ai", "auto", "iot", "full"] as const;
-type BottleneckValue = (typeof BOTTLENECK_VALUES)[number];
+// Simple, permissive email shape (same intent as the input `pattern`). Kept in
+// sync with the `pattern` attribute below.
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 // ---------------------------------------------------------------------------
 // Component
@@ -98,21 +88,45 @@ export default function DiagnoseForm({
   formspreeId,
   labels,
 }: DiagnoseFormProps) {
-  const [bottleneck, setBottleneck] = useState<BottleneckValue | null>(null);
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
+  const [fieldError, setFieldError] = useState<FieldError>(null);
 
-  const bottleneckLabels: Record<BottleneckValue, string> = {
-    ai: labels.bn1,
-    auto: labels.bn2,
-    iot: labels.bn3,
-    full: labels.bn4,
-  };
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  // Locale-derived privacy page href (crawlable static routes).
+  const privacyHref = locale === "en" ? "/privacy" : "/privacidade";
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+
+      const form = e.currentTarget;
+
+      // ── Client-side validation (noValidate is on — we own this) ──
+      const nameEl = nameRef.current;
+      const emailEl = emailRef.current;
+      const nameVal = nameEl?.value.trim() ?? "";
+      const emailVal = emailEl?.value.trim() ?? "";
+
+      if (!nameVal) {
+        setFieldError({ field: "name", message: labels.requiredError });
+        nameEl?.focus();
+        return;
+      }
+      if (!emailVal) {
+        setFieldError({ field: "email", message: labels.requiredError });
+        emailEl?.focus();
+        return;
+      }
+      if (!EMAIL_RE.test(emailVal)) {
+        setFieldError({ field: "email", message: labels.emailInvalidError });
+        emailEl?.focus();
+        return;
+      }
+      setFieldError(null);
 
       if (!formspreeId) {
         setStatus("error");
@@ -121,13 +135,7 @@ export default function DiagnoseForm({
 
       setStatus("loading");
 
-      const form = e.currentTarget;
       const data = new FormData(form);
-
-      // Append bottleneck selection (not a native form field)
-      if (bottleneck) {
-        data.set("bottleneck", bottleneck);
-      }
 
       try {
         const res = await fetch(`https://formspree.io/f/${formspreeId}`, {
@@ -139,19 +147,22 @@ export default function DiagnoseForm({
         if (res.ok) {
           setStatus("success");
           form.reset();
-          setBottleneck(null);
+          // Analytics: submit success. PII-safe — only the EVENT is sent, never
+          // the field values (name/email/company/details go to Formspree only).
+          capture("diagnose_submit", { locale });
         } else {
           setStatus("error");
+          capture("diagnose_error", { locale, reason: "http" });
         }
       } catch {
         setStatus("error");
+        capture("diagnose_error", { locale, reason: "network" });
       }
     },
-    [formspreeId, bottleneck],
+    [formspreeId, locale, labels],
   );
 
-  // iter-08 Fix D2: fallback CTA when Formspree not configured.
-  // Renders intentional-looking terminal card with mailto CTA — not an error state.
+  // Fallback: no Formspree configured — mailto CTA (iter-08 Fix D2)
   if (!formspreeId) {
     return (
       <div className="terminal" role="alert">
@@ -164,8 +175,9 @@ export default function DiagnoseForm({
         <div className="term-body">
           <p className="term-fallback-copy">{labels.fallbackCopy}</p>
           <a
-            href="mailto:vhrita.dev@gmail.com?subject=Diagnose%20VHXCO"
+            href="mailto:contato@vhxco.com?subject=Diagnose%20VHXCO"
             className="term-submit term-fallback-cta"
+            onClick={() => capture("diagnose_fallback_click", { locale })}
           >
             {labels.fallbackCta}
           </a>
@@ -188,7 +200,8 @@ export default function DiagnoseForm({
     );
   }
 
-  const nextSlot = getNextSlot(locale);
+  const nameInvalid = fieldError?.field === "name";
+  const emailInvalid = fieldError?.field === "email";
 
   return (
     <form
@@ -215,35 +228,52 @@ export default function DiagnoseForm({
       <div className="term-body">
         {/* Name */}
         <div className="term-line">
-          <span className="term-prompt">{labels.namePrompt}</span>
+          <label className="term-prompt" htmlFor="df-name">
+            {labels.namePrompt}
+          </label>
           <input
+            ref={nameRef}
+            id="df-name"
             className="term-input"
             type="text"
             name="name"
             placeholder={labels.namePlaceholder}
             required
+            aria-required="true"
+            aria-invalid={nameInvalid || undefined}
+            aria-describedby={nameInvalid ? "df-field-error" : undefined}
             disabled={status === "loading"}
           />
         </div>
 
         {/* Email */}
         <div className="term-line">
-          <span className="term-prompt">{labels.emailPrompt}</span>
+          <label className="term-prompt" htmlFor="df-email">
+            {labels.emailPrompt}
+          </label>
           <input
+            ref={emailRef}
+            id="df-email"
             className="term-input"
             type="email"
             name="email"
             placeholder={labels.emailPlaceholder}
             required
+            aria-required="true"
             pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+            aria-invalid={emailInvalid || undefined}
+            aria-describedby={emailInvalid ? "df-field-error" : undefined}
             disabled={status === "loading"}
           />
         </div>
 
         {/* Company */}
         <div className="term-line">
-          <span className="term-prompt">{labels.companyPrompt}</span>
+          <label className="term-prompt" htmlFor="df-company">
+            {labels.companyPrompt}
+          </label>
           <input
+            id="df-company"
             className="term-input"
             type="text"
             name="company"
@@ -252,47 +282,27 @@ export default function DiagnoseForm({
           />
         </div>
 
-        {/* Bottleneck */}
-        <div className="term-line term-line--stack">
-          <span className="term-prompt">{labels.bottleneckPrompt}</span>
-          <div
-            className="term-options"
-            role="group"
-            aria-label={labels.bottleneckPrompt}
-          >
-            {BOTTLENECK_VALUES.map((val) => (
-              <button
-                key={val}
-                type="button"
-                data-v={val}
-                className={`term-option-btn${bottleneck === val ? " active" : ""}`}
-                onClick={() => setBottleneck(val)}
-                disabled={status === "loading"}
-                aria-pressed={bottleneck === val}
-              >
-                {bottleneckLabels[val]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Brief */}
-        <div className="term-line term-line--stack">
-          <span className="term-prompt">{labels.briefPrompt}</span>
+        {/* Details — multi-line textarea (optional, user elaborates) */}
+        <div className="term-line term-line--textarea">
+          <label className="term-prompt" htmlFor="df-details">
+            {labels.detailsPrompt}
+          </label>
           <textarea
-            className="term-area"
-            name="brief"
+            id="df-details"
+            className="term-input term-textarea"
+            name="details"
+            placeholder={labels.detailsPlaceholder}
             rows={2}
-            placeholder={labels.briefPlaceholder}
             disabled={status === "loading"}
           />
         </div>
 
-        {/* Next slot display */}
-        <div className="term-next-slot" aria-live="polite">
-          <span className="term-prompt term-prompt--dim">next slot</span>
-          <span className="term-slot-value">{nextSlot}</span>
-        </div>
+        {/* Field validation error (required / invalid email) */}
+        {fieldError && (
+          <p id="df-field-error" className="term-error-msg" role="alert">
+            {fieldError.message}
+          </p>
+        )}
 
         {/* Submit */}
         <button
@@ -303,7 +313,19 @@ export default function DiagnoseForm({
           {status === "loading" ? labels.sending : labels.submit}
         </button>
 
-        {/* Error state */}
+        {/* Consent — discreet privacy-policy line */}
+        <p className="term-consent">
+          {labels.privacyNote}{" "}
+          <a className="term-consent-link" href={privacyHref}>
+            {labels.privacyLink}
+          </a>
+          .
+        </p>
+
+        {/* Promise — "Resposta em até 7 dias" */}
+        <p className="term-promise">{labels.promise}</p>
+
+        {/* Network / config error state */}
         {status === "error" && (
           <p className="term-error-msg" role="alert">
             {labels.networkFailure}

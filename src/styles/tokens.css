@@ -19,10 +19,40 @@
 
   /* Foreground / text */
   --color-fg: #f4f8fb; /* White-blue tint — primary text */
-  --color-dim: #6f7d86; /* Mid grey-blue — secondary text, labels */
+  /* Secondary text / labels — BODY tier. Bumped through #6f7d86 → #9aa7b0 →
+   * #b0bbc2 (legibility-notch pass): the #9aa7b0 grey read "meio mal" over the
+   * glass panel once the neural mesh bled through the 0.4-alpha fill, so this is
+   * one degree lighter (~10.7:1 on black, comfortably WCAG AA even over a bright
+   * mesh node). Still a muted grey-blue, not white — title/body hierarchy holds. */
+  --color-dim: #b0bbc2; /* Light grey-blue — secondary text (subcopy, descs, tags) */
+
+  /* HINT / cue tier — the "próximo passo" scroll-cues (`> VIAJAR`, `COMEÇAR`…).
+   * Lifted ABOVE --color-dim because these were the worst offender: they used
+   * --color-dim AT opacity:0.5, crushing the effective ratio to ~2.7:1 (near
+   * invisible). Now a distinct lighter grey (~12.9:1 on black) with the opacity
+   * crutch removed at the call site. Sits below the white title but clearly
+   * legible. Keep title (--color-fg) > cue (--color-hint) ≳ body (--color-dim);
+   * the cue stays visually subordinate by its tiny mono/uppercase size. */
+  --color-hint: #c4ccd2; /* Lighter grey-blue — scroll/next-step cues */
 
   /* Structural */
   --color-line: rgba(255, 255, 255, 0.08); /* Hairline borders / dividers */
+
+  /* ─── Content scrim ────────────────────────────────────────────────────────
+   * Semi-opaque dark scrim behind text blocks so copy never depends on whatever
+   * the 3D happens to render behind it. Perf plan P0: this REPLACES the old
+   * `backdrop-filter: blur()` glass — a real-time backdrop blur over the live
+   * WebGL canvas recomposes a gaussian blur every frame (incacheable, the most
+   * expensive compositor op over animated content) and was the dominant cause of
+   * the navigation lag. A plain gradient fill costs one normal composite and
+   * gives MORE contrast than the old glass (which the founder asked for), while
+   * the neural mesh still breathes AROUND the panel (max-width, edge fade) and
+   * lightly THROUGH it (alpha < 1). NOT an opaque block.
+   * Use via var(), never hard-code these in components. */
+  --surface-glass-bg-top: rgba(2, 6, 10, 0.74); /* stronger at top (headline) */
+  --surface-glass-bg-bottom: rgba(2, 6, 10, 0.58); /* lighter at bottom — mesh breathes */
+  --surface-glass-border: rgba(255, 255, 255, 0.08); /* hairline edge */
+  --surface-glass-radius: 14px;
 
   /* Cyan family — brand accent */
   --color-cyan: oklch(
@@ -59,7 +89,7 @@
   --z-canvas: 1; /* WebGL canvas + fallback */
   --z-content: 10; /* Phase content (rebaixado de 20 → 10) */
   --z-hud: 20; /* HUD corners (subiu de 10 → 20) */
-  --z-chrome: 30; /* TopNav, MuteButton (era hardcoded 9000/var(--z-hud)) */
+  --z-chrome: 30; /* TopNav (era hardcoded 9000/var(--z-hud)) */
   --z-overlay-scanline: 48; /* CRT scanlines */
   --z-overlay-vignette: 49; /* Dark edge vignette */
   --z-overlay-grain: 50; /* SVG fractal noise grain */
@@ -83,7 +113,7 @@
    */
 
   --safe-top: 3.5rem; /* altura reservada pra TopNav (56px) — desktop */
-  --safe-bottom: 3rem; /* altura reservada pra MuteButton + breathing room */
+  --safe-bottom: 3rem; /* breathing room na base + HUD-BR/BL */
   --safe-x: 1.5rem; /* gutter horizontal lateral (24px) */
   --safe-gap: 1rem; /* padding interno de HUD corners (16px) */
 
@@ -93,12 +123,13 @@
    *   height ≈ 2 detail rows + chip padding = 56px
    *   width  ≈ longest label "NODE CORE/PRIMARY" + chip padding ≈ 176px
    *
-   * iter-09 Bug C: em ≥768px o chip HUD-TL mostra 3 linhas (VHXCO//SYNAPSE OS,
-   * NODE DATA/ROOM, SESSION KS79HEZC) — altura real ≈ 5rem. Em <768 os detalhes
-   * colapsam (container queries §8) para 1-2 linhas, então 3.5rem é suficiente.
+   * NOTE: o HUD decorativo de 4 cantos foi removido (opção A). Estes tokens
+   * sobrevivem como safe-inset do conteúdo — reservam a banda superior/inferior
+   * e o padding lateral do .phase/.core-content pra não colar nas bordas.
+   * Valores preservados pra manter o layout do conteúdo idêntico.
    */
-  --hud-corner-h: 3.5rem; /* 56px — <768px (chips colapsados) */
-  --hud-corner-w: 11rem; /* 176px */
+  --hud-corner-h: 3.5rem; /* 56px — banda vertical reservada <768px */
+  --hud-corner-w: 11rem; /* 176px — safe-inset lateral do core-content */
 
   /* Phase padding — content interno dos phases respeitando safe-zones + extra */
   --phase-padding-top: calc(var(--safe-top) + 1rem);
@@ -126,19 +157,28 @@
    * HITL #4: --text-4xl max = 4.75rem = 76px (was 92px).
    */
 
-  /* Sizes */
-  --text-2xs: clamp(0.625rem, 0.6vw + 0.5rem, 0.75rem); /* 10–12px */
-  --text-xs: clamp(0.75rem, 0.7vw + 0.6rem, 0.875rem); /* 12–14px */
-  --text-sm: clamp(0.875rem, 0.8vw + 0.7rem, 1rem); /* 14–16px */
-  --text-base: clamp(1rem, 1vw + 0.8rem, 1.125rem); /* 16–18px */
-  --text-lg: clamp(1.125rem, 1.3vw + 0.85rem, 1.375rem); /* 18–22px */
-  --text-xl: clamp(1.375rem, 1.8vw + 1rem, 1.75rem); /* 22–28px */
-  --text-2xl: clamp(1.75rem, 2.5vw + 1.2rem, 2.5rem); /* 28–40px */
-  --text-3xl: clamp(2rem, 3.5vw + 1.4rem, 3.25rem); /* 32–52px */
-  /* QA iter-02 (P0-C): floor reduzido de 2.25rem (38px) → 1.75rem (28px) e slope
-   * mais suave (4vw + 0.5rem) para evitar h1 phase 1 ocupar 6 linhas em 375px.
-   * Em 375w: 28px (era 44.6). Em 1280w: ~59px (era 76). Em 1920w: cap em 76px. */
-  --text-4xl: clamp(1.75rem, 4vw + 0.5rem, 4.75rem); /* 28–76px (h1) */
+  /* Sizes.
+   *
+   * Large-screen scaling pass (responsividade): the maxes were tuned for ~1920
+   * and left 4K/ultrawide feeling empty (text/components stuck small in a sea
+   * of black). The `vw` slope is intact (floors unchanged → 375px fit preserved)
+   * but the caps are raised one tier so the type keeps growing toward 2560. The
+   * fluid math still reaches the cap around 1920–2100; the extra ceiling is what
+   * lets a 4K monitor read as premium instead of tiny. Floors are byte-identical
+   * to the previous pass — mobile is untouched. */
+  --text-2xs: clamp(0.625rem, 0.6vw + 0.5rem, 0.875rem); /* 10–14px */
+  --text-xs: clamp(0.75rem, 0.7vw + 0.6rem, 1rem); /* 12–16px */
+  --text-sm: clamp(0.875rem, 0.85vw + 0.7rem, 1.1875rem); /* 14–19px */
+  --text-base: clamp(1rem, 1.05vw + 0.8rem, 1.375rem); /* 16–22px */
+  --text-lg: clamp(1.125rem, 1.4vw + 0.85rem, 1.75rem); /* 18–28px */
+  --text-xl: clamp(1.375rem, 2vw + 1rem, 2.25rem); /* 22–36px */
+  --text-2xl: clamp(1.75rem, 2.8vw + 1.2rem, 3.25rem); /* 28–52px */
+  --text-3xl: clamp(2rem, 3.8vw + 1.4rem, 4.25rem); /* 32–68px */
+  /* QA iter-02 (P0-C): floor 1.75rem (28px) mantido + slope suave (4.4vw) para
+   * o h1 não ocupar 6 linhas em 375px. Cap subido 4.75rem → 6.25rem (76→100px)
+   * pra headline preencher tela grande.
+   * Em 375w: 28px. Em 1280w: ~64px. Em 1920w: ~90px. Em 2560w: cap 100px. */
+  --text-4xl: clamp(1.75rem, 4.4vw + 0.4rem, 6.25rem); /* 28–100px (h1) */
 
   /* Line heights */
   --leading-tight: 1.05;
@@ -169,7 +209,7 @@
    * Bucket mapping:
    *   fast        120ms  → cursor inner, keyboard hover
    *   medium-fast 240ms  → cursor outer, rail step
-   *   medium      400ms  → ripple, HUD warn, hudWarn keyframe
+   *   medium      400ms  → ripple, phase reveals
    *   medium-slow 700ms  → ripple outer, phase panels
    *   slow        1200ms → phase transitions, slow reveals
    *   ambient     1600ms → pre-bar fill, infinite pulses context
@@ -183,13 +223,26 @@
   --dur-ambient: 1600ms;
 }
 
-/* iter-09 Bug C: ≥768px — HUD-TL chip exibe 3 linhas de texto (VHXCO//SYNAPSE OS,
- * NODE CORE/PRIMARY, SESSION KS79HEZC) via container queries §8 (hud-detail-2
- * aparece em ≥480px, hud-detail-1 aparece em ≥768px). Altura real ≈ 5rem (80px).
- * .phase top = safe-top + hud-corner-h — bump aqui afasta o container de
- * conteúdo do chip sem mexer no mobile (onde chips colapsam pra 1-2 linhas). */
+/* ≥768px: banda vertical de safe-inset maior (80px). Valor preservado do
+ * layout original (quando reservava espaço pro antigo chip HUD-TL de 3 linhas);
+ * o HUD saiu, mas o .phase top = safe-top + hud-corner-h continua afastando o
+ * conteúdo das bordas superior/inferior de forma consistente. */
 @media (min-width: 48rem) {
   :root {
-    --hud-corner-h: 5rem; /* 80px — ≥768px (3-row chip) */
+    --hud-corner-h: 5rem; /* 80px — banda vertical reservada ≥768px */
+  }
+}
+
+/* Large-screen pass: taller TopNav band so the scaled-up logo + nav items
+ * (see global.css) have room without crowding the top edge. */
+@media (min-width: 90rem) {
+  :root {
+    --safe-top: 4.25rem; /* 68px — nav band on ≥1440 */
+  }
+}
+
+@media (min-width: 120rem) {
+  :root {
+    --safe-top: 5rem; /* 80px — nav band on ≥1920 */
   }
 }

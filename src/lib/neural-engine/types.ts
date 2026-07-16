@@ -9,8 +9,8 @@ import type {
   ShaderMaterial,
   InstancedMesh,
   InstancedBufferAttribute,
-} from 'three';
-import type { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+} from "three";
+import type { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 
 export interface RendererContext {
   renderer: WebGLRenderer;
@@ -65,5 +65,40 @@ export interface NeuralNetworkHandle {
 export interface RenderLoopHandle {
   start: () => void;
   stop: () => void;
-  setPhase: (phase: number, progress: number) => void;
+}
+
+/**
+ * Public handle for programmatic control of the camera journey.
+ * Blueprint §4.1 — the source of truth for QA + input adapters.
+ *
+ * setJourneyProgress(t) is INSTANT — next RAF frame renders exactly f(t).
+ * No lerp inside the engine. Easing lives in the input adapter (journey-input.ts,
+ * Builder #2).
+ */
+export interface JourneyHandle {
+  /** Position camera at t ∈ [0,1] along the journey path. INSTANT. */
+  setJourneyProgress(t: number): void;
+
+  /** Read current t (after any input-layer easing). Hot-path safe. */
+  getJourneyProgress(): number;
+
+  /** Index of the nearest stop to current t (for HUD / content). */
+  getActiveStop(): number;
+
+  /** Number of journey stops (N). */
+  readonly stopCount: number;
+
+  /** t at the center of stop i. QA uses this to capture per-stop frames. */
+  stopProgress(stopIndex: number): number;
+
+  /**
+   * Camera state at current t — { position, quaternion, fov }.
+   * Use for determinism validation across reloads (blueprint §13.7).
+   * More reliable than pixel-diff of the 3D layer.
+   */
+  getCameraSnapshot(): {
+    position: [number, number, number];
+    quaternion: [number, number, number, number];
+    fov: number;
+  };
 }

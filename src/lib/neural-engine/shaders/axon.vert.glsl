@@ -3,13 +3,16 @@
 // Ported 1:1 from vhxco-app.js lines 425-440
 
 attribute float aSeed;
+attribute float aBirth;
 varying float vZ;
 varying float vSeed;
+varying float vBirth;
 uniform float uTime;
 
 void main() {
   vZ = position.z;
   vSeed = aSeed;
+  vBirth = aBirth;
   vec3 pos = position;
 
   // Static wavy distortion to look like organic tubes
