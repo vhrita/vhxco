@@ -14,7 +14,7 @@
  *     focus moves to the first invalid field, submit blocked. No more silent
  *     unreachable leads.
  *   - Error copy: networkFailure now points to a real, actionable fallback
- *     (contato@vhxco.com) — no dead-end "email in the footer" (there is none).
+ *     (hello@vhxco.com) — no dead-end "email in the footer" (there is none).
  *   - Consent: discreet privacy-policy line under the submit.
  *
  * Preserved:
@@ -175,7 +175,7 @@ export default function DiagnoseForm({
         <div className="term-body">
           <p className="term-fallback-copy">{labels.fallbackCopy}</p>
           <a
-            href="mailto:contato@vhxco.com?subject=Diagnose%20VHXCO"
+            href="mailto:hello@vhxco.com?subject=Diagnose%20VHXCO"
             className="term-submit term-fallback-cta"
             onClick={() => capture("diagnose_fallback_click", { locale })}
           >

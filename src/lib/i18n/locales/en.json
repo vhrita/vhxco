@@ -51,7 +51,7 @@
       "sending": "Sending...",
       "ok": "Signal received. Response in ≤ 7 days.",
       "promise": "Response within 7 days.",
-      "configMissing": "Form not configured. Write to contato@vhxco.com.",
+      "configMissing": "Form not configured. Write to hello@vhxco.com.",
       "privacyNote": "By submitting, you agree to our",
       "privacyLink": "privacy policy",
       "fallbackTag": "AWAITING LINK",
@@ -68,8 +68,8 @@
   },
   "errors": {
     "form": {
-      "networkFailure": "Submission failed. Try again or write to contato@vhxco.com.",
-      "configMissing": "Form not configured. Write to contato@vhxco.com.",
+      "networkFailure": "Submission failed. Try again or write to hello@vhxco.com.",
+      "configMissing": "Form not configured. Write to hello@vhxco.com.",
       "required": "Required field.",
       "emailInvalid": "Invalid email. Check the address."
     }
