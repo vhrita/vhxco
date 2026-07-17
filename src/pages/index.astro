@@ -65,12 +65,24 @@ const jsonLd = {
         'A VHXCO melhora as métricas do seu negócio: encontra o gargalo e resolve com agentes de IA e software sob medida, sob comando de um engenheiro sênior. Mede o antes e o depois.',
       slogan: 'Não vendemos software. Entregamos resultado.',
       areaServed: 'BR',
-      contactPoint: {
-        '@type': 'ContactPoint',
-        contactType: 'sales',
-        email: 'contato@vhxco.com',
-        availableLanguage: ['Portuguese', 'English'],
-      },
+      sameAs: [
+        'https://www.linkedin.com/company/vhxcompany/',
+        'https://www.instagram.com/vhxcompany/',
+      ],
+      contactPoint: [
+        {
+          '@type': 'ContactPoint',
+          contactType: 'sales',
+          email: 'hello@vhxco.com',
+          availableLanguage: ['Portuguese', 'English'],
+        },
+        {
+          '@type': 'ContactPoint',
+          contactType: 'sales',
+          telephone: '+5519981952548',
+          availableLanguage: ['pt-BR', 'en'],
+        },
+      ],
     },
     {
       '@type': 'WebSite',
