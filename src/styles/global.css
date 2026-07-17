@@ -610,6 +610,7 @@ body[data-intro="active"] #webgl {
 body[data-boot="loading"] .topnav,
 body[data-boot="loading"] #main,
 body[data-boot="loading"] #persistent-cta,
+body[data-boot="loading"] #whatsapp-cta,
 body[data-boot="loading"] #scroll-indicator,
 body[data-boot="loading"] .backdrop-vignette {
   opacity: 0 !important;
@@ -630,6 +631,7 @@ body[data-boot="loading"] .backdrop-vignette {
 .topnav,
 #main,
 #persistent-cta,
+#whatsapp-cta,
 .backdrop-vignette {
   transition: opacity 500ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -1310,7 +1312,8 @@ body[data-intro="active"] .journey-stop {
   pointer-events: none !important;
 }
 
-body[data-intro="active"] #persistent-cta {
+body[data-intro="active"] #persistent-cta,
+body[data-intro="active"] #whatsapp-cta {
   opacity: 0 !important;
   pointer-events: none !important;
 }
@@ -1330,6 +1333,20 @@ body[data-intro="active"] #persistent-cta {
 body[data-active-stop="5"] #persistent-cta {
   opacity: 0;
   pointer-events: none;
+}
+
+/* ── WhatsappCta visibility (BR-first conversion FAB) ────────────────────────
+ * Crosses the body→#whatsapp-cta scope boundary, so it lives here (same reason
+ * as PersistentCta above). Unlike the Diagnosticar CTA, the WhatsApp channel is
+ * relevant on EVERY stop — so this is visible by default with NO per-stop hide
+ * (it does not disappear on the action stop). Boot/dolly gates are handled by
+ * the shared lists above (data-boot / data-intro).
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+#whatsapp-cta {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 300ms ease;
 }
 
 /* ── ScrollIndicator visibility (arrival cue) ───────────────────────────────
@@ -1619,6 +1636,7 @@ body[data-webgl="unavailable"] #scroll-indicator {
   body[data-boot="loading"] .topnav,
   body[data-boot="loading"] #main,
   body[data-boot="loading"] #persistent-cta,
+  body[data-boot="loading"] #whatsapp-cta,
   body[data-boot="loading"] .backdrop-vignette {
     opacity: 1 !important;
     visibility: visible !important;
