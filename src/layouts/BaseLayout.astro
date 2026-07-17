@@ -5,7 +5,6 @@ import HeroFallback from '@/components/hero/HeroFallback.astro';
 import CustomCursor from '@/components/cursor/CustomCursor';
 import TopNav from '@/components/hud/TopNav.astro';
 import PersistentCta from '@/components/journey/PersistentCta.astro';
-import WhatsappCta from '@/components/journey/WhatsappCta.astro';
 import ScrollIndicator from '@/components/journey/ScrollIndicator.astro';
 import { getT } from '@/lib/i18n/t';
 import type { Locale } from '@/lib/i18n/config';
@@ -205,7 +204,6 @@ const langRedirectScript = `(function () {
       body[data-boot="loading"] .topnav,
       body[data-boot="loading"] #main,
       body[data-boot="loading"] #persistent-cta,
-      body[data-boot="loading"] #whatsapp-cta,
       body[data-boot="loading"] .journey-stop,
       body[data-boot="loading"] .backdrop-vignette {
         opacity: 1 !important;
@@ -234,8 +232,6 @@ const langRedirectScript = `(function () {
     <TopNav locale={locale} />
     <!-- Fase 4a S3: persistent "Diagnosticar" CTA (V1 signature) -->
     <PersistentCta locale={locale} />
-    <!-- Persistent WhatsApp CTA (BR-first conversion channel, bottom-left) -->
-    <WhatsappCta locale={locale} />
     <!-- Arrival scroll cue (stop 0 only, dismisses after first departure) -->
     <ScrollIndicator locale={locale} />
 
