@@ -66,6 +66,19 @@
       "bn4": "Reduzir Custos"
     }
   },
+  "contact": {
+    "label": "Ou fale direto",
+    "whatsapp": "Falar no WhatsApp",
+    "whatsappAria": "Conversar no WhatsApp",
+    "instagram": "Instagram",
+    "linkedin": "LinkedIn",
+    "email": "E-mail",
+    "phone": "Telefone",
+    "instagramAria": "VHXCO no Instagram (abre em nova aba)",
+    "linkedinAria": "VHXCO no LinkedIn (abre em nova aba)",
+    "emailAria": "Enviar e-mail para hello@vhxco.com",
+    "phoneAria": "Ligar para +55 19 98195-2548"
+  },
   "errors": {
     "form": {
       "networkFailure": "Falha no envio. Tente de novo ou escreva pra hello@vhxco.com.",

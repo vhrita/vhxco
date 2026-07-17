@@ -214,6 +214,9 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     <!-- Action slot: form injected by parent for the last stop -->
     {isAction && <slot name="form" />}
 
+    <!-- Contact cluster (action stop only) — WhatsApp + all channels, next to the form -->
+    {isAction && <slot name="contact" />}
+
     <!-- Closing tagline (D2) — action stop only, subtle, below the form -->
     {isAction && content.taglineClose && (
       <p class="stop-tagline-close">{content.taglineClose}</p>

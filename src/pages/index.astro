@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import JourneyStop from '@/components/journey/JourneyStop.astro';
 import DiagnoseForm from '@/components/forms/DiagnoseForm';
+import ContactCluster from '@/components/journey/ContactCluster.astro';
 import { getStopsContent } from '@/lib/journey/stops-content';
 import { getLangFromUrl } from '@/i18n/utils';
 import { getT } from '@/lib/i18n/t';
@@ -154,6 +155,7 @@ const jsonLd = {
           labels={formLabels}
         />
       )}
+      {i === actionIndex && <ContactCluster slot="contact" locale="pt" />}
     </JourneyStop>
   ))}
 </BaseLayout>
