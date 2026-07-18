@@ -911,6 +911,11 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
   .diagnose-deck {
     display: flex;
     flex-direction: row;
+    /* min-width:0 + the parent rule below let this collapse to the container as a
+     * proper scroll container — without it the slides' intrinsic width leaks up
+     * and the whole stop overflows the viewport horizontally on mobile. */
+    min-width: 0;
+    max-width: 100%;
     /* Horizontal scroll-snap slider (mobile default). */
     overflow-x: auto;
     overflow-y: hidden;
@@ -928,9 +933,20 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     display: none; /* WebKit/Blink — hide the scrollbar */
   }
 
+  /* The action stop is a flex item of .journey-stop; min-width:auto would let the
+   * deck's content push it past the viewport. Allow it to shrink so the deck can
+   * collapse to one viewport-width slide on mobile. */
+  .stop-inner:has(.diagnose-deck) {
+    min-width: 0;
+  }
+
   .deck-slide {
+    /* flex-basis:100% + flex-shrink:0 already pin each slide to one deck-width;
+     * min-width:0 (NOT 100%) keeps the slide's intrinsic size from forcing the
+     * deck — and the whole stop — wider than the mobile viewport. */
     flex: 0 0 100%;
-    min-width: 100%;
+    min-width: 0;
+    max-width: 100%;
     scroll-snap-align: start;
     scroll-snap-stop: always;
     display: flex; /* let the panel fill the slide height */
@@ -1048,6 +1064,32 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     }
     .deck-dot.is-active {
       transform: none;
+    }
+  }
+
+  /* Short desktop/laptop heights (e.g. 1024×768, 1280×800): the header
+   * (headline + body) plus a full-height panel can run a few px too tall and
+   * graze the navbar. Tighten the action stop's vertical rhythm so its content
+   * always clears the navbar and fits without overflow. Taller viewports keep
+   * the roomier default. */
+  @media (max-height: 820px) {
+    .stop-inner:has(.diagnose-deck) {
+      gap: clamp(0.35rem, 0.8svh, 0.55rem);
+    }
+  }
+
+  /* Very short viewports (mobile portrait ~667 tall): top-align the action stop
+   * just below the navbar instead of vertically centering it. Centering a stop
+   * that's taller than the viewport overflows it symmetrically INTO the navbar;
+   * top-aligning starts the content right under the navbar and lets it flow down
+   * into the available height, so it clears the navbar and still fits on screen. */
+  @media (max-height: 760px) {
+    .journey-stop:has(.diagnose-deck) {
+      align-items: flex-start;
+      padding-top: 3.75rem;
+    }
+    .deck-nav {
+      margin-top: 0.375rem;
     }
   }
 
