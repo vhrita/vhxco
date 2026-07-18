@@ -565,6 +565,23 @@ let _touchY: number | null = null;
  */
 let _touchOnInteractive = false;
 
+// ── Horizontal-slider axis guard (contact-v2 diagnose deck) ───────────────────
+// The action stop hosts a horizontal scroll-snap slider (form ↔ contact) inside
+// [data-diagnose-deck]. A horizontal-dominant swipe there is the SLIDER's — the
+// journey must not step and must not preventDefault (that would cancel the native
+// pan). A vertical swipe — even over the deck — still drives the journey. We lock
+// the axis on the first few px of travel and, for a deck gesture, only hand the
+// drag to the journey once the axis is confirmed vertical. CSS touch-action:pan-x
+// on the deck already makes horizontal touchmoves non-cancelable (belt); this is
+// the suspenders that also blocks the accumulator on diagonal drags.
+let _touchStartX: number | null = null;
+let _touchStartY: number | null = null;
+let _touchInDeck = false;
+/** 0 = axis undecided, 1 = horizontal, 2 = vertical. */
+let _touchAxis: 0 | 1 | 2 = 0;
+/** Travel (px) that must accumulate before the gesture's axis is locked. */
+const _AXIS_LOCK_PX = 8;
+
 /**
  * Real interactive controls that own their own native touch (typeable field, tappable
  * button, selectable link). Kept in sync with the narrowed `touch-action: auto`
@@ -572,6 +589,16 @@ let _touchOnInteractive = false;
  */
 const _INTERACTIVE_CONTROLS =
   'input, textarea, select, button, a, [role="button"], [contenteditable]';
+
+/**
+ * Did this gesture begin inside the diagnose deck's horizontal slider? A
+ * horizontal drag there belongs to the slider, not the journey.
+ */
+function _isInDeck(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || typeof el.closest !== "function") return false;
+  return el.closest("[data-diagnose-deck]") !== null;
+}
 
 /**
  * Does `target` sit on a surface that owns its own native touch? (Fix 2 — swipe over
@@ -600,6 +627,10 @@ function _onTouchStart(e: TouchEvent): void {
   // no journey step). Leaving _touchY null makes _onTouchMove early-return too.
   if (_bootLocked) return;
   _touchOnInteractive = _isInteractiveTarget(e.target);
+  _touchInDeck = _isInDeck(e.target);
+  _touchAxis = 0; // undecided until the finger travels _AXIS_LOCK_PX
+  _touchStartX = e.touches[0]?.clientX ?? null;
+  _touchStartY = e.touches[0]?.clientY ?? null;
   _touchY = e.touches[0]?.clientY ?? null;
   _touchAccum = 0; // new swipe → fresh accumulator (one step per swipe)
 }
@@ -617,6 +648,31 @@ function _onTouchMove(e: TouchEvent): void {
   if (_touchOnInteractive) return;
   const clientY = e.touches[0]?.clientY;
   if (clientY === undefined) return;
+
+  // Axis lock: the first _AXIS_LOCK_PX of travel decides horizontal vs vertical.
+  const clientX = e.touches[0]?.clientX;
+  if (
+    _touchAxis === 0 &&
+    _touchStartX !== null &&
+    _touchStartY !== null &&
+    clientX !== undefined
+  ) {
+    const adx = Math.abs(clientX - _touchStartX);
+    const ady = Math.abs(clientY - _touchStartY);
+    if (Math.max(adx, ady) >= _AXIS_LOCK_PX) {
+      _touchAxis = adx > ady ? 1 : 2;
+    }
+  }
+
+  // Deck slider: until the axis is confirmed VERTICAL, this gesture belongs to the
+  // horizontal scroll-snap — never preventDefault (would cancel the native pan) and
+  // never step. A horizontal drag stays here for the whole gesture; a vertical drag
+  // falls through to the journey once axis === 2 (after the ~8px dead-zone).
+  if (_touchInDeck && _touchAxis !== 2) {
+    _touchY = clientY;
+    return;
+  }
+
   // Own the gesture: stop native scroll / pull-to-refresh / rubber-band so the drag
   // feeds the journey instead of the browser. Requires the listener to be attached
   // {passive: false} (see createJourneyInput) or this call is a silent no-op.
@@ -642,6 +698,10 @@ function _onTouchEnd(): void {
   _touchY = null;
   _touchAccum = 0;
   _touchOnInteractive = false;
+  _touchInDeck = false;
+  _touchAxis = 0;
+  _touchStartX = null;
+  _touchStartY = null;
 }
 
 function _onKeyDown(e: KeyboardEvent): void {
