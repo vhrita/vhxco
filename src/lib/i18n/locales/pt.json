@@ -67,17 +67,38 @@
     }
   },
   "contact": {
-    "label": "Ou fale direto",
+    "panelTitle": "VHXCO // CONTATO.SH",
+    "panelLive": "● ONLINE",
+    "intro": "Ou fale direto com o Arquiteto:",
     "whatsapp": "Falar no WhatsApp",
-    "whatsappAria": "Conversar no WhatsApp",
-    "instagram": "Instagram",
-    "linkedin": "LinkedIn",
-    "email": "E-mail",
-    "phone": "Telefone",
+    "whatsappAria": "Conversar no WhatsApp (abre em nova aba)",
+    "phoneLabel": "Telefone",
+    "phoneValue": "+55 19 98195-2548",
+    "phoneCall": "Ligar",
+    "phoneCopy": "Copiar",
+    "phoneAria": "Ligar para +55 19 98195-2548",
+    "phoneCopyAria": "Copiar o telefone +55 19 98195-2548",
+    "emailLabel": "E-mail",
+    "emailValue": "hello@vhxco.com",
+    "emailCopy": "Copiar",
+    "emailAria": "Copiar o e-mail hello@vhxco.com",
+    "instagramLabel": "Instagram",
+    "instagramValue": "@vhxcompany",
+    "instagramOpen": "Abrir",
     "instagramAria": "VHXCO no Instagram (abre em nova aba)",
+    "linkedinLabel": "LinkedIn",
+    "linkedinValue": "vhxcompany",
+    "linkedinOpen": "Abrir",
     "linkedinAria": "VHXCO no LinkedIn (abre em nova aba)",
-    "emailAria": "Enviar e-mail para hello@vhxco.com",
-    "phoneAria": "Ligar para +55 19 98195-2548"
+    "copied": "Copiado!"
+  },
+  "deck": {
+    "formTab": "Diagnóstico",
+    "contactTab": "Contato",
+    "prev": "Anterior",
+    "next": "Próximo",
+    "goToForm": "Ver o formulário de diagnóstico",
+    "goToContact": "Ver os canais de contato"
   },
   "errors": {
     "form": {
