@@ -353,7 +353,9 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 
       let index = 0;
 
-      function render(): void {
+      // Arrow consts (not function declarations) so TS keeps the `deck` non-null
+      // narrowing from the `if (deck && nav)` guard inside these closures.
+      const render = (): void => {
         dots.forEach((dot, i) => {
           const active = i === index;
           dot.classList.toggle("is-active", active);
@@ -361,16 +363,16 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
         });
         if (prevBtn) prevBtn.disabled = index <= 0;
         if (nextBtn) nextBtn.disabled = index >= count - 1;
-      }
+      };
 
-      function goTo(next: number): void {
+      const goTo = (next: number): void => {
         index = Math.max(0, Math.min(count - 1, next));
         deck.scrollTo({
           left: index * deck.clientWidth,
           behavior: reduced ? "auto" : "smooth",
         });
         render();
-      }
+      };
 
       // Keep `index` in sync when the user swipes natively. rAF-throttled so a
       // burst of scroll events collapses to one measurement per frame.
