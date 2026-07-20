@@ -1292,7 +1292,8 @@ body[data-active-stop="1"] .journey-stop[data-stop="1"],
 body[data-active-stop="2"] .journey-stop[data-stop="2"],
 body[data-active-stop="3"] .journey-stop[data-stop="3"],
 body[data-active-stop="4"] .journey-stop[data-stop="4"],
-body[data-active-stop="5"] .journey-stop[data-stop="5"] {
+body[data-active-stop="5"] .journey-stop[data-stop="5"],
+body[data-active-stop="6"] .journey-stop[data-stop="6"] {
   opacity: 1;
   pointer-events: auto;
 }
@@ -1315,8 +1316,10 @@ body[data-intro="active"] #persistent-cta {
   pointer-events: none !important;
 }
 
-/* ── PersistentCta visibility (Fase 4a S3 · N=6 update) ─────────────────────
- * Hide the persistent CTA when already at the last stop (action stop = 5).
+/* ── PersistentCta visibility (Fase 4a S3 · contact-v3 N=7 update) ──────────
+ * The CTA points at the DIAGNOSE FORM stop (index 5). Hide it once the visitor
+ * is at/past the form — i.e. on the form stop (5) AND the Contato stop (6) — a
+ * "go to form" shortcut is moot there. Visible on stops 0–4.
  * Must live in global.css — crosses body→#persistent-cta scope boundary.
  * ─────────────────────────────────────────────────────────────────────────── */
 
@@ -1327,7 +1330,8 @@ body[data-intro="active"] #persistent-cta {
   transition: opacity 300ms ease;
 }
 
-body[data-active-stop="5"] #persistent-cta {
+body[data-active-stop="5"] #persistent-cta,
+body[data-active-stop="6"] #persistent-cta {
   opacity: 0;
   pointer-events: none;
 }

@@ -1,15 +1,12 @@
 ---
 /**
- * ContactCluster.astro — Sibling "terminal" contact panel for the Diagnose stop.
+ * ContactCluster.astro — The Contato stop's terminal contact panel (contact-v3).
  *
- * v2 REWRITE (Vitor feedback): the previous version stacked ALL channels in a
- * single block BELOW the DiagnoseForm on the action stop. On a fixed-height stop
- * that overflowed — panels tucked under the navbar / glued to the viewport edges,
- * even on desktop. This is now a self-contained panel that lives BESIDE the form:
- *   - Desktop (≥1024px): a second column next to DIAGNOSE.SH (2-col deck).
- *   - Mobile  (<1024px): the second slide of a horizontal scroll-snap slider.
- * The deck wrapper + slider chrome + responsive layout live in JourneyStop.astro;
- * this file only renders the panel body. It is rendered into the `contact` slot.
+ * v3 (Vitor): the previous deck (form + contact side-by-side / mobile slider on a
+ * single stop) read poorly. Contact is now its OWN journey stop (the last one), so
+ * this panel owns the whole stop and can breathe — centered, roomier. Rendered into
+ * the `contact` slot of the Contato JourneyStop (see JourneyStop.astro `isContact`).
+ * The copy/tel/analytics logic below is unchanged from v2; only the layout relaxes.
  *
  * Visual: matches the form's `.terminal` panel exactly (same glass, cyan accent,
  * mono) so the two read as sibling terminals — header `VHXCO // CONTATO.SH`.
@@ -34,7 +31,7 @@
  * the pressed button's label for ~1.6s.
  *
  * Analytics: fires the gated `contact_click` PostHog event with
- * { channel, action: 'open' | 'copy' | 'tel', source: 'diagnose' } on click
+ * { channel, action: 'open' | 'copy' | 'tel', source: 'contact' } on click
  * (no-op when PUBLIC_POSTHOG_KEY is absent). Metadata only — never field values.
  * See src/lib/analytics/posthog.ts.
  */
@@ -217,7 +214,7 @@ const waHref =
   // 1) Adaptive phone: on a coarse (touch) pointer keep the `tel:` link; on a
   //    fine (desktop) pointer swap it to a copy-to-clipboard button.
   // 2) E-mail: always copy (never mailto).
-  // 3) Analytics: gated `contact_click` { channel, action, source:'diagnose' }.
+  // 3) Analytics: gated `contact_click` { channel, action, source:'contact' }.
   // No-op-safe: capture() is a no-op when PostHog has no key.
   import { capture } from '@/lib/analytics/posthog';
 
@@ -302,13 +299,13 @@ const waHref =
             capture('contact_click', {
               channel,
               action: 'copy',
-              source: 'diagnose',
+              source: 'contact',
             });
             return;
           }
 
           // action === 'open' (whatsapp/instagram/linkedin) or 'tel' (mobile phone)
-          capture('contact_click', { channel, action, source: 'diagnose' });
+          capture('contact_click', { channel, action, source: 'contact' });
         });
       });
   }
@@ -320,15 +317,16 @@ const waHref =
    * contact-specific rows are styled here. Tokens only — no literal colors. */
 
   .contact-terminal {
-    /* Fill the deck column / slide height so the two panels align. */
-    height: 100%;
+    /* contact-v3: standalone panel (owns the whole stop) — natural height, not a
+     * deck-column fill. */
     display: flex;
     flex-direction: column;
   }
 
   .contact-body {
-    gap: 0.5rem;
-    flex: 1 1 auto;
+    /* Roomier now that the panel owns the whole stop (was 0.5rem in the cramped
+     * deck column). */
+    gap: 0.75rem;
   }
 
   .contact-intro {

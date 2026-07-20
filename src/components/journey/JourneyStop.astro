@@ -9,7 +9,11 @@
  *     (NOT .is-active class toggled by JS) — Astro scoping constraint.
  *   - Stop 0 renders an <h1> (SEO + bootComplete scramble).
  *     All other stops render <h2>.
- *   - The last stop (action, index totalStops-1) has a form slot for DiagnoseForm.
+ *   - contact-v3: the Diagnose form is the SECOND-to-last stop (index
+ *     totalStops-2, `isForm`) and renders the DiagnoseForm slot centered/full;
+ *     the Contato terminal panel is the LAST stop (index totalStops-1,
+ *     `isContact`) and renders the ContactCluster slot centered/full. No more
+ *     side-by-side/slider deck.
  *
  * v2 REPIVOT (outcome-first):
  *   - RESULTADOS stop renders 4 result cards with inline Lucide icons (no new
@@ -30,8 +34,6 @@
 
 import type { StopContent, ServiceIconId } from "@/lib/journey/stops-content";
 import { STOP_COUNT } from "@/lib/journey/stops.config";
-import { getT } from "@/lib/i18n/t";
-import type { Locale } from "@/lib/i18n/config";
 
 interface Props {
   /** 0-based stop index — matches activeStop from journey-state */
@@ -40,21 +42,23 @@ interface Props {
   totalStops: number;
   /** Stop content (locale-specific, passed from parent) */
   content: StopContent;
-  /** Page locale — only used for the action-stop deck a11y labels. */
+  /** Page locale — passed through; not consumed here anymore. */
   locale?: "pt" | "en";
 }
 
-const { stopIndex, totalStops, content, locale = "pt" } = Astro.props;
-const t = getT(locale as Locale);
+const { stopIndex, totalStops, content } = Astro.props;
 
-const isHero = stopIndex === 0;                 // renders <h1>, wires bootComplete scramble
-const isAction = stopIndex === totalStops - 1;  // renders form slot instead of hud hint (derived, not hardcoded)
+const isHero = stopIndex === 0;                    // renders <h1>, wires bootComplete scramble
+// contact-v3: the Diagnose form is the SECOND-to-last stop; the Contato panel is
+// the LAST. Both derived from totalStops — never hardcode 5/6.
+const isForm = stopIndex === totalStops - 2;       // renders the DiagnoseForm slot (centered, full)
+const isContact = stopIndex === totalStops - 1;    // renders the ContactCluster slot (centered, full)
 const hasCards = Array.isArray(content.cards) && content.cards.length > 0;
 const hasTiles = Array.isArray(content.tiles) && content.tiles.length > 0;
 
-// Card 04 (cta:true) jumps to the last (action) stop — same event PersistentCta
-// dispatches. Derive the index from STOP_COUNT; never hardcode.
-const actionIndex = STOP_COUNT - 1;
+// Card 04 (cta:true) jumps to the DIAGNOSE FORM stop (not the Contato close) —
+// same event PersistentCta dispatches. Form = second-to-last (STOP_COUNT-2).
+const formIndex = STOP_COUNT - 2;
 
 // Render headline with line breaks at \n
 const headlineLines = content.headline.split("\n");
@@ -180,8 +184,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
             <li class="stop-card is-cta">
               <a
                 class="stop-card-link"
-                href={`#stop-${actionIndex}`}
-                data-goto-action={actionIndex}
+                href={`#stop-${formIndex}`}
+                data-goto-action={formIndex}
               >{inner}</a>
             </li>
           ) : (
@@ -216,87 +220,28 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
       </div>
     )}
 
-    <!-- Action stop: form + contact terminal as SIBLING panels.
-       · Desktop (≥1024px): two columns side-by-side (CSS grid).
-       · Mobile  (<1024px): a horizontal scroll-snap slider (slide 0 = form,
-         slide 1 = contact) driven by the dots/arrows below + native swipe.
-       The journey's vertical touch nav is preserved: journey-input.ts treats a
-       horizontal-dominant gesture inside [data-diagnose-deck] as the slider's
-       (never steps the journey), while a vertical drag still navigates. -->
-    {isAction && (
-      <div class="diagnose-deck" data-diagnose-deck>
-        <div
-          class="deck-slide"
-          id="deck-slide-form"
-          data-slide="0"
-          role="group"
-          aria-roledescription="slide"
-          aria-label={t("deck.formTab")}
-        >
-          <slot name="form" />
-        </div>
-        <div
-          class="deck-slide"
-          id="deck-slide-contact"
-          data-slide="1"
-          role="group"
-          aria-roledescription="slide"
-          aria-label={t("deck.contactTab")}
-        >
-          <slot name="contact" />
-        </div>
+    <!-- Diagnose stop (second-to-last): the form on its own, centered/full.
+         No contact panel beside it, no deck/slider (contact-v3). -->
+    {isForm && (
+      <div class="stop-form">
+        <slot name="form" />
       </div>
     )}
 
-    <!-- Slider chrome (mobile only — hidden ≥1024px via CSS). Arrows + dots. -->
-    {isAction && (
-      <div class="deck-nav" data-deck-nav>
-        <button
-          type="button"
-          class="deck-arrow"
-          data-deck-prev
-          aria-label={t("deck.prev")}
-          aria-controls="deck-slide-form deck-slide-contact"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
-        </button>
-        <div class="deck-dots" role="tablist" aria-label={t("deck.contactTab")}>
-          <button
-            type="button"
-            class="deck-dot is-active"
-            role="tab"
-            aria-selected="true"
-            data-deck-dot="0"
-            aria-label={t("deck.goToForm")}
-          ></button>
-          <button
-            type="button"
-            class="deck-dot"
-            role="tab"
-            aria-selected="false"
-            data-deck-dot="1"
-            aria-label={t("deck.goToContact")}
-          ></button>
-        </div>
-        <button
-          type="button"
-          class="deck-arrow"
-          data-deck-next
-          aria-label={t("deck.next")}
-          aria-controls="deck-slide-form deck-slide-contact"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
-        </button>
+    <!-- Contact stop (last): the contact terminal panel on its own, centered/full. -->
+    {isContact && (
+      <div class="stop-contact">
+        <slot name="contact" />
       </div>
     )}
 
-    <!-- Closing tagline (D2) — action stop only, subtle, below the deck -->
-    {isAction && content.taglineClose && (
+    <!-- Closing tagline (D2) — Diagnose (form) stop only, subtle, below the form -->
+    {isForm && content.taglineClose && (
       <p class="stop-tagline-close">{content.taglineClose}</p>
     )}
 
-    <!-- HUD hint (only for non-action stops) -->
-    {!isAction && content.hudHint && (
+    <!-- HUD hint (only for stops that carry a hint — never the form/contact stops) -->
+    {!isForm && !isContact && content.hudHint && (
       <p class="stop-hud-hint" aria-hidden="true">
         <span class="hud-hint-arrow">›</span>
         {content.hudHint}
@@ -323,104 +268,6 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
           new CustomEvent("hud:goto-phase", { detail: { phase: actionIndex } }),
         );
       });
-    }
-  </script>
-)}
-
-{/* Diagnose deck slider — action stop only. Wires the arrows/dots to the
-    horizontal scroll-snap container and keeps the active dot in sync with the
-    scroll position (native swipe, arrows, or dots all drive the same state).
-    On desktop the container is a static 2-col grid (scrollLeft stays 0, chrome
-    hidden by CSS) so this is a harmless no-op there. */}
-{isAction && (
-  <script>
-    const deck = document.querySelector<HTMLElement>("[data-diagnose-deck]");
-    const nav = document.querySelector<HTMLElement>("[data-deck-nav]");
-
-    if (deck && nav) {
-      const slides = Array.from(
-        deck.querySelectorAll<HTMLElement>(".deck-slide"),
-      );
-      const dots = Array.from(
-        nav.querySelectorAll<HTMLElement>("[data-deck-dot]"),
-      );
-      const prevBtn = nav.querySelector<HTMLButtonElement>("[data-deck-prev]");
-      const nextBtn = nav.querySelector<HTMLButtonElement>("[data-deck-next]");
-      const count = slides.length;
-      const reduced = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-
-      let index = 0;
-
-      // Arrow consts (not function declarations) so TS keeps the `deck` non-null
-      // narrowing from the `if (deck && nav)` guard inside these closures.
-      const render = (): void => {
-        dots.forEach((dot, i) => {
-          const active = i === index;
-          dot.classList.toggle("is-active", active);
-          dot.setAttribute("aria-selected", active ? "true" : "false");
-        });
-        if (prevBtn) prevBtn.disabled = index <= 0;
-        if (nextBtn) nextBtn.disabled = index >= count - 1;
-      };
-
-      const goTo = (next: number): void => {
-        index = Math.max(0, Math.min(count - 1, next));
-        deck.scrollTo({
-          left: index * deck.clientWidth,
-          behavior: reduced ? "auto" : "smooth",
-        });
-        render();
-      };
-
-      // Keep `index` in sync when the user swipes natively. rAF-throttled so a
-      // burst of scroll events collapses to one measurement per frame.
-      let ticking = false;
-      deck.addEventListener(
-        "scroll",
-        () => {
-          if (ticking) return;
-          ticking = true;
-          requestAnimationFrame(() => {
-            ticking = false;
-            const w = deck.clientWidth;
-            if (w <= 0) return;
-            const next = Math.round(deck.scrollLeft / w);
-            if (next !== index) {
-              index = Math.max(0, Math.min(count - 1, next));
-              render();
-            }
-          });
-        },
-        { passive: true },
-      );
-
-      prevBtn?.addEventListener("click", () => goTo(index - 1));
-      nextBtn?.addEventListener("click", () => goTo(index + 1));
-      dots.forEach((dot, i) => {
-        dot.addEventListener("click", () => goTo(i));
-        // Roving tablist keys: ←/→ move between slides.
-        dot.addEventListener("keydown", (e) => {
-          if (e.key === "ArrowRight") {
-            e.preventDefault();
-            goTo(i + 1);
-            dots[Math.min(count - 1, i + 1)]?.focus();
-          } else if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            goTo(i - 1);
-            dots[Math.max(0, i - 1)]?.focus();
-          }
-        });
-      });
-
-      // Re-anchor the scroll position on resize (e.g. desktop↔mobile crossover)
-      // so a rotation/breakpoint change doesn't strand the deck mid-slide.
-      window.addEventListener("resize", () => {
-        deck.scrollTo({ left: index * deck.clientWidth, behavior: "auto" });
-      });
-
-      render();
     }
   </script>
 )}
@@ -895,201 +742,69 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
   }
 
   /* ══════════════════════════════════════════════════════════════════════════
-   * Diagnose deck — form + contact as sibling panels (contact-v2)
+   * Form & Contact stops (contact-v3)
    *
-   * Fixes the overflow bug where the contact block, STACKED below the form on a
-   * fixed-height stop, pushed content under the navbar / off the viewport edges.
-   * Now the two panels are peers:
-   *   · Mobile  (<1024px): a horizontal scroll-snap slider — ONE panel visible
-   *     at a time, so the stop height = a single panel (never the sum). Native
-   *     swipe + arrows + dots all drive it. touch-action:pan-x lets the browser
-   *     own horizontal panning (so journey-input's vertical nav is untouched).
-   *   · Desktop (≥1024px): a static 2-column grid, both panels side-by-side; the
-   *     slider chrome is hidden and horizontal scrolling is disabled.
+   * The old side-by-side/slider deck is gone. The Diagnose form (second-to-last
+   * stop) and the Contato terminal (last stop) each own the WHOLE stop now: a
+   * single terminal panel that fills the content column and breathes. Vertically
+   * centered like every other stop; a comfortable single-column width on desktop.
    * ═════════════════════════════════════════════════════════════════════════ */
 
-  .diagnose-deck {
+  .stop-form,
+  .stop-contact {
     display: flex;
-    flex-direction: row;
-    /* min-width:0 + the parent rule below let this collapse to the container as a
-     * proper scroll container — without it the slides' intrinsic width leaks up
-     * and the whole stop overflows the viewport horizontally on mobile. */
+    flex-direction: column;
+    /* min-width:0 keeps a wide panel from forcing the stop past the viewport. */
     min-width: 0;
     max-width: 100%;
-    /* Horizontal scroll-snap slider (mobile default). */
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-    /* Hand horizontal panning to the browser; vertical drags fall through to the
-     * journey's window touch handler (journey-input.ts mirrors this). */
-    touch-action: pan-x;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox — hide the scrollbar (chrome carries state) */
-    align-items: stretch; /* both slides share the tallest height (no jump) */
+    width: 100%;
   }
 
-  .diagnose-deck::-webkit-scrollbar {
-    display: none; /* WebKit/Blink — hide the scrollbar */
-  }
-
-  /* The action stop is a flex item of .journey-stop; min-width:auto would let the
-   * deck's content push it past the viewport. Allow it to shrink so the deck can
-   * collapse to one viewport-width slide on mobile. */
-  .stop-inner:has(.diagnose-deck) {
+  /* Let the form/contact content column shrink so the panel never forces the
+   * whole stop past the mobile viewport. */
+  .stop-inner:has(.stop-form),
+  .stop-inner:has(.stop-contact) {
     min-width: 0;
   }
 
-  .deck-slide {
-    /* flex-basis:100% + flex-shrink:0 already pin each slide to one deck-width;
-     * min-width:0 (NOT 100%) keeps the slide's intrinsic size from forcing the
-     * deck — and the whole stop — wider than the mobile viewport. */
-    flex: 0 0 100%;
-    min-width: 0;
-    max-width: 100%;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    display: flex; /* let the panel fill the slide height */
-  }
-
-  /* Slider chrome — arrows + dots (mobile). Hidden on desktop. */
-  .deck-nav {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-top: clamp(0.375rem, 1svh, 0.625rem);
-  }
-
-  .deck-arrow {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem; /* 40px box; hit area padded to ≥44px below */
-    padding: 0.5rem;
-    border: 1px solid var(--color-cyan-soft);
-    border-radius: 4px;
-    background: oklch(from var(--color-cyan) l c h / 0.04);
-    color: var(--color-cyan);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition:
-      border-color 180ms,
-      background 180ms,
-      opacity 180ms;
-  }
-
-  .deck-arrow:hover:not(:disabled),
-  .deck-arrow:focus-visible:not(:disabled) {
-    border-color: var(--color-cyan);
-    background: oklch(from var(--color-cyan) l c h / 0.12);
-    outline: none;
-  }
-
-  .deck-arrow:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-
-  .deck-dots {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .deck-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    padding: 0;
-    border: 1px solid var(--color-cyan-soft);
-    border-radius: 50%;
-    background: transparent;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition:
-      background 180ms,
-      border-color 180ms,
-      transform 180ms;
-  }
-
-  .deck-dot.is-active {
-    background: var(--color-cyan);
-    border-color: var(--color-cyan);
-    transform: scale(1.15);
-  }
-
-  .deck-dot:focus-visible {
-    outline: 2px solid var(--color-cyan);
-    outline-offset: 2px;
-  }
-
-  /* Desktop: side-by-side grid, no slider. */
+  /* Desktop: a single terminal doesn't need the old 2-col width — give it a
+   * comfortable single reading column so it breathes without stretching
+   * edge-to-edge. Higher specificity than the generic large-screen .stop-inner
+   * rules below, so it wins at 1440/1920 too. */
   @media (min-width: 1024px) {
-    .diagnose-deck {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: clamp(0.75rem, 1.6vw, 1.5rem);
-      overflow: visible;
-      touch-action: auto;
-      align-items: start; /* tops aligned; each panel its natural height */
-    }
-
-    .deck-slide {
-      flex: initial;
-      min-width: 0;
-      scroll-snap-align: none;
-    }
-
-    .deck-nav {
-      display: none;
-    }
-
-    /* Widen the action stop's content column so two panels breathe. */
-    .stop-inner:has(.diagnose-deck) {
-      max-width: 52rem; /* 832px — ~400px per column */
+    .stop-inner:has(.stop-form),
+    .stop-inner:has(.stop-contact) {
+      max-width: 40rem; /* 640px — one roomy terminal column */
     }
   }
 
-  @media (min-width: 1920px) {
-    .stop-inner:has(.diagnose-deck) {
-      max-width: 64rem; /* 1024px — ~500px per column */
-    }
-  }
-
-  /* Reduced-motion: instant snap, no scale pop on the active dot. */
-  @media (prefers-reduced-motion: reduce) {
-    .diagnose-deck {
-      scroll-behavior: auto;
-    }
-    .deck-dot.is-active {
-      transform: none;
+  @media (min-width: 1440px) {
+    .stop-inner:has(.stop-form),
+    .stop-inner:has(.stop-contact) {
+      max-width: 44rem; /* 704px */
     }
   }
 
   /* Short desktop/laptop heights (e.g. 1024×768, 1280×800): the header
    * (headline + body) plus a full-height panel can run a few px too tall and
-   * graze the navbar. Tighten the action stop's vertical rhythm so its content
-   * always clears the navbar and fits without overflow. Taller viewports keep
-   * the roomier default. */
+   * graze the navbar. Tighten these stops' vertical rhythm so the content always
+   * clears the navbar. Taller viewports keep the roomier default. */
   @media (max-height: 820px) {
-    .stop-inner:has(.diagnose-deck) {
+    .stop-inner:has(.stop-form),
+    .stop-inner:has(.stop-contact) {
       gap: clamp(0.35rem, 0.8svh, 0.55rem);
     }
   }
 
-  /* Very short viewports (mobile portrait ~667 tall): top-align the action stop
-   * just below the navbar instead of vertically centering it. Centering a stop
-   * that's taller than the viewport overflows it symmetrically INTO the navbar;
-   * top-aligning starts the content right under the navbar and lets it flow down
-   * into the available height, so it clears the navbar and still fits on screen. */
+  /* Very short viewports (mobile portrait ~667 tall): top-align these stops just
+   * below the navbar instead of vertically centering. Centering a stop taller
+   * than the viewport overflows it symmetrically INTO the navbar; top-aligning
+   * starts the content right under the navbar and lets it flow down. */
   @media (max-height: 760px) {
-    .journey-stop:has(.diagnose-deck) {
+    .journey-stop:has(.stop-form),
+    .journey-stop:has(.stop-contact) {
       align-items: flex-start;
       padding-top: 3.75rem;
-    }
-    .deck-nav {
-      margin-top: 0.375rem;
     }
   }
 
