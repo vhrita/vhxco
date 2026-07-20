@@ -822,10 +822,18 @@ body[data-boot="loading"] .backdrop-vignette {
  * New ranges (in rem of .topnav-chapters container width):
  *   < 15rem  (~ < 240px container ≈ < 375px viewport) → num-only
  *   15–25rem (~ 240–400px ≈ 375–480px vw)             → num + active inline
- *   25–44rem (~ 400–704px ≈ 480–1023px vw)            → num + short label
- *   ≥ 44rem  (~ ≥ 704px ≈ ≥ 1024px vw)                → num + full label
+ *   25–58rem (~ 400–928px ≈ 480–~1180px vw)           → num + short label
+ *   ≥ 58rem  (~ ≥ 928px ≈ ≥ ~1200px viewport)         → num + full label
  *
- * Net effect: 375w num-only, 480w num+active, 768w short, 1024w + 1280w full.
+ * Net effect: 375w num-only, 480w num+active, 768–1180w short, ≥1200w full.
+ *
+ * 7-item nav fix (2026-07): the 7th chapter ("07 Contato") pushed the full
+ * PT labels past the container at ~1024–1180w — the centered overflow collided
+ * with the logo (left) and the PT/EN toggle (right). Measured (pt-BR, headless):
+ * container 47.9rem @1024w and 52.5rem @1100w overlapped both ends; 58.5rem
+ * @1200w cleared with ~44px slack; 63.3rem @1280w untouched. So the full-label
+ * threshold moved 44rem → 58rem: the crowded band now shows the compact 3-char
+ * labels, and 1280/1920 keep the exact full-label layout (container ≫ 58rem).
  *
  * Defaults (outside container queries): show full, hide others.
  * ─────────────────────────────────────────────────────────────────────────── */
@@ -892,9 +900,10 @@ body[data-boot="loading"] .backdrop-vignette {
   }
 }
 
-/* 25–43.99rem (~ container 400–704px / viewport ~ 480–1023px):
- * num + short label ("01 NUC 02 ENG …"). */
-@container (min-width: 25rem) and (max-width: 43.99rem) {
+/* 25–57.99rem (~ container 400–928px / viewport ~ 480–~1180px):
+ * num + short label ("01 INI 02 GAR …"). Upper bound raised 44rem → 58rem so
+ * the 7-item nav stays compact through the crowded ~1024–1180 band (see note). */
+@container (min-width: 25rem) and (max-width: 57.99rem) {
   .topnav-lbl-full {
     display: none;
   }
@@ -909,9 +918,10 @@ body[data-boot="loading"] .backdrop-vignette {
   }
 }
 
-/* ≥ 44rem (~ container ≥ 704px / viewport ≥ 1024px):
- * num + full label ("01 Núcleo 02 Engenharia …"). */
-@container (min-width: 44rem) {
+/* ≥ 58rem (~ container ≥ 928px / viewport ≥ ~1200px):
+ * num + full label ("01 Início 02 Gargalo …"). Threshold raised 44rem → 58rem
+ * so full labels only appear once the 7 items clear the logo + PT/EN toggle. */
+@container (min-width: 58rem) {
   .topnav-chapter-lbl-short {
     display: none;
   }
