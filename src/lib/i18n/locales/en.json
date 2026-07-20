@@ -92,14 +92,6 @@
     "linkedinAria": "VHXCO on LinkedIn (opens in a new tab)",
     "copied": "Copied!"
   },
-  "deck": {
-    "formTab": "Diagnostic",
-    "contactTab": "Contact",
-    "prev": "Previous",
-    "next": "Next",
-    "goToForm": "View the diagnostic form",
-    "goToContact": "View the contact channels"
-  },
   "errors": {
     "form": {
       "networkFailure": "Submission failed. Try again or write to hello@vhxco.com.",
