@@ -808,6 +808,31 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     }
   }
 
+  /* Mobile / tablet horizontal centering (bug-fix — Diagnose + Contato).
+   * The journey-stop is a flex row that left-aligns its content
+   * (justify-content:flex-start + a growing left gutter) — the intended DESKTOP
+   * layout. On phones/tablets, though, the form & contact panels read best
+   * centered in the column: the top-align above (≤760px height) sets the VERTICAL
+   * clearance under the navbar, and this sets the HORIZONTAL centering so the panel
+   * isn't shoved to the left edge. Scoped below the desktop form/contact breakpoint
+   * (1024px) so the desktop left-aligned layout is untouched. */
+  @media (max-width: 1023.98px) {
+    .journey-stop:has(.stop-form),
+    .journey-stop:has(.stop-contact) {
+      justify-content: center;
+    }
+    /* Span the full available column (between the symmetric page gutters) so the
+     * panel is centered by construction instead of shrink-wrapping to the terminal's
+     * intrinsic width and getting pinned left. margin-inline:auto is belt-and-braces
+     * in case a future layout lets it be narrower than the column. Text inside stays
+     * left-aligned (design language) — only the BLOCK is centered. */
+    .stop-inner:has(.stop-form),
+    .stop-inner:has(.stop-contact) {
+      width: 100%;
+      margin-inline: auto;
+    }
+  }
+
   /* ══════════════════════════════════════════════════════════════════════════
    * Large-screen scaling pass (responsividade — feedback do Vitor)
    *
