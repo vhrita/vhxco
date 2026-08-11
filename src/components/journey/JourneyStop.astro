@@ -795,15 +795,26 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     }
   }
 
-  /* Very short viewports (mobile portrait ~667 tall): top-align these stops just
-   * below the navbar instead of vertically centering. Centering a stop taller
-   * than the viewport overflows it symmetrically INTO the navbar; top-aligning
-   * starts the content right under the navbar and lets it flow down. */
-  @media (max-height: 760px) {
-    .journey-stop.is-terminal-stop {
-      align-items: flex-start;
-      padding-top: 3.75rem;
-    }
+  /* Vertical alignment for the terminal stops (Diagnose form + Contato).
+   *
+   * Bug (S24+ Chrome, any viewport ≤760px tall — reproduces in Chromium responsive
+   * mode): the old rule below hard top-aligned these stops at EVERY height ≤760 via
+   * `@media (max-height:760px){ align-items:flex-start }`. That fires even when the
+   * panel comfortably FITS the viewport, jamming it to the top with a large empty
+   * gap underneath — reads as "not centered / lopsided" (measured dY up to −184px on
+   * a 390×760 form). The height media query was an unconditional hack: top-align was
+   * only ever wanted for the OVERFLOW case (panel taller than the viewport), to keep
+   * the content from spilling up into the navbar.
+   *
+   * Fix: `align-items: safe center`. The `safe` keyword centers on the cross axis
+   * (vertical, since .journey-stop is a flex ROW) whenever the item fits, and falls
+   * back to `start` ONLY when centering would overflow — i.e. it auto-top-aligns
+   * exactly (and only) in the overflow case, with no clipping of the top edge. The
+   * base .journey-stop padding-top (clamp(4rem,8svh,6rem) ≥ 64px) keeps the navbar
+   * clearance in that overflow case, so the old padding-top:3.75rem override is no
+   * longer needed. Scoped to terminal stops; stops 01–05 keep their own layout. */
+  .journey-stop.is-terminal-stop {
+    align-items: safe center;
   }
 
   /* Mobile / tablet horizontal centering (bug-fix — Diagnose + Contato).
