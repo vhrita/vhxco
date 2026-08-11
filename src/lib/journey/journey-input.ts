@@ -554,16 +554,35 @@ function _onWheel(e: WheelEvent): void {
 }
 
 let _touchY: number | null = null;
+/** clientX/clientY captured at touchstart — the anchor for the tap-vs-swipe test. */
+let _touchStartX = 0;
+let _touchStartY = 0;
 /**
- * True when the current swipe started on an interactive control that owns its own
- * touch (a form FIELD/button/link, or anywhere in the mobile sidebar drawer). For
- * those the journey must NOT drive navigation and must NOT preventDefault — the field
- * must stay typeable/selectable and the drawer scrollable/tappable. Captured on
- * touchstart so a drag that begins on a field isn't hijacked mid-gesture. A swipe on
- * the form's chrome/background is NOT interactive (Fix 2) → it drives the journey.
- * Mirrors the narrowed `touch-action` carve-out in global.css §4.
+ * The gesture began inside the mobile sidebar drawer (`.topnav`). That surface owns
+ * its own internal scroll (chapter list) + hamburger/scrim, so the journey must NEVER
+ * steal it — no navigation, no preventDefault, for the whole gesture.
  */
-let _touchOnInteractive = false;
+let _touchOnSidebar = false;
+/**
+ * The gesture began ON a form control (input/textarea/button/link inside `.terminal`).
+ * Unlike the sidebar we do NOT blanket-exclude it — we DEFER to a tap-vs-swipe decision
+ * in touchmove (see below). Captured on touchstart so the decision has a stable anchor.
+ */
+let _touchOnFormControl = false;
+/**
+ * Latched true once a vertical SWIPE that began on a form control has been claimed by
+ * the journey. From that point the rest of the move stream feeds navigation directly
+ * (we stop re-running the tap-vs-swipe gate). Reset on touchend.
+ */
+let _swipeClaimed = false;
+
+/**
+ * Tap slop (px): movement below this from the touchstart point is still a TAP, not a
+ * swipe. A tap on a form control must focus/type (keyboard opens) — so while inside the
+ * slop we never preventDefault and never navigate. Once movement exceeds it we decide
+ * tap-vs-swipe by dominant axis.
+ */
+const TAP_SLOP_PX = 10;
 
 /**
  * Real interactive controls that own their own native touch (typeable field, tappable
@@ -573,35 +592,59 @@ let _touchOnInteractive = false;
 const _INTERACTIVE_CONTROLS =
   'input, textarea, select, button, a, [role="button"], [contenteditable]';
 
-/**
- * Does `target` sit on a surface that owns its own native touch? (Fix 2 — swipe over
- * the form must still navigate.)
- *
- *   - The mobile sidebar (`.topnav`) is carved out WHOLE — it has its own internal
- *     scroll (the chapter list) + hamburger/scrim, so the journey must never steal it.
- *   - The Diagnose form AND the Contato panel (both `.terminal`) are NOT carved out
- *     wholesale. Only the REAL controls inside them match, so dragging on a panel's
- *     chrome / labels / background DRIVES the journey (esp. swiping between the form
- *     and contact stops), while touching an actual field/button/link still
- *     focuses/types/taps. Previously the whole `.terminal` returned true here, which
- *     trapped the user whenever they swiped over the form.
- */
-function _isInteractiveTarget(target: EventTarget | null): boolean {
+/** The gesture started inside the mobile sidebar drawer (owns its own scroll). */
+function _isSidebarTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el || typeof el.closest !== "function") return false;
-  // Sidebar drawer: owns its own scroll → carve out whole.
-  if (el.closest(".topnav") !== null) return true;
-  // Form: only the actual controls own touch — never the container/background.
-  const control = el.closest(_INTERACTIVE_CONTROLS);
-  return control !== null && control.closest(".terminal") !== null;
+  return el.closest(".topnav") !== null;
+}
+
+/**
+ * The form control (input/textarea/button/link inside `.terminal`) under `target`, or
+ * null. Used to defer the tap-vs-swipe decision: a TAP on it focuses/types, a vertical
+ * SWIPE over it hands the gesture to the journey (Bug 1 — the old code excluded the
+ * whole form, which trapped a swipe that began on a field).
+ */
+function _closestFormControl(target: EventTarget | null): HTMLElement | null {
+  const el = target as HTMLElement | null;
+  if (!el || typeof el.closest !== "function") return null;
+  const control = el.closest(_INTERACTIVE_CONTROLS) as HTMLElement | null;
+  if (control === null || control.closest(".terminal") === null) return null;
+  return control;
+}
+
+/**
+ * A focused, scrollable textarea should keep its own vertical scroll UNTIL it hits the
+ * boundary in the drag direction — only then does the journey take over. `dyIntent` is
+ * the total vertical delta from touchstart (clientY - startY): >0 = finger DOWN (scroll
+ * content toward top), <0 = finger UP (scroll toward bottom). Returns true while the
+ * textarea can still absorb the drag internally. The Diagnose fields are short (rows=2)
+ * so this is a rare edge, but it keeps a long paste scrollable instead of hijacked.
+ */
+function _textareaCanScroll(el: HTMLElement, dyIntent: number): boolean {
+  if (el.tagName !== "TEXTAREA") return false;
+  const ta = el as HTMLTextAreaElement;
+  if (ta.scrollHeight <= ta.clientHeight) return false; // nothing to scroll
+  const atTop = ta.scrollTop <= 0;
+  const atBottom = ta.scrollTop + ta.clientHeight >= ta.scrollHeight - 1;
+  // Finger down → wants content toward top: allow unless already at top.
+  // Finger up   → wants content toward bottom: allow unless already at bottom.
+  return dyIntent > 0 ? !atTop : !atBottom;
 }
 
 function _onTouchStart(e: TouchEvent): void {
   // Boot gate: ignore touches entirely while the intro is running (no swipe →
   // no journey step). Leaving _touchY null makes _onTouchMove early-return too.
   if (_bootLocked) return;
-  _touchOnInteractive = _isInteractiveTarget(e.target);
-  _touchY = e.touches[0]?.clientY ?? null;
+  const t = e.touches[0];
+  _touchStartX = t?.clientX ?? 0;
+  _touchStartY = t?.clientY ?? 0;
+  _touchOnSidebar = _isSidebarTarget(e.target);
+  // A form control only matters when it isn't inside the (whole-carved) sidebar.
+  _touchOnFormControl =
+    !_touchOnSidebar && _closestFormControl(e.target) !== null;
+  _swipeClaimed = false;
+  _touchY = t?.clientY ?? null;
   _touchAccum = 0; // new swipe → fresh accumulator (one step per swipe)
 }
 
@@ -613,11 +656,53 @@ function _onTouchMove(e: TouchEvent): void {
     return;
   }
   if (_touchY === null) return;
-  // Gesture began on the form / sidebar — leave it to the browser (typeable field,
-  // scrollable drawer). No preventDefault, no journey step.
-  if (_touchOnInteractive) return;
+
+  // Sidebar drawer owns its whole gesture (own scroll) — never navigate, never
+  // preventDefault, for the entire touch.
+  if (_touchOnSidebar) return;
+
   const clientY = e.touches[0]?.clientY;
-  if (clientY === undefined) return;
+  const clientX = e.touches[0]?.clientX;
+  if (clientY === undefined || clientX === undefined) return;
+
+  // ── Tap-vs-swipe gate for a gesture that began on a form control (Bug 1) ───────
+  // We no longer exclude the whole form. Instead: a TAP focuses/types (browser keeps
+  // it), a vertical SWIPE is claimed by the journey. We decide here, once, and latch.
+  if (_touchOnFormControl && !_swipeClaimed) {
+    const totalDx = clientX - _touchStartX;
+    const totalDy = clientY - _touchStartY;
+
+    // Still within tap slop → let the browser focus/type. No preventDefault (so the
+    // tap lands + keyboard opens), no journey step. Track Y so once it DOES become a
+    // swipe the per-frame delta is continuous.
+    if (Math.abs(totalDy) < TAP_SLOP_PX && Math.abs(totalDx) < TAP_SLOP_PX) {
+      _touchY = clientY;
+      return;
+    }
+
+    // Past the slop but horizontal-dominant → caret/selection drag: leave it native.
+    if (Math.abs(totalDx) >= Math.abs(totalDy)) {
+      _touchY = clientY;
+      return;
+    }
+
+    // Vertical-dominant over a textarea that can still scroll internally → let it
+    // scroll natively until it reaches its boundary, then the journey takes over.
+    const control = _closestFormControl(e.target);
+    if (control !== null && _textareaCanScroll(control, totalDy)) {
+      _touchY = clientY;
+      return;
+    }
+
+    // A genuine vertical swipe that began on a form control → the JOURNEY takes over.
+    // Latch the claim, blur the field so the caret/keyboard doesn't fight the glide,
+    // and SEED the accumulator with the distance already travelled (upward = forward)
+    // so the swipe feels responsive. Reset _touchY so the fall-through delta is fresh.
+    _swipeClaimed = true;
+    if (control !== null && typeof control.blur === "function") control.blur();
+    _touchAccum = _touchStartY - clientY; // upward drag ⇒ positive ⇒ advance
+    _touchY = clientY;
+  }
 
   // Own the gesture: stop native scroll / pull-to-refresh / rubber-band so the drag
   // feeds the journey instead of the browser. Requires the listener to be attached
@@ -643,7 +728,9 @@ function _onTouchMove(e: TouchEvent): void {
 function _onTouchEnd(): void {
   _touchY = null;
   _touchAccum = 0;
-  _touchOnInteractive = false;
+  _touchOnSidebar = false;
+  _touchOnFormControl = false;
+  _swipeClaimed = false;
 }
 
 function _onKeyDown(e: KeyboardEvent): void {
