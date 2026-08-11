@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import JourneyStop from '@/components/journey/JourneyStop.astro';
 import DiagnoseForm from '@/components/forms/DiagnoseForm';
+import ContactCluster from '@/components/journey/ContactCluster.astro';
 import { getStopsContent } from '@/lib/journey/stops-content';
 import { getLangFromUrl } from '@/i18n/utils';
 import { getT } from '@/lib/i18n/t';
@@ -41,8 +42,10 @@ const formLabels = {
 
 const formspreeId = import.meta.env.PUBLIC_FORMSPREE_ID as string | undefined;
 
-// Form renders on the last (action) stop — derive, never hardcode.
-const actionIndex = totalStops - 1;
+// contact-v3: the Diagnose form renders on the SECOND-to-last stop; the Contact
+// terminal panel on the LAST stop. Derive, never hardcode.
+const formIndex = totalStops - 2;
+const contactIndex = totalStops - 1;
 
 const metaDescription =
   'VHXCO finds your business bottleneck and fixes it with AI agents and custom software: more sales, lower operating costs, more free time. We measure before and after. Free 7-day diagnostic.';
@@ -144,8 +147,9 @@ const jsonLd = {
       stopIndex={i}
       totalStops={totalStops}
       content={content}
+      locale="en"
     >
-      {i === actionIndex && (
+      {i === formIndex && (
         <DiagnoseForm
           slot="form"
           client:visible
@@ -154,6 +158,7 @@ const jsonLd = {
           labels={formLabels}
         />
       )}
+      {i === contactIndex && <ContactCluster slot="contact" locale="en" />}
     </JourneyStop>
   ))}
 </BaseLayout>

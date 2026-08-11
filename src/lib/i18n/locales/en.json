@@ -66,6 +66,32 @@
       "bn4": "Reduce Costs"
     }
   },
+  "contact": {
+    "panelTitle": "VHXCO // CONTACT.SH",
+    "panelLive": "● ONLINE",
+    "intro": "Or talk directly to the Architect:",
+    "whatsapp": "Chat on WhatsApp",
+    "whatsappAria": "Chat with us on WhatsApp (opens in a new tab)",
+    "phoneLabel": "Phone",
+    "phoneValue": "+55 19 98195-2548",
+    "phoneCall": "Call",
+    "phoneCopy": "Copy",
+    "phoneAria": "Call +55 19 98195-2548",
+    "phoneCopyAria": "Copy the phone number +55 19 98195-2548",
+    "emailLabel": "Email",
+    "emailValue": "hello@vhxco.com",
+    "emailCopy": "Copy",
+    "emailAria": "Copy the email hello@vhxco.com",
+    "instagramLabel": "Instagram",
+    "instagramValue": "@vhxcompany",
+    "instagramOpen": "Open",
+    "instagramAria": "VHXCO on Instagram (opens in a new tab)",
+    "linkedinLabel": "LinkedIn",
+    "linkedinValue": "vhxcompany",
+    "linkedinOpen": "Open",
+    "linkedinAria": "VHXCO on LinkedIn (opens in a new tab)",
+    "copied": "Copied!"
+  },
   "errors": {
     "form": {
       "networkFailure": "Submission failed. Try again or write to hello@vhxco.com.",
