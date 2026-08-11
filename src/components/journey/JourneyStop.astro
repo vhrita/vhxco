@@ -93,7 +93,7 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 ---
 
 <div
-  class="journey-stop"
+  class:list={["journey-stop", (isForm || isContact) && "is-terminal-stop"]}
   data-stop={stopIndex}
   role="region"
   aria-labelledby={`stop-heading-${stopIndex}`}
@@ -761,9 +761,11 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
   }
 
   /* Let the form/contact content column shrink so the panel never forces the
-   * whole stop past the mobile viewport. */
-  .stop-inner:has(.stop-form),
-  .stop-inner:has(.stop-contact) {
+   * whole stop past the mobile viewport.
+   * class-based (not :has()) — some device browsers don't apply :has() and would
+   * revert the terminal stops to the default left-aligned layout. The component
+   * emits .is-terminal-stop on the root for form/contact stops. */
+  .is-terminal-stop .stop-inner {
     min-width: 0;
   }
 
@@ -772,15 +774,13 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
    * edge-to-edge. Higher specificity than the generic large-screen .stop-inner
    * rules below, so it wins at 1440/1920 too. */
   @media (min-width: 1024px) {
-    .stop-inner:has(.stop-form),
-    .stop-inner:has(.stop-contact) {
+    .is-terminal-stop .stop-inner {
       max-width: 40rem; /* 640px — one roomy terminal column */
     }
   }
 
   @media (min-width: 1440px) {
-    .stop-inner:has(.stop-form),
-    .stop-inner:has(.stop-contact) {
+    .is-terminal-stop .stop-inner {
       max-width: 44rem; /* 704px */
     }
   }
@@ -790,8 +790,7 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
    * graze the navbar. Tighten these stops' vertical rhythm so the content always
    * clears the navbar. Taller viewports keep the roomier default. */
   @media (max-height: 820px) {
-    .stop-inner:has(.stop-form),
-    .stop-inner:has(.stop-contact) {
+    .is-terminal-stop .stop-inner {
       gap: clamp(0.35rem, 0.8svh, 0.55rem);
     }
   }
@@ -801,8 +800,7 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
    * than the viewport overflows it symmetrically INTO the navbar; top-aligning
    * starts the content right under the navbar and lets it flow down. */
   @media (max-height: 760px) {
-    .journey-stop:has(.stop-form),
-    .journey-stop:has(.stop-contact) {
+    .journey-stop.is-terminal-stop {
       align-items: flex-start;
       padding-top: 3.75rem;
     }
@@ -817,8 +815,7 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
    * isn't shoved to the left edge. Scoped below the desktop form/contact breakpoint
    * (1024px) so the desktop left-aligned layout is untouched. */
   @media (max-width: 1023.98px) {
-    .journey-stop:has(.stop-form),
-    .journey-stop:has(.stop-contact) {
+    .journey-stop.is-terminal-stop {
       justify-content: center;
     }
     /* Span the full available column (between the symmetric page gutters) so the
@@ -826,8 +823,7 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
      * intrinsic width and getting pinned left. margin-inline:auto is belt-and-braces
      * in case a future layout lets it be narrower than the column. Text inside stays
      * left-aligned (design language) — only the BLOCK is centered. */
-    .stop-inner:has(.stop-form),
-    .stop-inner:has(.stop-contact) {
+    .is-terminal-stop .stop-inner {
       width: 100%;
       margin-inline: auto;
     }
