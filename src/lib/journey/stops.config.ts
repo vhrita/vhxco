@@ -21,11 +21,18 @@
 //             Placed in upper-right cerebrum (dense lobe), ≥2 units from
 //             BRAIN_CENTER and distinct from every neighbor → rich geometry,
 //             not void. Verification math inline below.
+// N=7 (contact-v3): new CONTATO anchor appended after DIAGNOSE as the journey's
+//             deliberate closing frame — a gentle "rise & pull back" continuation
+//             of the dolly (up + back from the deep-back Diagnose anchor). Still
+//             INSIDE the cerebrum (dense, no void), short smooth final segment,
+//             and at t=1 f(t)'s lookAt falls back to BRAIN_CENTER (render-loop.ts
+//             §applyCameraF edge case) so the whole mass frames the close. Math
+//             verified inline below.
 // If QA finds a stop framing void/black, adjust the Vector3 here — all
 // downstream (arc-length, topnav, journey-state) derives from this array.
 //
 // V1 pain-first order:
-//   PROMESSA(0)→GARGALO(1)→MÉTODO(2)→SERVIÇOS(3)→PROVA(4)→DIAGNOSE(5)
+//   PROMESSA(0)→GARGALO(1)→MÉTODO(2)→SERVIÇOS(3)→PROVA(4)→DIAGNOSE(5)→CONTATO(6)
 
 import { Vector3 } from "three";
 
@@ -62,6 +69,17 @@ const stop4 = Object.freeze(new Vector3(-2.5, 1.0, -1.0));
 // r1=(2/6.5)²+((0.5-1)/4.5)²+((-1.5)/5)²=0.095+0.012+0.09=0.197 ✓
 const stop5 = Object.freeze(new Vector3(2.0, 0.5, -1.5));
 
+// CONTATO (N=7, contact-v3) — closing frame. From stop5(2,0.5,-1.5) the camera
+// rises and pulls back: up (+2.0 y) and further into the back (-2.5 z), settling
+// elevated over the rear cerebrum looking down-forward at BRAIN_CENTER.
+// · Short, smooth final segment — dist to stop5: √((-1.5)²+2²+(-2.5)²)=√(2.25+4+6.25)
+//   =√12.5≈3.54 (in-family with the 3.4–5.2 earlier segments → no rushed sweep).
+// · Dense, NOT void — inside the cerebrum: r1=(0.5/6.5)²+((2.5-1)/4.5)²+((-4)/5)²
+//   =0.006+0.111+0.64=0.757 ≤1 ✓ (upper-back lobe, rich geometry around the frame).
+// · ≥2 units from BRAIN_CENTER(-0.5,0.3,0): √(1²+2.2²+(-4)²)=√21.84≈4.67 ✓
+//   (no degenerate lookAt; at t=1 f(t) looks at BRAIN_CENTER → whole mass framed).
+const stop6 = Object.freeze(new Vector3(0.5, 2.5, -4.0));
+
 export const STOPS: StopConfig[] = [
   { position: stop0, label: "Promessa", slug: "promessa" },
   { position: stop1, label: "Gargalo", slug: "gargalo" },
@@ -69,6 +87,7 @@ export const STOPS: StopConfig[] = [
   { position: stop3, label: "Serviços", slug: "servicos" },
   { position: stop4, label: "Prova", slug: "prova" },
   { position: stop5, label: "Diagnose", slug: "diagnose" },
+  { position: stop6, label: "Contato", slug: "contato" },
 ];
 
 /** Number of stops — derive from STOPS array; never hardcode 5 elsewhere */

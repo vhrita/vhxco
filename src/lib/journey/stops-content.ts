@@ -22,7 +22,9 @@
  * headline: "\n" = <br> in templates.
  * body: null = no body copy for this stop.
  *
- * Order (unchanged): PROMESSA → GARGALO → MÉTODO → RESULTADOS → PROVA → AÇÃO.
+ * Order: PROMESSA → GARGALO → MÉTODO → RESULTADOS → PROVA → AÇÃO → CONTATO.
+ * contact-v3: AÇÃO (Diagnose form) is now its own stop again, and a dedicated
+ * CONTATO stop closes the journey (social/contact terminal panel).
  */
 
 export type StopLocale = "pt" | "en";
@@ -162,6 +164,14 @@ const PT_STOPS: StopContent[] = [
     hudHint: null, // action stop: no hint, has form
     taglineClose: "Construído por agentes. Feito para pessoas.",
   },
+  // Stop 6 — CONTATO (contact-v3) — closing stop, sibling terminal to DIAGNOSE.SH.
+  // Copy is the header chrome above the CONTATO.SH panel (ContactCluster.astro).
+  {
+    eyebrow: "CONTATO",
+    headline: "Vamos conversar.",
+    body: "Prefere o caminho curto? Fale direto com a gente.",
+    hudHint: null, // last stop: no hint, has the contact panel
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -252,13 +262,20 @@ const EN_STOPS: StopContent[] = [
     hudHint: null, // action stop: no hint, has form
     taglineClose: "Built by agents. Made for people.",
   },
+  // Stop 6 — CONTACT (contact-v3) — closing stop, sibling terminal to DIAGNOSE.SH.
+  {
+    eyebrow: "CONTACT",
+    headline: "Let's talk.",
+    body: "Prefer the short path? Reach out directly.",
+    hudHint: null, // last stop: no hint, has the contact panel
+  },
 ];
 
 // ---------------------------------------------------------------------------
 // Export helpers
 // ---------------------------------------------------------------------------
 
-/** All 6 stop content entries for the given locale (outcome-first order). */
+/** All 7 stop content entries for the given locale (outcome-first order). */
 export function getStopsContent(locale: StopLocale): StopContent[] {
   return locale === "en" ? EN_STOPS : PT_STOPS;
 }
@@ -282,6 +299,7 @@ export const STOP_NAV_LABELS = {
     { label: "Resultados", short: "RES" },
     { label: "Portfólio", short: "PRV" },
     { label: "Diagnóstico", short: "DIA" },
+    { label: "Contato", short: "CTT" },
   ],
   en: [
     { label: "Start", short: "INI" },
@@ -290,5 +308,6 @@ export const STOP_NAV_LABELS = {
     { label: "Results", short: "RES" },
     { label: "Portfolio", short: "PRV" },
     { label: "Diagnostic", short: "DIA" },
+    { label: "Contact", short: "CON" },
   ],
 } as const;

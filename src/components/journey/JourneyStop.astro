@@ -9,7 +9,11 @@
  *     (NOT .is-active class toggled by JS) — Astro scoping constraint.
  *   - Stop 0 renders an <h1> (SEO + bootComplete scramble).
  *     All other stops render <h2>.
- *   - The last stop (action, index totalStops-1) has a form slot for DiagnoseForm.
+ *   - contact-v3: the Diagnose form is the SECOND-to-last stop (index
+ *     totalStops-2, `isForm`) and renders the DiagnoseForm slot centered/full;
+ *     the Contato terminal panel is the LAST stop (index totalStops-1,
+ *     `isContact`) and renders the ContactCluster slot centered/full. No more
+ *     side-by-side/slider deck.
  *
  * v2 REPIVOT (outcome-first):
  *   - RESULTADOS stop renders 4 result cards with inline Lucide icons (no new
@@ -38,18 +42,23 @@ interface Props {
   totalStops: number;
   /** Stop content (locale-specific, passed from parent) */
   content: StopContent;
+  /** Page locale — passed through; not consumed here anymore. */
+  locale?: "pt" | "en";
 }
 
 const { stopIndex, totalStops, content } = Astro.props;
 
-const isHero = stopIndex === 0;                 // renders <h1>, wires bootComplete scramble
-const isAction = stopIndex === totalStops - 1;  // renders form slot instead of hud hint (derived, not hardcoded)
+const isHero = stopIndex === 0;                    // renders <h1>, wires bootComplete scramble
+// contact-v3: the Diagnose form is the SECOND-to-last stop; the Contato panel is
+// the LAST. Both derived from totalStops — never hardcode 5/6.
+const isForm = stopIndex === totalStops - 2;       // renders the DiagnoseForm slot (centered, full)
+const isContact = stopIndex === totalStops - 1;    // renders the ContactCluster slot (centered, full)
 const hasCards = Array.isArray(content.cards) && content.cards.length > 0;
 const hasTiles = Array.isArray(content.tiles) && content.tiles.length > 0;
 
-// Card 04 (cta:true) jumps to the last (action) stop — same event PersistentCta
-// dispatches. Derive the index from STOP_COUNT; never hardcode.
-const actionIndex = STOP_COUNT - 1;
+// Card 04 (cta:true) jumps to the DIAGNOSE FORM stop (not the Contato close) —
+// same event PersistentCta dispatches. Form = second-to-last (STOP_COUNT-2).
+const formIndex = STOP_COUNT - 2;
 
 // Render headline with line breaks at \n
 const headlineLines = content.headline.split("\n");
@@ -84,7 +93,7 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
 ---
 
 <div
-  class="journey-stop"
+  class:list={["journey-stop", (isForm || isContact) && "is-terminal-stop"]}
   data-stop={stopIndex}
   role="region"
   aria-labelledby={`stop-heading-${stopIndex}`}
@@ -175,8 +184,8 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
             <li class="stop-card is-cta">
               <a
                 class="stop-card-link"
-                href={`#stop-${actionIndex}`}
-                data-goto-action={actionIndex}
+                href={`#stop-${formIndex}`}
+                data-goto-action={formIndex}
               >{inner}</a>
             </li>
           ) : (
@@ -211,16 +220,28 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
       </div>
     )}
 
-    <!-- Action slot: form injected by parent for the last stop -->
-    {isAction && <slot name="form" />}
+    <!-- Diagnose stop (second-to-last): the form on its own, centered/full.
+         No contact panel beside it, no deck/slider (contact-v3). -->
+    {isForm && (
+      <div class="stop-form">
+        <slot name="form" />
+      </div>
+    )}
 
-    <!-- Closing tagline (D2) — action stop only, subtle, below the form -->
-    {isAction && content.taglineClose && (
+    <!-- Contact stop (last): the contact terminal panel on its own, centered/full. -->
+    {isContact && (
+      <div class="stop-contact">
+        <slot name="contact" />
+      </div>
+    )}
+
+    <!-- Closing tagline (D2) — Diagnose (form) stop only, subtle, below the form -->
+    {isForm && content.taglineClose && (
       <p class="stop-tagline-close">{content.taglineClose}</p>
     )}
 
-    <!-- HUD hint (only for non-action stops) -->
-    {!isAction && content.hudHint && (
+    <!-- HUD hint (only for stops that carry a hint — never the form/contact stops) -->
+    {!isForm && !isContact && content.hudHint && (
       <p class="stop-hud-hint" aria-hidden="true">
         <span class="hud-hint-arrow">›</span>
         {content.hudHint}
@@ -718,6 +739,105 @@ const ICON_CIRCLE: Partial<Record<ServiceIconId, { cx: number; cy: number; r: nu
     color: var(--color-cyan);
     opacity: 0.7;
     font-size: 0.875rem;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+   * Form & Contact stops (contact-v3)
+   *
+   * The old side-by-side/slider deck is gone. The Diagnose form (second-to-last
+   * stop) and the Contato terminal (last stop) each own the WHOLE stop now: a
+   * single terminal panel that fills the content column and breathes. Vertically
+   * centered like every other stop; a comfortable single-column width on desktop.
+   * ═════════════════════════════════════════════════════════════════════════ */
+
+  .stop-form,
+  .stop-contact {
+    display: flex;
+    flex-direction: column;
+    /* min-width:0 keeps a wide panel from forcing the stop past the viewport. */
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* Let the form/contact content column shrink so the panel never forces the
+   * whole stop past the mobile viewport.
+   * class-based (not :has()) — some device browsers don't apply :has() and would
+   * revert the terminal stops to the default left-aligned layout. The component
+   * emits .is-terminal-stop on the root for form/contact stops. */
+  .is-terminal-stop .stop-inner {
+    min-width: 0;
+  }
+
+  /* Desktop: a single terminal doesn't need the old 2-col width — give it a
+   * comfortable single reading column so it breathes without stretching
+   * edge-to-edge. Higher specificity than the generic large-screen .stop-inner
+   * rules below, so it wins at 1440/1920 too. */
+  @media (min-width: 1024px) {
+    .is-terminal-stop .stop-inner {
+      max-width: 40rem; /* 640px — one roomy terminal column */
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .is-terminal-stop .stop-inner {
+      max-width: 44rem; /* 704px */
+    }
+  }
+
+  /* Short desktop/laptop heights (e.g. 1024×768, 1280×800): the header
+   * (headline + body) plus a full-height panel can run a few px too tall and
+   * graze the navbar. Tighten these stops' vertical rhythm so the content always
+   * clears the navbar. Taller viewports keep the roomier default. */
+  @media (max-height: 820px) {
+    .is-terminal-stop .stop-inner {
+      gap: clamp(0.35rem, 0.8svh, 0.55rem);
+    }
+  }
+
+  /* Vertical alignment for the terminal stops (Diagnose form + Contato).
+   *
+   * Bug (S24+ Chrome, any viewport ≤760px tall — reproduces in Chromium responsive
+   * mode): the old rule below hard top-aligned these stops at EVERY height ≤760 via
+   * `@media (max-height:760px){ align-items:flex-start }`. That fires even when the
+   * panel comfortably FITS the viewport, jamming it to the top with a large empty
+   * gap underneath — reads as "not centered / lopsided" (measured dY up to −184px on
+   * a 390×760 form). The height media query was an unconditional hack: top-align was
+   * only ever wanted for the OVERFLOW case (panel taller than the viewport), to keep
+   * the content from spilling up into the navbar.
+   *
+   * Fix: `align-items: safe center`. The `safe` keyword centers on the cross axis
+   * (vertical, since .journey-stop is a flex ROW) whenever the item fits, and falls
+   * back to `start` ONLY when centering would overflow — i.e. it auto-top-aligns
+   * exactly (and only) in the overflow case, with no clipping of the top edge. The
+   * base .journey-stop padding-top (clamp(4rem,8svh,6rem) ≥ 64px) keeps the navbar
+   * clearance in that overflow case, so the old padding-top:3.75rem override is no
+   * longer needed. Scoped to terminal stops; stops 01–05 keep their own layout. */
+  .journey-stop.is-terminal-stop {
+    align-items: safe center;
+  }
+
+  /* Mobile / tablet horizontal centering (bug-fix — Diagnose + Contato).
+   * The journey-stop is a flex row that left-aligns its content
+   * (justify-content:flex-start + a growing left gutter) — the intended DESKTOP
+   * layout. On phones/tablets, though, the form & contact panels read best
+   * centered in the column: the top-align above (≤760px height) sets the VERTICAL
+   * clearance under the navbar, and this sets the HORIZONTAL centering so the panel
+   * isn't shoved to the left edge. Scoped below the desktop form/contact breakpoint
+   * (1024px) so the desktop left-aligned layout is untouched. */
+  @media (max-width: 1023.98px) {
+    .journey-stop.is-terminal-stop {
+      justify-content: center;
+    }
+    /* Span the full available column (between the symmetric page gutters) so the
+     * panel is centered by construction instead of shrink-wrapping to the terminal's
+     * intrinsic width and getting pinned left. margin-inline:auto is belt-and-braces
+     * in case a future layout lets it be narrower than the column. Text inside stays
+     * left-aligned (design language) — only the BLOCK is centered. */
+    .is-terminal-stop .stop-inner {
+      width: 100%;
+      margin-inline: auto;
+    }
   }
 
   /* ══════════════════════════════════════════════════════════════════════════

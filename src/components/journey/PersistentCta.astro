@@ -6,10 +6,12 @@
  * Key differences from the mockup:
  *   - href="#stop-acao" replaced with button that dispatches hud:goto-phase.
  *     journey-input.ts handles the event internally (setJourneyProgress to
- *     the action stop). CustomEvent payload: { detail: { phase: STOP_COUNT-1 } }.
- *   - Hides when at the last (action) stop — no CTA needed.
- *     Visibility driven by body[data-active-stop] in global.css (must be global
- *     to cross component scope boundaries, same constraint as JourneyStop).
+ *     the DIAGNOSE FORM stop). CustomEvent payload: { detail: { phase:
+ *     STOP_COUNT-2 } } — contact-v3: the form is the second-to-last stop now.
+ *   - Hides at the form stop AND the Contato stop (STOP_COUNT-2, STOP_COUNT-1) —
+ *     no "go to form" CTA needed once you're at/past it. Visibility driven by
+ *     body[data-active-stop] in global.css (must be global to cross component
+ *     scope boundaries, same constraint as JourneyStop).
  *
  * ADR-0020 §5 Eixo B: CTA persistente — always accessible shortcut for visitors
  * who arrived decided. Intentionally subtle (small pill, escape-hatch feel).
@@ -25,8 +27,9 @@ interface Props {
 
 const { locale = 'pt' } = Astro.props;
 
-// Action stop = last stop. Derive, never hardcode.
-const actionIndex = STOP_COUNT - 1;
+// contact-v3: the CTA sends visitors to the DIAGNOSE FORM stop, which is now the
+// SECOND-to-last stop (the last is Contato). Derive, never hardcode.
+const actionIndex = STOP_COUNT - 2;
 
 const label = locale === 'en'
   ? 'Go to diagnostic form'
