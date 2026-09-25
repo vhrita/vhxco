@@ -55,9 +55,7 @@ coverage/
 # nyc test coverage
 .nyc_output
 
-# Sketch uploads (archived in agentic/docs/)
-VHXCO Website/uploads/
-# Gemini Antigravity session artifacts
-VHXCO Website/debug/
+# Sketch v0 standalone — removido do repo (histórico em agentic/docs/)
+VHXCO Website/
 # Worktrees managed locally — never commit
 .worktrees/
