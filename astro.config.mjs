@@ -50,6 +50,9 @@ export default defineConfig({
           en: "en",
         },
       },
+      changefreq: "monthly",
+      priority: 0.7,
+      lastmod: new Date(),
     }),
   ],
 

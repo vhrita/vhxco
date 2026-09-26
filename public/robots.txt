@@ -8,26 +8,53 @@ Disallow: /dev/
 # AI crawlers explicitly welcome — the house wants to be cited by AI.
 User-agent: GPTBot
 Allow: /
+Disallow: /dev/
 
 User-agent: ChatGPT-User
 Allow: /
+Disallow: /dev/
 
 User-agent: OAI-SearchBot
 Allow: /
+Disallow: /dev/
 
 User-agent: ClaudeBot
 Allow: /
+Disallow: /dev/
 
 User-agent: Claude-Web
 Allow: /
+Disallow: /dev/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /dev/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /dev/
 
 User-agent: PerplexityBot
 Allow: /
+Disallow: /dev/
 
 User-agent: Google-Extended
 Allow: /
+Disallow: /dev/
+
+User-agent: Googlebot
+Allow: /
+Disallow: /dev/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /dev/
+
+# Bulk-scrape / low-quality training bots — not welcome.
+User-agent: Bytespider
+Disallow: /
 
 User-agent: CCBot
-Allow: /
+Disallow: /
 
 Sitemap: https://vhxco.com/sitemap-index.xml
